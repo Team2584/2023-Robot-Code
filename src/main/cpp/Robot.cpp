@@ -124,17 +124,19 @@ double ControllerAxisToAngle(double xAxis, double yAxis)
 // Start with target = 0
 double target_pos = 0;
 
-void swervePID (){
-  double kP,output;
-  output = kP * (abs(test_wheel_current_pos - target_pos)/180);
+void swervePID (double distanceToTarget, int direction){
+  double kP=0.6;
+  //output = kp * distance / maxDistance
+  double output = kP * (distanceToTarget/180);
+  swerveFL.Set(ControlMode::PercentOutput, direction * output);     
 }
 
 void Robot::TeleopPeriodic(){
 
   // Find current position in degrees, 0 is roughly forward
-
+  double test_wheel_current_pos = FLMagEnc.GetAbsolutePosition() - TEST_WHEEL_OFFSET;
   if (test_wheel_current_pos < 0)
-    test_wheel_current_pos += 1;
+    test_wheel_current_pos += 1;  
   test_wheel_current_pos = 1 - test_wheel_current_pos;
   test_wheel_current_pos *= 360;
 
@@ -144,7 +146,7 @@ void Robot::TeleopPeriodic(){
   double joy_lStick_Y = cont_Driver->GetLeftY(), joy_lStick_X = cont_Driver->GetLeftX(), joy_rStick_Y = cont_Driver->GetRightY();
   joy_lStick_Y *= -1;
 
-  double joy_lStick_dist_deadband = 0.1;
+  double joy_lStick_dist_deadband = 0.05;
   
   //Find Controller Angle
   double joy_lStick_distance = sqrt(pow(joy_lStick_X, 2.0) + pow(joy_lStick_Y,2.0));
@@ -159,23 +161,28 @@ void Robot::TeleopPeriodic(){
 
   if (test_wheel_current_pos < target_pos) {
     if (target_pos - test_wheel_current_pos  <= 180) {
-      swerveFL.Set(ControlMode::PercentOutput, rotation_power);     
+      swervePID(target_pos - test_wheel_current_p os, 1);
     }
     else {
-      swerveFL.Set(ControlMode::PercentOutput, -1 * rotation_power);       
+      swervePID(360 - (target_pos - test_wheel_current_pos), -1);
     }
   }
   else if (test_wheel_current_pos > target_pos){
     if (test_wheel_current_pos - target_pos <= 180) {
-      swerveFL.Set(ControlMode::PercentOutput, -1 * rotation_power);     
+      swervePID(test_wheel_current_pos - target_pos, -1);
     }
     else {
-      swerveFL.Set(ControlMode::PercentOutput, rotation_power);       
+      swervePID(360 - (test_wheel_current_pos - target_pos), 1);
     }
   }
   else {
         swerveFL.Set(ControlMode::PercentOutput, 0);          
   }
+
+  double driveMotorPower = 0.5 * joy_lStick_distance;
+
+  driveFL.Set(ControlMode::PercentOutput, driveMotorPower * -1);
+
 }
 
 

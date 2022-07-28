@@ -37,6 +37,5 @@ ChassisSpeeds speeds{1_mps, 3_mps, 1.5_rad_per_s};
 
 double thetaInit;
 #define TEST_WHEEL_OFFSET 0.75
-double test_wheel_current_pos = FLMagEnc.GetAbsolutePosition() - TEST_WHEEL_OFFSET;
 //auto [fl,fr,bl,br] = m_kinematics.ToSwerveModuleStates(speeds);
 
