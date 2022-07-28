@@ -11,7 +11,10 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 
 // Start with target = 0
+double FLtarget_pos = 0;
+double FRtarget_pos = 0;
 double target_pos = 0;
+
 
 void Robot::RobotInit() {
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
@@ -220,28 +223,74 @@ void Robot::TeleopPeriodic(){
 
   SmartDashboard::PutNumber ("target position:", target_pos);
 
-  double driveMotorPower = 0.5 * joy_lStick_distance;
+  double driveMotorPower = 0.2 * joy_lStick_distance;
 
   double FLarr[3];
+
+  if (abs(joy_rStick_X) > 0.05){
+    FLtarget_pos = 45;
+    double FLspinPower = 0.3 * joy_rStick_X;
+    swerveWheel(FL_current_pos, FLtarget_pos, FLarr);
+    driveFL.Set(ControlMode::PercentOutput,FLspinPower * FLarr[2]);
+    swerveFL.Set(ControlMode::PercentOutput, FLarr[0] * FLarr[1]);
+  }
+  else{
   swerveWheel(FL_current_pos, target_pos, FLarr);
   swerveFL.Set(ControlMode::PercentOutput, FLarr[0] * FLarr[1]);
   driveFL.Set(ControlMode::PercentOutput, driveMotorPower * FLarr[2]);
+  }
 
 
   double FRarr[3];
-  swerveWheel(FR_current_pos, target_pos, FRarr);
-  swerveFR.Set(ControlMode::PercentOutput, FRarr[0] * FRarr[1]);
-  driveFR.Set(ControlMode::PercentOutput, driveMotorPower * FRarr[2] * -1);
+
+  //if we want to turn
+  if (abs(joy_rStick_X) > 0.05){
+    FRtarget_pos = 315;
+    double FRspinPower =  0.3 * joy_rStick_X;
+    swerveWheel(FR_current_pos, FRtarget_pos, FRarr);
+    driveFR.Set(ControlMode::PercentOutput, FRspinPower * FRarr[2]);
+    swerveFR.Set(ControlMode::PercentOutput, FRarr[0] * FRarr[1]);
+  }
+  else{
+    swerveWheel(FR_current_pos, target_pos, FRarr);
+    swerveFR.Set(ControlMode::PercentOutput, FRarr[0] * FRarr[1]);
+    driveFR.Set(ControlMode::PercentOutput, driveMotorPower * FRarr[2] * -1);
+  }
+
 
   double BLarr[3];
-  swerveWheel(BL_current_pos, target_pos, BLarr);
-  swerveBL.Set(ControlMode::PercentOutput, BLarr[0] * BLarr[1]);
-  driveBL.Set(ControlMode::PercentOutput, driveMotorPower * BLarr[2]);
+
+  if (abs(joy_rStick_X) > 0.05){
+    FRtarget_pos = 315;
+    double BLspinPower = 0.3 * joy_rStick_X;
+    swerveWheel(BL_current_pos, FRtarget_pos, BLarr);
+    driveBL.Set(ControlMode::PercentOutput,BLspinPower * BLarr[2]);
+    swerveBL.Set(ControlMode::PercentOutput, BLarr[0] * BLarr[1]);
+  }
+  else{
+    swerveWheel(BL_current_pos, target_pos, BLarr);
+    swerveBL.Set(ControlMode::PercentOutput, BLarr[0] * BLarr[1]);
+    driveBL.Set(ControlMode::PercentOutput, driveMotorPower * BLarr[2]);
+  }
+
 
   double BRarr[2];
+
+   if (abs(joy_rStick_X)> 0.05){
+    FLtarget_pos = 225;
+    double BRspinPower = 0.3 * joy_rStick_X;
+    swerveWheel(BR_current_pos, FLtarget_pos, BRarr);
+    driveBR.Set(ControlMode::PercentOutput,BRspinPower * BRarr[2]);
+    swerveBR.Set(ControlMode::PercentOutput, BRarr[0] * BRarr[1]);
+  }
+  else{
   swerveWheel(BR_current_pos, target_pos, BRarr);
   swerveBR.Set(ControlMode::PercentOutput, BRarr[0] * BRarr[1]);
   driveBR.Set(ControlMode::PercentOutput, driveMotorPower * BRarr[2]);
+  }
+
+
+
 }
 
 
