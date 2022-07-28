@@ -10,7 +10,8 @@
 
 #include <frc/smartdashboard/SmartDashboard.h>
 
-
+// Start with target = 0
+double target_pos = 0;
 
 void Robot::RobotInit() {
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
@@ -82,6 +83,16 @@ int sgn(double x){
   return 0;
 }
 
+double EncoderReadingToAngle(double reading, double offset)
+{
+  reading -= offset;
+  if (reading < 0)
+    reading += 1;  
+  reading = 1 - reading;
+  reading *= 360;
+  return reading;
+}
+
 double ControllerAxisToAngle(double xAxis, double yAxis)
 {
   double controllerAngle = atan2(yAxis , xAxis);
@@ -121,29 +132,81 @@ double ControllerAxisToAngle(double xAxis, double yAxis)
   return controllerAngle;
 }
 
-// Start with target = 0
-double target_pos = 0;
-
-void swervePID (double distanceToTarget, int direction){
-  double kP=0.6;
+void swervePID (double distanceToTarget, int direction, double arr[]){
+  double kP=0.5;
   //output = kp * distance / maxDistance
-  double output = kP * (distanceToTarget/180);
-  swerveFL.Set(ControlMode::PercentOutput, direction * output);     
+  double output = kP * (distanceToTarget/90);
+  arr[1] = direction;
+  arr[0] = output;
+}
+
+// arr[0] = wheel rotation speed, arr[1] = wheel rotation direction, arr[2] = wheel spin direction
+void swerveWheel (double wheel_position, double wheel_target, double arr[])
+{
+  double driveDirection = 1;
+
+  if (wheel_position < wheel_target) {
+    if (wheel_target - wheel_position  <= 180) {
+      if (wheel_target - wheel_position <= 90) {
+        swervePID(wheel_target - wheel_position, 1, arr);
+      }
+      else {
+        swervePID(180 - (wheel_target - wheel_position), -1, arr);
+        driveDirection = -1;
+      }
+    }
+    else {
+      if (wheel_target - wheel_position <= 270) {
+        swervePID((wheel_target - wheel_position) - 180, 1, arr);
+        driveDirection = -1;
+      }
+      else {
+        swervePID(360 - (wheel_target - wheel_position), -1, arr);
+      }
+    }
+  }
+  else if (wheel_position > wheel_target){
+    if (wheel_position - wheel_target <= 180) {
+      if (wheel_position - wheel_target <= 90) {
+        swervePID(wheel_position - wheel_target, -1, arr);
+      }
+      else
+      {
+        swervePID(180 - (wheel_position - wheel_target), 1, arr);
+        driveDirection = -1;
+      }
+    }
+    else {
+      if (wheel_position - wheel_target <= 270) {
+        swervePID((wheel_position - wheel_target) - 180, -1, arr);
+        driveDirection = -1;
+      }
+      else {
+        swervePID(360 - (wheel_position - wheel_target), 1, arr);
+      }
+    }
+  }
+  else {
+        swerveFL.Set(ControlMode::PercentOutput, 0);          
+  }
+
+  arr[2] = driveDirection;
 }
 
 void Robot::TeleopPeriodic(){
 
   // Find current position in degrees, 0 is roughly forward
-  double test_wheel_current_pos = FLMagEnc.GetAbsolutePosition() - TEST_WHEEL_OFFSET;
-  if (test_wheel_current_pos < 0)
-    test_wheel_current_pos += 1;  
-  test_wheel_current_pos = 1 - test_wheel_current_pos;
-  test_wheel_current_pos *= 360;
+  double FL_current_pos = EncoderReadingToAngle(FLMagEnc.GetAbsolutePosition(), FL_WHEEL_OFFSET);
+  double FR_current_pos = EncoderReadingToAngle(FRMagEnc.GetAbsolutePosition(), FR_WHEEL_OFFSET);
+  double BR_current_pos = EncoderReadingToAngle(BRMagEnc.GetAbsolutePosition(), BR_WHEEL_OFFSET);
+  double BL_current_pos = EncoderReadingToAngle(BLMagEnc.GetAbsolutePosition(), BL_WHEEL_OFFSET);
 
-  SmartDashboard::PutNumber ("wheel current pos:", test_wheel_current_pos);
+  SmartDashboard::PutNumber ("FR Pos:", FRMagEnc.GetAbsolutePosition());
+  SmartDashboard::PutNumber ("BR Pos:", BRMagEnc.GetAbsolutePosition());
+  SmartDashboard::PutNumber ("BL Pos:", BLMagEnc.GetAbsolutePosition());
 
   //Find target from controller
-  double joy_lStick_Y = cont_Driver->GetLeftY(), joy_lStick_X = cont_Driver->GetLeftX(), joy_rStick_Y = cont_Driver->GetRightY();
+  double joy_lStick_Y = cont_Driver->GetLeftY(), joy_lStick_X = cont_Driver->GetLeftX(), joy_rStick_X = cont_Driver->GetRightX();
   joy_lStick_Y *= -1;
 
   double joy_lStick_dist_deadband = 0.05;
@@ -157,32 +220,28 @@ void Robot::TeleopPeriodic(){
 
   SmartDashboard::PutNumber ("target position:", target_pos);
 
-  double rotation_power = 0.07; // 0 - 1
-
-  if (test_wheel_current_pos < target_pos) {
-    if (target_pos - test_wheel_current_pos  <= 180) {
-      swervePID(target_pos - test_wheel_current_p os, 1);
-    }
-    else {
-      swervePID(360 - (target_pos - test_wheel_current_pos), -1);
-    }
-  }
-  else if (test_wheel_current_pos > target_pos){
-    if (test_wheel_current_pos - target_pos <= 180) {
-      swervePID(test_wheel_current_pos - target_pos, -1);
-    }
-    else {
-      swervePID(360 - (test_wheel_current_pos - target_pos), 1);
-    }
-  }
-  else {
-        swerveFL.Set(ControlMode::PercentOutput, 0);          
-  }
-
   double driveMotorPower = 0.5 * joy_lStick_distance;
 
-  driveFL.Set(ControlMode::PercentOutput, driveMotorPower * -1);
+  double FLarr[3];
+  swerveWheel(FL_current_pos, target_pos, FLarr);
+  swerveFL.Set(ControlMode::PercentOutput, FLarr[0] * FLarr[1]);
+  driveFL.Set(ControlMode::PercentOutput, driveMotorPower * FLarr[2]);
 
+
+  double FRarr[3];
+  swerveWheel(FR_current_pos, target_pos, FRarr);
+  swerveFR.Set(ControlMode::PercentOutput, FRarr[0] * FRarr[1]);
+  driveFR.Set(ControlMode::PercentOutput, driveMotorPower * FRarr[2] * -1);
+
+  double BLarr[3];
+  swerveWheel(BL_current_pos, target_pos, BLarr);
+  swerveBL.Set(ControlMode::PercentOutput, BLarr[0] * BLarr[1]);
+  driveBL.Set(ControlMode::PercentOutput, driveMotorPower * BLarr[2]);
+
+  double BRarr[2];
+  swerveWheel(BR_current_pos, target_pos, BRarr);
+  swerveBR.Set(ControlMode::PercentOutput, BRarr[0] * BRarr[1]);
+  driveBR.Set(ControlMode::PercentOutput, driveMotorPower * BRarr[2]);
 }
 
 
