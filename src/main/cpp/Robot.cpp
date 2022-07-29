@@ -204,6 +204,7 @@ void Robot::TeleopPeriodic(){
   double BR_current_pos = EncoderReadingToAngle(BRMagEnc.GetAbsolutePosition(), BR_WHEEL_OFFSET);
   double BL_current_pos = EncoderReadingToAngle(BLMagEnc.GetAbsolutePosition(), BL_WHEEL_OFFSET);
 
+  SmartDashboard::PutNumber ("FL Pos:", FLMagEnc.GetAbsolutePosition());
   SmartDashboard::PutNumber ("FR Pos:", FRMagEnc.GetAbsolutePosition());
   SmartDashboard::PutNumber ("BR Pos:", BRMagEnc.GetAbsolutePosition());
   SmartDashboard::PutNumber ("BL Pos:", BLMagEnc.GetAbsolutePosition());

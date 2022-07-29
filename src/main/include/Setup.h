@@ -36,9 +36,9 @@ ChassisSpeeds speeds{1_mps, 3_mps, 1.5_rad_per_s};
 
 
 double thetaInit;
-#define FL_WHEEL_OFFSET 0.75
+#define FL_WHEEL_OFFSET 0.755
 #define FR_WHEEL_OFFSET 0.957
-#define BR_WHEEL_OFFSET 0.973
-#define BL_WHEEL_OFFSET 0.504
+#define BR_WHEEL_OFFSET 0.118
+#define BL_WHEEL_OFFSET 0.501
 //auto [fl,fr,bl,br] = m_kinematics.ToSwerveModuleStates(speeds);
 
