@@ -6,7 +6,7 @@ using namespace std;
 using namespace frc;
 using namespace frc2;
 
-int fl,fr,bl,br;
+int fl, fr, bl, br;
 
 PS4Controller *cont_Driver = new PS4Controller(0);
 
@@ -24,21 +24,18 @@ DutyCycleEncoder FRMagEnc(2);
 DutyCycleEncoder BLMagEnc(1);
 DutyCycleEncoder BRMagEnc(0);
 
- 
-Translation2d m_frontLeft{0.5388_m ,0.5388_m};
-Translation2d m_frontRight{0.5388_m ,-0.5388_m};
-Translation2d m_backLeft{-0.5388_m ,0.5388_m};
-Translation2d m_backRight{-0.5388_m ,-0.5388_m};
+Translation2d m_frontLeft{0.5388_m, 0.5388_m};
+Translation2d m_frontRight{0.5388_m, -0.5388_m};
+Translation2d m_backLeft{-0.5388_m, 0.5388_m};
+Translation2d m_backRight{-0.5388_m, -0.5388_m};
 
 SwerveDriveKinematics<4> m_kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight};
 
 ChassisSpeeds speeds{1_mps, 3_mps, 1.5_rad_per_s};
-
 
 double thetaInit;
 #define FL_WHEEL_OFFSET 0.755
 #define FR_WHEEL_OFFSET 0.957
 #define BR_WHEEL_OFFSET 0.118
 #define BL_WHEEL_OFFSET 0.501
-//auto [fl,fr,bl,br] = m_kinematics.ToSwerveModuleStates(speeds);
-
+// auto [fl,fr,bl,br] = m_kinematics.ToSwerveModuleStates(speeds);
