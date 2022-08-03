@@ -33,6 +33,9 @@ SwerveDriveKinematics<4> m_kinematics{m_frontLeft, m_frontRight, m_backLeft, m_b
 
 ChassisSpeeds speeds{1_mps, 3_mps, 1.5_rad_per_s};
 
+//Change the number value to the port
+PigeonIMU _pigeon(5);
+
 double thetaInit;
 #define FL_WHEEL_OFFSET 0.755
 #define FR_WHEEL_OFFSET 0.457

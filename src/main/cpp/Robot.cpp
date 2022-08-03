@@ -278,7 +278,8 @@ void Robot::TeleopPeriodic()
   }
 
   // Find Pigeon IMU Angle TODO
-  double pigeon_angle = 0;
+  double pigeon_angle = _pigeon.GetYaw();
+  SmartDashboard::PutNumber("Pigeon Angle:", pigeon_angle);
 
   // Use pigion_angle to determine what our target movement vector is in relation to the robot
   double FWD_Drive_Speed = joy_lStick_Y * cos(pigeon_angle) + joy_lStick_X * sin(pigeon_angle);
