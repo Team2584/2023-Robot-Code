@@ -10,9 +10,15 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 
 // Start with target = 0
+double pigeon_initial;
 double FLtarget_pos = 0;
 double FRtarget_pos = 0;
 double target_pos = 0;
+
+double FR_Target_Angle = 0;
+double FL_Target_Angle = 0;
+double BL_Target_Angle = 0;
+double BR_Target_Angle = 0;
 
 void Robot::RobotInit()
 {
@@ -82,6 +88,8 @@ void Robot::AutonomousPeriodic()
 
 void Robot::TeleopInit()
 {
+  //REMOVE THIS BEFORE COMPETITION
+  pigeon_initial = _pigeon.GetYaw();
   thetaInit = FLMagEnc.GetAbsolutePosition() * 360;
   frc::SmartDashboard::PutNumber("Target", 0);
 }
@@ -175,6 +183,11 @@ void swervePID(double distanceToTarget, int direction, double arr[])
 void swerveWheel(double wheel_position, double wheel_target, double arr[])
 {
   double driveDirection = 1;
+
+  if (wheel_target < 0)
+  {
+    wheel_target += 360;
+  }
 
   // Ask me about the logic if you want to understand it.
   // Basically this has 8 seperate scanrios, 
@@ -278,13 +291,28 @@ void Robot::TeleopPeriodic()
   }
 
   // Find Pigeon IMU Angle TODO
-  double pigeon_angle = _pigeon.GetYaw();
+  double pigeon_angle = fmod(_pigeon.GetYaw(), 360);
+  pigeon_angle -= pigeon_initial;
+  if (pigeon_angle < 0) 
+    pigeon_angle += 360;
+  pigeon_angle = 360 - pigeon_angle;
+  if (pigeon_angle == 360)    
+    pigeon_angle = 0;
+  pigeon_angle *= M_PI / 180;
+
   SmartDashboard::PutNumber("Pigeon Angle:", pigeon_angle);
+
+  SmartDashboard::PutNumber("Y Joystick:", joy_lStick_Y);
+  SmartDashboard::PutNumber("X Joystick:", joy_lStick_X);
 
   // Use pigion_angle to determine what our target movement vector is in relation to the robot
   double FWD_Drive_Speed = joy_lStick_Y * cos(pigeon_angle) + joy_lStick_X * sin(pigeon_angle);
   double STRAFE_Drive_Speed = -1 * joy_lStick_Y * sin(pigeon_angle) + joy_lStick_X * cos(pigeon_angle);
   double Turn_Speed = joy_rStick_X;
+
+  SmartDashboard::PutNumber("FWD_Drive_Speed:", FWD_Drive_Speed);
+  SmartDashboard::PutNumber("STRAFE_Drive_Speed:", STRAFE_Drive_Speed);
+  SmartDashboard::PutNumber("Turn_Speed:", Turn_Speed);
 
   // Determine wheel speeds / wheel target positions
   // Equations explained at:
@@ -297,15 +325,53 @@ void Robot::TeleopPeriodic()
   double C = FWD_Drive_Speed - Turn_Speed * (DRIVE_LENGTH / DRIVE_RADIUS);
   double D = FWD_Drive_Speed + Turn_Speed * (DRIVE_LENGTH / DRIVE_RADIUS);
 
-  double FR_Drive_Speed = sqrt(pow(B, 2) + pow(C, 2));
-  double FR_Target_Angle = atan2(B, C) * 180 / M_PI;
-  double FL_Drive_Speed = sqrt(pow(B, 2) + pow(D, 2));
-  double FL_Target_Angle = atan2(B, D) * 180 / M_PI;
-  double BL_Drive_Speed = sqrt(pow(A, 2) + pow(D, 2));
-  double BL_Target_Angle = atan2(A, D) * 180 / M_PI;
-  double BR_Drive_Speed = sqrt(pow(A, 2) + pow(C, 2));
-  double BR_Target_Angle = atan2(A, C) * 180 / M_PI;
 
+
+  if (!(joy_lStick_X == 0 && joy_lStick_Y == 0 && joy_rStick_X == 0))
+  {
+      FR_Target_Angle = atan2(B, C) * 180 / M_PI;
+      FL_Target_Angle = atan2(B, D) * 180 / M_PI;
+      BL_Target_Angle = atan2(A, D) * 180 / M_PI;
+      BR_Target_Angle = atan2(A, C) * 180 / M_PI;
+  }
+
+  SmartDashboard::PutNumber("FR_ANGLE:", FR_Target_Angle);
+  SmartDashboard::PutNumber("FL_ANGLE:", FL_Target_Angle);
+  SmartDashboard::PutNumber("BL_ANGLE:", BL_Target_Angle);
+  SmartDashboard::PutNumber("BR_ANGLE:", BR_Target_Angle);
+
+
+  //Do not change target angle if joystick values are 0
+  double FR_Drive_Speed = sqrt(pow(B, 2) + pow(C, 2));
+  double FL_Drive_Speed = sqrt(pow(B, 2) + pow(D, 2));
+  double BL_Drive_Speed = sqrt(pow(A, 2) + pow(D, 2));
+  double BR_Drive_Speed = sqrt(pow(A, 2) + pow(C, 2));
+
+  //Above function makes wheel speeds correct in relation to one another, but not at the right values
+  //Below we are scaling the wheel speeds down to have a max of 1
+
+  double max = FR_Drive_Speed;
+  if (FL_Drive_Speed > max)
+    max = FL_Drive_Speed;
+  if (BL_Drive_Speed > max)
+    max = BL_Drive_Speed;
+  if (BR_Drive_Speed > max)
+    max = BR_Drive_Speed;
+  
+
+  if (max > 1)
+  {
+    FL_Drive_Speed /= max;
+    FR_Drive_Speed /= max;
+    BL_Drive_Speed /= max;
+    BR_Drive_Speed /= max;
+  }
+
+  FL_Drive_Speed *= MAX_DRIVE_SPEED;
+  BL_Drive_Speed *= MAX_DRIVE_SPEED;
+  FR_Drive_Speed *= MAX_DRIVE_SPEED;
+  BR_Drive_Speed *= MAX_DRIVE_SPEED;
+  
   // Rotate and Spin Wheels to desired target at desired speed
   // arr[0] = wheel rotation speed, arr[1] = wheel rotation direction, arr[2] = wheel spin direction
   // An array is my way for a function to return multiple values, sorry
