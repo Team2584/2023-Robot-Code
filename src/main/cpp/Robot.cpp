@@ -308,7 +308,7 @@ void Robot::TeleopPeriodic()
   // Use pigion_angle to determine what our target movement vector is in relation to the robot
   double FWD_Drive_Speed = joy_lStick_Y * cos(pigeon_angle) + joy_lStick_X * sin(pigeon_angle);
   double STRAFE_Drive_Speed = -1 * joy_lStick_Y * sin(pigeon_angle) + joy_lStick_X * cos(pigeon_angle);
-  double Turn_Speed = joy_rStick_X;
+  double Turn_Speed = joy_rStick_X * 1.2;
 
   SmartDashboard::PutNumber("FWD_Drive_Speed:", FWD_Drive_Speed);
   SmartDashboard::PutNumber("STRAFE_Drive_Speed:", STRAFE_Drive_Speed);
@@ -358,19 +358,23 @@ void Robot::TeleopPeriodic()
   if (BR_Drive_Speed > max)
     max = BR_Drive_Speed;
   
-
-  if (max > 1)
-  {
-    FL_Drive_Speed /= max;
-    FR_Drive_Speed /= max;
-    BL_Drive_Speed /= max;
-    BR_Drive_Speed /= max;
-  }
-
+  
   FL_Drive_Speed *= MAX_DRIVE_SPEED;
   BL_Drive_Speed *= MAX_DRIVE_SPEED;
   FR_Drive_Speed *= MAX_DRIVE_SPEED;
   BR_Drive_Speed *= MAX_DRIVE_SPEED;
+
+
+  if (max > (1 / MAX_DRIVE_SPEED))
+  {
+    FL_Drive_Speed /= (max * MAX_DRIVE_SPEED);
+    FR_Drive_Speed /= (max * MAX_DRIVE_SPEED);
+    BL_Drive_Speed /= (max * MAX_DRIVE_SPEED);
+    BR_Drive_Speed /= (max * MAX_DRIVE_SPEED);
+  }
+
+    SmartDashboard::PutNumber("Is Max Peaking?:", max);
+
   
   // Rotate and Spin Wheels to desired target at desired speed
   // arr[0] = wheel rotation speed, arr[1] = wheel rotation direction, arr[2] = wheel spin direction
