@@ -10,9 +10,15 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 
 // Start with target = 0
+double pigeon_initial;
 double FLtarget_pos = 0;
 double FRtarget_pos = 0;
 double target_pos = 0;
+
+double FR_Target_Angle = 0;
+double FL_Target_Angle = 0;
+double BL_Target_Angle = 0;
+double BR_Target_Angle = 0;
 
 void Robot::RobotInit()
 {
@@ -82,6 +88,8 @@ void Robot::AutonomousPeriodic()
 
 void Robot::TeleopInit()
 {
+  //REMOVE THIS BEFORE COMPETITION
+  pigeon_initial = _pigeon.GetYaw();
   thetaInit = FLMagEnc.GetAbsolutePosition() * 360;
   frc::SmartDashboard::PutNumber("Target", 0);
 }
@@ -101,10 +109,13 @@ int sgn(double x)
 
 double EncoderReadingToAngle(double reading, double offset)
 {
+  // subtract the encoder offset to make 0 degrees forward
   reading -= offset;
   if (reading < 0)
     reading += 1;
+  // Flip the degrees to make clockwise positive
   reading = 1 - reading;
+  // Convert from 0-1 to degrees
   reading *= 360;
   return reading;
 }
@@ -156,20 +167,32 @@ double ControllerAxisToAngle(double xAxis, double yAxis)
   return controllerAngle;
 }
 
+// Input a distance to target and a direction, updates arr with rotation speed of wheel using PID
+// arr[0] = wheel rotation speed, arr[1] = wheel rotation direction, arr[2] = wheel spin direction
 void swervePID(double distanceToTarget, int direction, double arr[])
 {
-  double kP = 0.5;
+  double kP = MAX_SPIN_SPEED;
   // output = kp * distance / maxDistance
   double output = kP * (distanceToTarget / 90);
   arr[1] = direction;
   arr[0] = output;
 }
 
+// Input a current position and a target, updates arr with optimal wheel speeds and rotation
 // arr[0] = wheel rotation speed, arr[1] = wheel rotation direction, arr[2] = wheel spin direction
 void swerveWheel(double wheel_position, double wheel_target, double arr[])
 {
   double driveDirection = 1;
 
+  if (wheel_target < 0)
+  {
+    wheel_target += 360;
+  }
+
+  // Ask me about the logic if you want to understand it.
+  // Basically this has 8 seperate scanrios, 
+  // Either your wheel position is less than or greater than your target
+  // And for each of those 2 scenarios, there are 4 possible rotation directions
   if (wheel_position < wheel_target)
   {
     if (wheel_target - wheel_position <= 180)
@@ -235,212 +258,145 @@ void swerveWheel(double wheel_position, double wheel_target, double arr[])
 void Robot::TeleopPeriodic()
 {
 
-  // Find current position in degrees, 0 is roughly forward
+  // Find current position of wheel in degrees, 0 is forward and degrees increase clockwise
   double FL_current_pos = EncoderReadingToAngle(FLMagEnc.GetAbsolutePosition(), FL_WHEEL_OFFSET);
   double FR_current_pos = EncoderReadingToAngle(FRMagEnc.GetAbsolutePosition(), FR_WHEEL_OFFSET);
   double BR_current_pos = EncoderReadingToAngle(BRMagEnc.GetAbsolutePosition(), BR_WHEEL_OFFSET);
   double BL_current_pos = EncoderReadingToAngle(BLMagEnc.GetAbsolutePosition(), BL_WHEEL_OFFSET);
 
+  // Print for debugging purposes
   SmartDashboard::PutNumber("FL Pos:", FLMagEnc.GetAbsolutePosition());
   SmartDashboard::PutNumber("FR Pos:", FRMagEnc.GetAbsolutePosition());
   SmartDashboard::PutNumber("BR Pos:", BRMagEnc.GetAbsolutePosition());
   SmartDashboard::PutNumber("BL Pos:", BLMagEnc.GetAbsolutePosition());
 
-  // Find target from controller
+  // Find controller input
   double joy_lStick_Y = cont_Driver->GetLeftY(), joy_lStick_X = cont_Driver->GetLeftX(),
          joy_rStick_X = cont_Driver->GetRightX();
   joy_lStick_Y *= -1;
 
-  double joy_lStick_dist_deadband = 0.05;
-
-  // Find Controller Angle
+  // Remove ghost movement by making sure joystick is moved a certain amount
   double joy_lStick_distance = sqrt(pow(joy_lStick_X, 2.0) + pow(joy_lStick_Y, 2.0));
+  double joystick_deadband = 0.05;
 
-  // Target in degrees
-  if (joy_lStick_distance > joy_lStick_dist_deadband)
-    target_pos = ControllerAxisToAngle(joy_lStick_X, joy_lStick_Y);
-
-  SmartDashboard::PutNumber("target position:", target_pos);
-
-  double driveMotorPower = 0.2 * joy_lStick_distance;
-
-  double FLarr[3];
-
-  if (abs(joy_rStick_X) > 0.05)
+  if (joy_lStick_distance < joystick_deadband)
   {
-    FLtarget_pos = 45;
-    double FLspinPower = 0.3 * joy_rStick_X;
-    swerveWheel(FL_current_pos, FLtarget_pos, FLarr);
-    driveFL.Set(ControlMode::PercentOutput, FLspinPower * FLarr[2]);
-    swerveFL.Set(ControlMode::PercentOutput, FLarr[0] * FLarr[1]);
-  }
-  else
-  {
-    swerveWheel(FL_current_pos, target_pos, FLarr);
-    swerveFL.Set(ControlMode::PercentOutput, FLarr[0] * FLarr[1]);
-    driveFL.Set(ControlMode::PercentOutput, driveMotorPower * FLarr[2]);
-  }
-
-  double FRarr[3];
-
-  // if we want to turn
-  if (abs(joy_rStick_X) > 0.05)
-  {
-    FRtarget_pos = 315;
-    double FRspinPower = 0.3 * joy_rStick_X;
-    swerveWheel(FR_current_pos, FRtarget_pos, FRarr);
-    driveFR.Set(ControlMode::PercentOutput, FRspinPower * FRarr[2]);
-    swerveFR.Set(ControlMode::PercentOutput, FRarr[0] * FRarr[1]);
-  }
-  else
-  {
-    swerveWheel(FR_current_pos, target_pos, FRarr);
-    swerveFR.Set(ControlMode::PercentOutput, FRarr[0] * FRarr[1]);
-    driveFR.Set(ControlMode::PercentOutput, driveMotorPower * FRarr[2] * -1);
-  }
-
-  double BLarr[3];
-
-  if (abs(joy_rStick_X) > 0.05)
-  {
-    FRtarget_pos = 315;
-    double BLspinPower = 0.3 * joy_rStick_X;
-    swerveWheel(BL_current_pos, FRtarget_pos, BLarr);
-    driveBL.Set(ControlMode::PercentOutput, BLspinPower * BLarr[2]);
-    swerveBL.Set(ControlMode::PercentOutput, BLarr[0] * BLarr[1]);
-  }
-  else
-  {
-    swerveWheel(BL_current_pos, target_pos, BLarr);
-    swerveBL.Set(ControlMode::PercentOutput, BLarr[0] * BLarr[1]);
-    driveBL.Set(ControlMode::PercentOutput, driveMotorPower * BLarr[2]);
-  }
-
-  double BRarr[2];
-
-  if (abs(joy_rStick_X) > 0.05)
-  {
-    FLtarget_pos = 225;
-    double BRspinPower = 0.3 * joy_rStick_X;
-    swerveWheel(BR_current_pos, FLtarget_pos, BRarr);
-    driveBR.Set(ControlMode::PercentOutput, BRspinPower * BRarr[2]);
-    swerveBR.Set(ControlMode::PercentOutput, BRarr[0] * BRarr[1]);
-  }
-  else
-  {
-    swerveWheel(BR_current_pos, target_pos, BRarr);
-    swerveBR.Set(ControlMode::PercentOutput, BRarr[0] * BRarr[1]);
-    driveBR.Set(ControlMode::PercentOutput, driveMotorPower * BRarr[2]);
-  }
-}
-
-/*
-void Robot::TeleopPeriodic() {
-  double joy_lStick_Y_deadband = 0.05, joy_rStick_Y_deadband = 0.05, joy_lStick_X_deadband = 0.05;
-  double joy_lStick_Y = cont_Driver->GetLeftY(), joy_lStick_X = cont_Driver->GetLeftX(), joy_rStick_Y =
-cont_Driver->GetRightY(); double FLPos = FLMagEnc.GetAbsolutePosition(); auto output = FLMagEnc.Get(); bool con =
-FLMagEnc.IsConnected();
-
-  SmartDashboard::PutNumber ("FLMag:", FLPos);
-  SmartDashboard::PutNumber ("FL Values:", output.value());
-  SmartDashboard::PutBoolean ("FL Connected:", con);
-  SmartDashboard::PutNumber("Channel", FLMagEnc.GetSourceChannel());
-  SmartDashboard::PutNumber("current position", FLPos);
-
-
-  //Remove Deadzone
-  if (abs(joy_lStick_Y) < joy_lStick_Y_deadband){
+    joy_lStick_X = 0;
     joy_lStick_Y = 0;
   }
 
-  if (abs(joy_rStick_Y) < joy_rStick_Y_deadband){
-    joy_rStick_Y = 0;
+  if (abs(joy_rStick_X) < joystick_deadband)
+  {
+    joy_rStick_X = 0;
   }
 
-  if (abs(joy_lStick_X) < joy_lStick_X_deadband){
-    joy_rStick_Y = 0;
+  // Find Pigeon IMU Angle TODO
+  double pigeon_angle = fmod(_pigeon.GetYaw(), 360);
+  pigeon_angle -= pigeon_initial;
+  if (pigeon_angle < 0) 
+    pigeon_angle += 360;
+  pigeon_angle = 360 - pigeon_angle;
+  if (pigeon_angle == 360)    
+    pigeon_angle = 0;
+  pigeon_angle *= M_PI / 180;
+
+  SmartDashboard::PutNumber("Pigeon Angle:", pigeon_angle);
+
+  SmartDashboard::PutNumber("Y Joystick:", joy_lStick_Y);
+  SmartDashboard::PutNumber("X Joystick:", joy_lStick_X);
+
+  // Use pigion_angle to determine what our target movement vector is in relation to the robot
+  double FWD_Drive_Speed = joy_lStick_Y * cos(pigeon_angle) + joy_lStick_X * sin(pigeon_angle);
+  double STRAFE_Drive_Speed = -1 * joy_lStick_Y * sin(pigeon_angle) + joy_lStick_X * cos(pigeon_angle);
+  double Turn_Speed = joy_rStick_X;
+
+  SmartDashboard::PutNumber("FWD_Drive_Speed:", FWD_Drive_Speed);
+  SmartDashboard::PutNumber("STRAFE_Drive_Speed:", STRAFE_Drive_Speed);
+  SmartDashboard::PutNumber("Turn_Speed:", Turn_Speed);
+
+  // Determine wheel speeds / wheel target positions
+  // Equations explained at:
+  // https://www.chiefdelphi.com/t/paper-4-wheel-independent-drive-independent-steering-swerve/107383
+  // After clicking above link press the top download to see how the equations work
+  double DRIVE_RADIUS = sqrt(pow(DRIVE_LENGTH, 2) + pow(DRIVE_WIDTH, 2));
+
+  double A = STRAFE_Drive_Speed - Turn_Speed * (DRIVE_LENGTH / DRIVE_RADIUS);
+  double B = STRAFE_Drive_Speed + Turn_Speed * (DRIVE_LENGTH / DRIVE_RADIUS);
+  double C = FWD_Drive_Speed - Turn_Speed * (DRIVE_LENGTH / DRIVE_RADIUS);
+  double D = FWD_Drive_Speed + Turn_Speed * (DRIVE_LENGTH / DRIVE_RADIUS);
+
+
+
+  if (!(joy_lStick_X == 0 && joy_lStick_Y == 0 && joy_rStick_X == 0))
+  {
+      FR_Target_Angle = atan2(B, C) * 180 / M_PI;
+      FL_Target_Angle = atan2(B, D) * 180 / M_PI;
+      BL_Target_Angle = atan2(A, D) * 180 / M_PI;
+      BR_Target_Angle = atan2(A, C) * 180 / M_PI;
   }
 
-  //set target and power wheel will spin with
-  double target = 45;
-  double power = 0.2;
-
-  double thetaRelative = FLMagEnc.GetAbsolutePosition()*360 - thetaInit;
-  double angle = 0;
-  double currentRelative;
-  SmartDashboard::PutNumber("Theta Initial", thetaInit);
-  SmartDashboard::PutNumber("Theta Raw", angle);
-  //target = SmartDashboard::GetNumber("Target",0);
+  SmartDashboard::PutNumber("FR_ANGLE:", FR_Target_Angle);
+  SmartDashboard::PutNumber("FL_ANGLE:", FL_Target_Angle);
+  SmartDashboard::PutNumber("BL_ANGLE:", BL_Target_Angle);
+  SmartDashboard::PutNumber("BR_ANGLE:", BR_Target_Angle);
 
 
-  //Find Controller Angle
-  joy_lStick_Y *= -1;
+  //Do not change target angle if joystick values are 0
+  double FR_Drive_Speed = sqrt(pow(B, 2) + pow(C, 2));
+  double FL_Drive_Speed = sqrt(pow(B, 2) + pow(D, 2));
+  double BL_Drive_Speed = sqrt(pow(A, 2) + pow(D, 2));
+  double BR_Drive_Speed = sqrt(pow(A, 2) + pow(C, 2));
 
-  double controllerAngle = atan2(joy_lStick_Y , joy_lStick_X);
-  SmartDashboard::PutNumber("atan2 angle", controllerAngle);
-  SmartDashboard::PutNumber("XAxis", joy_lStick_X);
-  SmartDashboard::PutNumber("YAxis", joy_lStick_Y);
+  //Above function makes wheel speeds correct in relation to one another, but not at the right values
+  //Below we are scaling the wheel speeds down to have a max of 1
 
+  double max = FR_Drive_Speed;
+  if (FL_Drive_Speed > max)
+    max = FL_Drive_Speed;
+  if (BL_Drive_Speed > max)
+    max = BL_Drive_Speed;
+  if (BR_Drive_Speed > max)
+    max = BR_Drive_Speed;
+  
 
-  if (joy_lStick_X >= 0 && joy_lStick_Y >= 0){
-    controllerAngle = (M_PI / 2) - atan2(joy_lStick_Y, joy_lStick_X);
-  }
-  else if (joy_lStick_X >= 0 && joy_lStick_Y <= 0){
-    controllerAngle = M_PI / 2 - atan2(joy_lStick_Y, joy_lStick_X);
-  }
-  else if (joy_lStick_X <= 0 && joy_lStick_Y <= 0){
-    controllerAngle = M_PI / 2 - atan2(joy_lStick_Y, joy_lStick_X);
-  }
-  else if (joy_lStick_X <= 0 && joy_lStick_Y >= 0){
-    controllerAngle = 5 * M_PI / 2 - atan2(joy_lStick_Y, joy_lStick_X);
-  }
-  SmartDashboard::PutNumber("controller angle", controllerAngle);
-
-
-  //Finds Relative Angle of Wheel
-  if (thetaRelative < thetaInit){
-    currentRelative = abs(thetaRelative - thetaInit);
-  }
-  else{
-    currentRelative = abs((thetaRelative - 360) - thetaInit);
+  if (max > 1)
+  {
+    FL_Drive_Speed /= max;
+    FR_Drive_Speed /= max;
+    BL_Drive_Speed /= max;
+    BR_Drive_Speed /= max;
   }
 
-  SmartDashboard::PutNumber("X:", currentRelative);
+  FL_Drive_Speed *= MAX_DRIVE_SPEED;
+  BL_Drive_Speed *= MAX_DRIVE_SPEED;
+  FR_Drive_Speed *= MAX_DRIVE_SPEED;
+  BR_Drive_Speed *= MAX_DRIVE_SPEED;
+  
+  // Rotate and Spin Wheels to desired target at desired speed
+  // arr[0] = wheel rotation speed, arr[1] = wheel rotation direction, arr[2] = wheel spin direction
+  // An array is my way for a function to return multiple values, sorry
+  double FLarr[3];
+  // Set the values in the array
+  swerveWheel(FL_current_pos, FL_Target_Angle, FLarr);
+  // Set the drive speeds based on the returned values
+  swerveFL.Set(ControlMode::PercentOutput, FLarr[0] * FLarr[1]);
+  driveFL.Set(ControlMode::PercentOutput, FL_Drive_Speed * FLarr[2] * MAX_DRIVE_SPEED);
 
-  //move towards target
-  if(currentRelative < target){
-    swerveFL.Set(ControlMode::PercentOutput, power);
-  }
-  else{
-    swerveFL.Set(ControlMode::PercentOutput, 0);
-  }
+  double FRarr[3];
+  swerveWheel(FR_current_pos, FR_Target_Angle, FRarr);
+  swerveFR.Set(ControlMode::PercentOutput, FRarr[0] * FRarr[1]);
+  driveFR.Set(ControlMode::PercentOutput, FR_Drive_Speed * FRarr[2] * MAX_DRIVE_SPEED);
 
-  power = sqrt(pow(joy_lStick_X, 2.0) + pow(joy_lStick_Y,2.0));
-  if (abs(FLMagEnc.GetAbsolutePosition()*360 - target)> 20){
-    swerveFL.Set(ControlMode::PercentOutput, 0);
-    swerveFR.Set(ControlMode::PercentOutput, 0);
-    swerveBL.Set(ControlMode::PercentOutput, 0);
-    swerveBR.Set(ControlMode::PercentOutput, 0);
-  }
-  else{
-    swerveFL.Set(ControlMode::PercentOutput,0);
-    swerveFR.Set(ControlMode::PercentOutput,0);
-    swerveBL.Set(ControlMode::PercentOutput,0);
-    swerveBR.Set(ControlMode::PercentOutput,0);
-  }
+  double BLarr[3];
+  swerveWheel(BL_current_pos, BL_Target_Angle, BLarr);
+  swerveBL.Set(ControlMode::PercentOutput, BLarr[0] * BLarr[1]);
+  driveBL.Set(ControlMode::PercentOutput, BL_Drive_Speed * BLarr[2] * MAX_DRIVE_SPEED);
 
-  driveFL.Set(ControlMode::PercentOutput,power * 0.2 * sgn(joy_lStick_Y));
-  driveFR.Set(ControlMode::PercentOutput,power * 0.2 * sgn(joy_lStick_Y));
-  driveBL.Set(ControlMode::PercentOutput,power * 0.2 * sgn(joy_lStick_Y));
-  driveBR.Set(ControlMode::PercentOutput,power * 0.2 * sgn(joy_lStick_Y));
-
-
-  }
-
-
-
-  //Wait(0.02_t);
-*/
+  double BRarr[2];
+  swerveWheel(BR_current_pos, BR_Target_Angle, BRarr);
+  swerveBR.Set(ControlMode::PercentOutput, BRarr[0] * BRarr[1]);
+  driveBR.Set(ControlMode::PercentOutput, BR_Drive_Speed * BRarr[2] * MAX_DRIVE_SPEED);
+}
 
 void Robot::DisabledInit()
 {

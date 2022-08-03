@@ -7,6 +7,7 @@
 #include <frc/smartdashboard/SendableChooser.h>
 //#include "rev/CANEncoder.h"
 #include "ctre/phoenix/motorcontrol/can/WPI_TalonFX.h"
+#include "ctre/phoenix/sensors/PigeonIMU.h"
 
 #include <fmt/core.h>
 
