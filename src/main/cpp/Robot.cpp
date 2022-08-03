@@ -88,7 +88,7 @@ void Robot::AutonomousPeriodic()
 
 void Robot::TeleopInit()
 {
-  //REMOVE THIS BEFORE COMPETITION
+  // REMOVE THIS BEFORE COMPETITION
   pigeon_initial = _pigeon.GetYaw();
   thetaInit = FLMagEnc.GetAbsolutePosition() * 360;
   frc::SmartDashboard::PutNumber("Target", 0);
@@ -190,7 +190,7 @@ void swerveWheel(double wheel_position, double wheel_target, double arr[])
   }
 
   // Ask me about the logic if you want to understand it.
-  // Basically this has 8 seperate scanrios, 
+  // Basically this has 8 seperate scanrios,
   // Either your wheel position is less than or greater than your target
   // And for each of those 2 scenarios, there are 4 possible rotation directions
   if (wheel_position < wheel_target)
@@ -293,10 +293,10 @@ void Robot::TeleopPeriodic()
   // Find Pigeon IMU Angle TODO
   double pigeon_angle = fmod(_pigeon.GetYaw(), 360);
   pigeon_angle -= pigeon_initial;
-  if (pigeon_angle < 0) 
+  if (pigeon_angle < 0)
     pigeon_angle += 360;
   pigeon_angle = 360 - pigeon_angle;
-  if (pigeon_angle == 360)    
+  if (pigeon_angle == 360)
     pigeon_angle = 0;
   pigeon_angle *= M_PI / 180;
 
@@ -325,14 +325,12 @@ void Robot::TeleopPeriodic()
   double C = FWD_Drive_Speed - Turn_Speed * (DRIVE_LENGTH / DRIVE_RADIUS);
   double D = FWD_Drive_Speed + Turn_Speed * (DRIVE_LENGTH / DRIVE_RADIUS);
 
-
-
   if (!(joy_lStick_X == 0 && joy_lStick_Y == 0 && joy_rStick_X == 0))
   {
-      FR_Target_Angle = atan2(B, C) * 180 / M_PI;
-      FL_Target_Angle = atan2(B, D) * 180 / M_PI;
-      BL_Target_Angle = atan2(A, D) * 180 / M_PI;
-      BR_Target_Angle = atan2(A, C) * 180 / M_PI;
+    FR_Target_Angle = atan2(B, C) * 180 / M_PI;
+    FL_Target_Angle = atan2(B, D) * 180 / M_PI;
+    BL_Target_Angle = atan2(A, D) * 180 / M_PI;
+    BR_Target_Angle = atan2(A, C) * 180 / M_PI;
   }
 
   SmartDashboard::PutNumber("FR_ANGLE:", FR_Target_Angle);
@@ -340,15 +338,14 @@ void Robot::TeleopPeriodic()
   SmartDashboard::PutNumber("BL_ANGLE:", BL_Target_Angle);
   SmartDashboard::PutNumber("BR_ANGLE:", BR_Target_Angle);
 
-
-  //Do not change target angle if joystick values are 0
+  // Do not change target angle if joystick values are 0
   double FR_Drive_Speed = sqrt(pow(B, 2) + pow(C, 2));
   double FL_Drive_Speed = sqrt(pow(B, 2) + pow(D, 2));
   double BL_Drive_Speed = sqrt(pow(A, 2) + pow(D, 2));
   double BR_Drive_Speed = sqrt(pow(A, 2) + pow(C, 2));
 
-  //Above function makes wheel speeds correct in relation to one another, but not at the right values
-  //Below we are scaling the wheel speeds down to have a max of 1
+  // Above function makes wheel speeds correct in relation to one another, but not at the right values
+  // Below we are scaling the wheel speeds down to have a max of 1
 
   double max = FR_Drive_Speed;
   if (FL_Drive_Speed > max)
@@ -357,13 +354,11 @@ void Robot::TeleopPeriodic()
     max = BL_Drive_Speed;
   if (BR_Drive_Speed > max)
     max = BR_Drive_Speed;
-  
-  
+
   FL_Drive_Speed *= MAX_DRIVE_SPEED;
   BL_Drive_Speed *= MAX_DRIVE_SPEED;
   FR_Drive_Speed *= MAX_DRIVE_SPEED;
   BR_Drive_Speed *= MAX_DRIVE_SPEED;
-
 
   if (max > (1 / MAX_DRIVE_SPEED))
   {
@@ -373,9 +368,8 @@ void Robot::TeleopPeriodic()
     BR_Drive_Speed /= (max * MAX_DRIVE_SPEED);
   }
 
-    SmartDashboard::PutNumber("Is Max Peaking?:", max);
+  SmartDashboard::PutNumber("Is Max Peaking?:", max);
 
-  
   // Rotate and Spin Wheels to desired target at desired speed
   // arr[0] = wheel rotation speed, arr[1] = wheel rotation direction, arr[2] = wheel spin direction
   // An array is my way for a function to return multiple values, sorry
