@@ -277,7 +277,7 @@ void Robot::TeleopPeriodic()
 
   // Remove ghost movement by making sure joystick is moved a certain amount
   double joy_lStick_distance = sqrt(pow(joy_lStick_X, 2.0) + pow(joy_lStick_Y, 2.0));
-  double joystick_deadband = 0.05;
+  double joystick_deadband = 0.1;
 
   if (joy_lStick_distance < joystick_deadband)
   {
@@ -394,6 +394,12 @@ void Robot::TeleopPeriodic()
   swerveWheel(BR_current_pos, BR_Target_Angle, BRarr);
   swerveBR.Set(ControlMode::PercentOutput, BRarr[0] * BRarr[1]);
   driveBR.Set(ControlMode::PercentOutput, BR_Drive_Speed * BRarr[2] * MAX_DRIVE_SPEED);
+
+  SmartDashboard::PutNumber("FR Drive Position:", FR_current_pos);
+  SmartDashboard::PutNumber("FL Drive Position:", FL_current_pos);
+  SmartDashboard::PutNumber("BR Drive Position:", BR_current_pos);
+  SmartDashboard::PutNumber("BL Drive Position:", BL_current_pos);
+
 }
 
 void Robot::DisabledInit()

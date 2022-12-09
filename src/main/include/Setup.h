@@ -37,10 +37,10 @@ ChassisSpeeds speeds{1_mps, 3_mps, 1.5_rad_per_s};
 PigeonIMU _pigeon(1);
 
 double thetaInit;
-#define FL_WHEEL_OFFSET 0.755
-#define FR_WHEEL_OFFSET 0.457
-#define BR_WHEEL_OFFSET 0.118
-#define BL_WHEEL_OFFSET 0.501
+#define FL_WHEEL_OFFSET 0.952   
+#define FR_WHEEL_OFFSET 0.395
+#define BR_WHEEL_OFFSET 0.057
+#define BL_WHEEL_OFFSET 0.429
 #define DRIVE_LENGTH 24
 #define DRIVE_WIDTH 24
 #define MAX_SPIN_SPEED 0.5
