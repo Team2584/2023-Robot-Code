@@ -270,14 +270,25 @@ void Robot::TeleopPeriodic()
   SmartDashboard::PutNumber("BR Pos:", BRMagEnc.GetAbsolutePosition());
   SmartDashboard::PutNumber("BL Pos:", BLMagEnc.GetAbsolutePosition());
 
+  double joy_lStick_Y, joy_lStick_X, joy_rStick_X;
   // Find controller input
-  double joy_lStick_Y = cont_Driver->GetLeftY(), joy_lStick_X = cont_Driver->GetLeftX(),
-         joy_rStick_X = cont_Driver->GetRightX();
-  joy_lStick_Y *= -1;
-
+  if (CONTROLLER_TYPE == 0)
+  {
+    joy_lStick_Y = cont_Driver->GetLeftY();
+    joy_lStick_X = cont_Driver->GetLeftX();
+    joy_rStick_X = cont_Driver->GetRightX();
+    joy_lStick_Y *= -1;
+  }
+  else if (CONTROLLER_TYPE == 1)
+  {
+    joy_lStick_Y = xbox_Drive->GetLeftY();
+    joy_lStick_X = xbox_Drive->GetLeftX();
+    joy_rStick_X = xbox_Drive->GetRightX();
+    joy_lStick_Y *= -1;
+  }
   // Remove ghost movement by making sure joystick is moved a certain amount
   double joy_lStick_distance = sqrt(pow(joy_lStick_X, 2.0) + pow(joy_lStick_Y, 2.0));
-  double joystick_deadband = 0.1;
+  double joystick_deadband = 0.15;
 
   if (joy_lStick_distance < joystick_deadband)
   {
@@ -300,7 +311,8 @@ void Robot::TeleopPeriodic()
     pigeon_angle = 0;
   pigeon_angle *= M_PI / 180;
 
-  SmartDashboard::PutNumber("Pigeon Angle:", pigeon_angle);
+  SmartDashboard::PutNumber("Pigeon Angle:", fmod(_pigeon.GetYaw(), 360));
+  SmartDashboard::PutNumber("Pigeon Compass:", _pigeon.GetCompassHeading());
 
   SmartDashboard::PutNumber("Y Joystick:", joy_lStick_Y);
   SmartDashboard::PutNumber("X Joystick:", joy_lStick_X);

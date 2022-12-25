@@ -7,7 +7,7 @@
 #include <frc/smartdashboard/SendableChooser.h>
 //#include "rev/CANEncoder.h"
 #include "ctre/phoenix/motorcontrol/can/WPI_TalonFX.h"
-#include "ctre/phoenix/sensors/PigeonIMU.h"
+#include "ctre/phoenix/sensors/Pigeon2.h"
 
 #include <fmt/core.h>
 
@@ -30,6 +30,7 @@
 #include <frc/kinematics/SwerveDriveKinematics.h>
 #include <frc/kinematics/SwerveModuleState.h>
 #include <frc/motorcontrol/PWMSparkMax.h>
+#include <frc/XboxController.h>
 
 #include <frc/Compressor.h>
 #include <frc/DoubleSolenoid.h>
