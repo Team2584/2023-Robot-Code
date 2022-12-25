@@ -49,8 +49,6 @@
 #include <math.h>
 #include <thread>
 
-#include "Setup.h"
-
 using namespace std;
 using namespace frc;
 using namespace frc2;
