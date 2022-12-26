@@ -21,6 +21,13 @@ public:
     encoderOffset = encoderOffset_;
   }
 
+  //Stops all motor velocity in swerve module
+  void stopSwerveModule()
+  {
+    spinMotor->Set(ControlMode::PercentOutput, 0);
+    driveMotor->Set(ControlMode::PercentOutput, 0);
+  }
+
   // Spin swerve module motors to reach the drive speed and spin angle
   void driveSwerveModule(double driveSpeed, double targetAngle, double kp)
   {
@@ -166,6 +173,11 @@ public:
     // If there is no drive input, don't drive the robot and just end the function
     if (FWD_Drive_Speed == 0 && STRAFE_Drive_Speed == 0 && Turn_Speed == 0)
     {
+      FLModule->stopSwerveModule();
+      FRModule->stopSwerveModule();
+      BLModule->stopSwerveModule();
+      BRModule->stopSwerveModule();
+
       return;
     }
 
@@ -209,6 +221,9 @@ public:
       BL_Drive_Speed /= max;
       BR_Drive_Speed /= max;
     }
+
+    frc::SmartDashboard::PutNumber("FR Drive Speed", FR_Drive_Speed);
+    frc::SmartDashboard::PutNumber("FR Target Angle", FR_Target_Angle);
 
     // Make all the motors move
     FLModule->driveSwerveModule(FL_Drive_Speed, FL_Target_Angle, spin_kp);

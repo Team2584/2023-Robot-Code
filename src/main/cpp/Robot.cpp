@@ -11,7 +11,10 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 
 double pigeon_initial;
-
+// Instantiates a SwerveDrive object with all the correct references to motors and offset values
+SwerveDrive swerveDrive = SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, FL_WHEEL_OFFSET, &driveFR, &swerveFR, &FRMagEnc,
+                                        FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
+                                        &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, DRIVE_LENGTH, DRIVE_WIDTH);
 void Robot::RobotInit()
 {
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
@@ -128,10 +131,9 @@ void Robot::TeleopPeriodic()
   double STRAFE_Drive_Speed = -1 * joy_lStick_Y * sin(pigeon_angle) + joy_lStick_X * cos(pigeon_angle);
   double Turn_Speed = joy_rStick_X * 1.2;
 
-  // Instantiates a SwerveDrive object with all the correct references to motors and offset values
-  SwerveDrive swerveDrive = SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, FL_WHEEL_OFFSET, &driveFR, &swerveFR, &FRMagEnc,
-                                        FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
-                                        &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, DRIVE_LENGTH, DRIVE_WIDTH);
+  frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed);
+  frc::SmartDashboard::PutNumber("Strafe Drive Speed", STRAFE_Drive_Speed);
+  frc::SmartDashboard::PutNumber("Turn Drive Speed", Turn_Speed);
 
   // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen, 
   // max drive and spin speeds
