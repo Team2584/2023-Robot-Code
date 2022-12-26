@@ -45,7 +45,10 @@ double thetaInit;
 #define BL_WHEEL_OFFSET 0.515
 #define DRIVE_LENGTH 24
 #define DRIVE_WIDTH 24
-#define MAX_SPIN_SPEED 0.5
-#define MAX_DRIVE_SPEED 0.5
+
+//Customization Variabes
+#define MAX_SPIN_SPEED 0.3
+#define MAX_DRIVE_SPEED 0.3
+#define STARTING_DRIVE_HEADING 0
 #define CONTROLLER_TYPE 1
 // auto [fl,fr,bl,br] = m_kinematics.ToSwerveModuleStates(speeds);

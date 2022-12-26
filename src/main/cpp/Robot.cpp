@@ -77,7 +77,7 @@ void Robot::AutonomousPeriodic()
 void Robot::TeleopInit()
 {
   // REMOVE THIS BEFORE COMPETITION
-  pigeon_initial = _pigeon.GetYaw();
+  pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   frc::SmartDashboard::PutNumber("Target", 0);
 }
 
@@ -139,6 +139,16 @@ void Robot::TeleopPeriodic()
   // max drive and spin speeds
   swerveDrive.moveSwerveDrive(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED,
                               Turn_Speed * MAX_SPIN_SPEED);
+
+  //Reset Pigion Heading
+  if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())
+  {
+    pigeon_initial = fmod(_pigeon.GetYaw(), 360);
+  }
+  else if (CONTROLLER_TYPE == 1 && xbox_Drive->GetYButtonPressed())
+  {
+    pigeon_initial = fmod(_pigeon.GetYaw(), 360);
+  }
 }
 
 void Robot::DisabledInit()
