@@ -38,8 +38,8 @@ double thetaInit;
 #define DRIVE_WIDTH 24
 
 //Customization Variabes
-#define MAX_SPIN_SPEED 0.3
-#define MAX_DRIVE_SPEED 0.3
+#define MAX_SPIN_SPEED 0.2
+#define MAX_DRIVE_SPEED 0.2
 #define STARTING_DRIVE_HEADING 0
 #define CONTROLLER_TYPE 1
 

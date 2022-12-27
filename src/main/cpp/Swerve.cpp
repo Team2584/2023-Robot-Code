@@ -50,7 +50,7 @@ public:
   double GetDriveEncoderMeters()
   {
     return (driveMotor->GetSelectedSensorPosition() - driveEncoderInitial) / 2048 / 6.54 * 0.10322 * M_PI;
-  } 
+  } //0.31343
 
   // Finds Drive Motor Velocity in Meters per Second
   double GetDriveVelocity()
@@ -76,7 +76,7 @@ public:
   SwerveModulePosition GetSwerveModulePosition()
   {
     SwerveModulePosition state = SwerveModulePosition();
-    state.distance = units::length::centimeter_t{GetDriveEncoderMeters() * 10};
+    state.distance = units::length::centimeter_t{GetDriveEncoderMeters() * 100};
     state.angle = Rotation2d(units::radian_t{GetMagEncoderReading() / 180 * M_PI});
     return state;
   }
@@ -213,10 +213,10 @@ public:
     driveWidth = _driveWidth;
 
     //TODO clean
-    Translation2d m_frontLeft{0.5388_m, 0.5388_m};
-    Translation2d m_frontRight{0.5388_m, -0.5388_m};
-    Translation2d m_backLeft{-0.5388_m, 0.5388_m};
-    Translation2d m_backRight{-0.5388_m, -0.5388_m};
+    Translation2d m_frontLeft{0.29845_m, 0.2953_m};
+    Translation2d m_frontRight{0.29845_m, -0.2953_m};
+    Translation2d m_backLeft{-0.29845_m, 0.2953_m};
+    Translation2d m_backRight{-0.29845_m, -0.2953_m};
     SwerveDriveKinematics<4> m_kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight};
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
       FRModule->GetSwerveModulePosition(),
@@ -224,10 +224,28 @@ public:
       BRModule->GetSwerveModulePosition()};
 
     //will screw up when robot doesn't start at 0 degrees
-    SwerveDriveOdometry<4> thing{m_kinematics, 
+    odometry = new SwerveDriveOdometry<4>(m_kinematics, 
     Rotation2d(units::degree_t{fmod(pigeonIMU->GetYaw(), 360)}), 
     positions, 
-    frc::Pose2d(0_m, 0_m, Rotation2d())};
+    frc::Pose2d(0_m, 0_m, Rotation2d()));
+  }
+
+  void resetOdometry()
+  {
+    FLModule->ResetDriveEncoder();
+    FRModule->ResetDriveEncoder();
+    BLModule->ResetDriveEncoder();
+    BRModule->ResetDriveEncoder();
+
+    wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
+      FRModule->GetSwerveModulePosition(),
+      BLModule->GetSwerveModulePosition(),
+      BRModule->GetSwerveModulePosition()};
+
+    odometry->ResetPosition( 
+    Rotation2d(units::degree_t{fmod(pigeonIMU->GetYaw(), 360)}), 
+    positions, 
+    frc::Pose2d(0_m, 0_m, Rotation2d()));
   }
 
   void updateOdometry()

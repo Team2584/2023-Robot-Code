@@ -12,14 +12,17 @@
 
 double pigeon_initial;
 // Instantiates a SwerveDrive object with all the correct references to motors and offset values
-SwerveDrive swerveDrive = SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, FL_WHEEL_OFFSET, &driveFR, &swerveFR, &FRMagEnc,
-                                        FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
-                                        &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, DRIVE_LENGTH, DRIVE_WIDTH);
+SwerveDrive *swerveDrive;
+
 void Robot::RobotInit()
 {
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
   m_chooser.AddOption(kAutoNameCustom, kAutoNameCustom);
   frc::SmartDashboard::PutData("Auto Modes", &m_chooser);
+
+  swerveDrive = new SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, FL_WHEEL_OFFSET, &driveFR, &swerveFR, &FRMagEnc,
+                                        FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
+                                        &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, DRIVE_LENGTH, DRIVE_WIDTH);
 }
 
 /**
@@ -80,7 +83,7 @@ void Robot::TeleopInit()
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   frc::SmartDashboard::PutNumber("Target", 0);
 
-  swerveDrive.FLModule->ResetDriveEncoder();
+  swerveDrive->resetOdometry();
 /*
   orchestra.LoadMusic("CHIRP");
   orchestra.AddInstrument(swerveBL);  
@@ -143,15 +146,17 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("Strafe Drive Speed", STRAFE_Drive_Speed);
   frc::SmartDashboard::PutNumber("Turn Drive Speed", Turn_Speed);
 
-  // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen, 
-  // max drive and spin speeds
-  swerveDrive.moveSwerveDrive(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED,
-                             Turn_Speed * MAX_SPIN_SPEED);
-
-  Pose2d pose = swerveDrive.getPose();
+  swerveDrive->updateOdometry();
+  Pose2d pose = swerveDrive->getPose();
   frc::SmartDashboard::PutNumber("swerve x", pose.X().value());
   frc::SmartDashboard::PutNumber("swerve y", pose.Y().value());
   frc::SmartDashboard::PutNumber("swerve theta", pose.Rotation().Degrees().value());
+  frc::SmartDashboard::PutNumber("FL Rotations", swerveDrive->BLModule->GetDriveEncoderMeters());
+
+  // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen, 
+  // max drive and spin speeds
+  swerveDrive->moveSwerveDrive(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED,
+                                Turn_Speed * MAX_SPIN_SPEED);
 
 
   //Reset Pigion Heading
