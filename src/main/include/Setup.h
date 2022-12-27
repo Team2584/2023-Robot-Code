@@ -8,6 +8,8 @@ using namespace frc2;
 
 int fl, fr, bl, br;
 
+Orchestra orchestra;
+
 PS4Controller *cont_Driver = new PS4Controller(0);
 XboxController *xbox_Drive = new XboxController(0);
 

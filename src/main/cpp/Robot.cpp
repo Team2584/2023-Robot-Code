@@ -79,6 +79,14 @@ void Robot::TeleopInit()
   // REMOVE THIS BEFORE COMPETITION
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   frc::SmartDashboard::PutNumber("Target", 0);
+
+  swerveDrive.FLModule->ResetDriveEncoder();
+/*
+  orchestra.LoadMusic("CHIRP");
+  orchestra.AddInstrument(swerveBL);  
+  orchestra.AddInstrument(driveBL);
+  orchestra.Play();
+*/
 }
 
 void Robot::TeleopPeriodic()
@@ -137,8 +145,8 @@ void Robot::TeleopPeriodic()
 
   // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen, 
   // max drive and spin speeds
-  swerveDrive.moveSwerveDrive(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED,
-                              Turn_Speed * MAX_SPIN_SPEED);
+  //swerveDrive.moveSwerveDrive(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED,
+  //                           Turn_Speed * MAX_SPIN_SPEED);
 
   //Reset Pigion Heading
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())
@@ -149,6 +157,18 @@ void Robot::TeleopPeriodic()
   {
     pigeon_initial = fmod(_pigeon.GetYaw(), 360);
   }
+
+  frc::SmartDashboard::PutNumber("AverageEncoder", swerveDrive.averageDriveEncoder());
+
+  frc::SmartDashboard::PutNumber("FR ENcoder", swerveDrive.FRModule->GetDriveEncoderMeters());
+
+  //make reset encoders swerve drive command
+  //run it here
+
+  if (swerveDrive.averageDriveEncoder() < 1)
+    swerveDrive.moveSwerveDrive(0.1, 0, 0);
+  else
+    swerveDrive.moveSwerveDrive(0, 0, 0);
 }
 
 void Robot::DisabledInit()

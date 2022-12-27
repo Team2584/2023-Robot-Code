@@ -8,6 +8,7 @@ private:
   ctre::phoenix::motorcontrol::can::TalonFX *driveMotor, *spinMotor;
   frc::DutyCycleEncoder *magEncoder;
   double encoderOffset;
+  double driveEncoderInitial;
 
 public:
   // Constructor for swerve module, setting all instance variables
@@ -19,6 +20,38 @@ public:
     spinMotor = spinMotor_;
     magEncoder = magEncoder_;
     encoderOffset = encoderOffset_;
+    ResetDriveEncoder();
+  }
+
+  // Converts Mag-Encoder Reading to an angle from 0-360
+  double GetEncoderReadingAsAngle()
+  {
+    double encoderReading = magEncoder->GetAbsolutePosition();
+    // subtract the encoder offset to make 0 degrees forward
+    encoderReading -= encoderOffset;
+    if (encoderReading < 0)
+      encoderReading += 1;
+    // Flip the degrees to make clockwise positive
+    encoderReading = 1 - encoderReading;
+    // Convert from 0-1 to degrees
+    encoderReading *= 360;
+    return encoderReading;
+  }
+
+  void ResetDriveEncoder()
+  {
+    driveEncoderInitial = driveMotor->GetSelectedSensorPosition();
+  }
+
+  // Converts Talon Drive Encoder to Meters
+  double GetDriveEncoderMeters()
+  {
+    return (driveMotor->GetSelectedSensorPosition() - driveEncoderInitial) / 2048 / 6.54 * 0.10322 * M_PI;
+  } 
+
+  double GetDriveVelocity()
+  {
+    return driveMotor->GetSelectedSensorVelocity() / 2048 / 6.54 * 0.10322 * M_PI * 10;
   }
 
   //Stops all motor velocity in swerve module
@@ -120,30 +153,21 @@ public:
     driveMotor->Set(ControlMode::PercentOutput, driveSpeed * driveDirection);
   }
 
-  // Converts Mag-Encoder Reading to an angle from 0-360
-  double GetEncoderReadingAsAngle()
+  void driveSwerveModuleMeters(double driveSpeed, double targetAngle, double kp)
   {
-    double encoderReading = magEncoder->GetAbsolutePosition();
-    // subtract the encoder offset to make 0 degrees forward
-    encoderReading -= encoderOffset;
-    if (encoderReading < 0)
-      encoderReading += 1;
-    // Flip the degrees to make clockwise positive
-    encoderReading = 1 - encoderReading;
-    // Convert from 0-1 to degrees
-    encoderReading *= 360;
-    return encoderReading;
+    driveSwerveModule(driveSpeed / 5.556, targetAngle, kp);
   }
 };
 
 class SwerveDrive
 {
 private:
-  SwerveModule *FLModule, *FRModule, *BRModule, *BLModule;
   Pigeon2 *pigeonIMU;
   double driveLength, driveWidth;
 
 public:
+  SwerveModule *FLModule, *FRModule, *BRModule, *BLModule;
+
   // spin_kp is the p value used in the pid loop which points the wheel in the correct direction (TODO Clean up)
   double spin_kp = 0.6;
 
@@ -230,5 +254,10 @@ public:
     FRModule->driveSwerveModule(FR_Drive_Speed, FR_Target_Angle, spin_kp);
     BLModule->driveSwerveModule(BL_Drive_Speed, BL_Target_Angle, spin_kp);
     BRModule->driveSwerveModule(BR_Drive_Speed, BR_Target_Angle, spin_kp);
+  }
+
+  double averageDriveEncoder()
+  {
+    return (FLModule->GetDriveEncoderMeters() + FRModule->GetDriveEncoderMeters() + BRModule->GetDriveEncoderMeters() + BLModule->GetDriveEncoderMeters()) / 4.0;
   }
 };
