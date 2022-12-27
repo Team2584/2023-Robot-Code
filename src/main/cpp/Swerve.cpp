@@ -76,7 +76,7 @@ public:
   SwerveModulePosition GetSwerveModulePosition()
   {
     SwerveModulePosition state = SwerveModulePosition();
-    state.distance = units::meter_t{GetDriveEncoderMeters()};
+    state.distance = units::length::centimeter_t{GetDriveEncoderMeters() * 10};
     state.angle = Rotation2d(units::radian_t{GetMagEncoderReading() / 180 * M_PI});
     return state;
   }
@@ -207,6 +207,10 @@ public:
     FRModule = new SwerveModule(_FRDriveMotor, _FRSpinMotor, _FRMagEncoder, _FREncoderOffset);
     BLModule = new SwerveModule(_BLDriveMotor, _BLSpinMotor, _BLMagEncoder, _BLEncoderOffset);
     BRModule = new SwerveModule(_BRDriveMotor, _BRSpinMotor, _BRMagEncoder, _BREncoderOffset);
+    
+    pigeonIMU = _pigeonIMU;
+    driveLength = _driveLength;
+    driveWidth = _driveWidth;
 
     //TODO clean
     Translation2d m_frontLeft{0.5388_m, 0.5388_m};
@@ -218,11 +222,12 @@ public:
       FRModule->GetSwerveModulePosition(),
       BLModule->GetSwerveModulePosition(),
       BRModule->GetSwerveModulePosition()};
-    odometry = new SwerveDriveOdometry{m_kinematics, Rotation2d(units::degree_t{fmod(pigeonIMU->GetYaw(), 360)}), positions, Pose2d(units::meter_t{0}, units::meter_t{0}, Rotation2d())};
 
-    pigeonIMU = _pigeonIMU;
-    driveLength = _driveLength;
-    driveWidth = _driveWidth;
+    //will screw up when robot doesn't start at 0 degrees
+    SwerveDriveOdometry<4> thing{m_kinematics, 
+    Rotation2d(units::degree_t{fmod(pigeonIMU->GetYaw(), 360)}), 
+    positions, 
+    frc::Pose2d(0_m, 0_m, Rotation2d())};
   }
 
   void updateOdometry()
