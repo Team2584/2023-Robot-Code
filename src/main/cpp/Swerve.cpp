@@ -1,4 +1,6 @@
+#include "SwerveConstant.h"
 #include "Robot.h"
+
 #include <frc/smartdashboard/SmartDashboard.h>
 
 class SwerveModule
@@ -7,6 +9,7 @@ private:
   // Instance Variables for each swerve module
   ctre::phoenix::motorcontrol::can::TalonFX *driveMotor, *spinMotor;
   frc::DutyCycleEncoder *magEncoder;
+  frc::PIDController *spinPIDController;
   double encoderOffset;
   double driveEncoderInitial;
 
@@ -23,8 +26,8 @@ public:
     ResetDriveEncoder();
   }
 
-  // Converts Mag-Encoder Reading to an angle from 0-360
-  double GetEncoderReadingAsAngle()
+  // Converts Mag-Encoder Reading to a degree from 0-360
+  double GetMagEncoderReading()
   {
     double encoderReading = magEncoder->GetAbsolutePosition();
     // subtract the encoder offset to make 0 degrees forward
@@ -49,6 +52,7 @@ public:
     return (driveMotor->GetSelectedSensorPosition() - driveEncoderInitial) / 2048 / 6.54 * 0.10322 * M_PI;
   } 
 
+  // Finds Drive Motor Velocity in Meters per Second
   double GetDriveVelocity()
   {
     return driveMotor->GetSelectedSensorVelocity() / 2048 / 6.54 * 0.10322 * M_PI * 10;
@@ -61,11 +65,26 @@ public:
     driveMotor->Set(ControlMode::PercentOutput, 0);
   }
 
+  SwerveModuleState GetSwerveModuleState()
+  {
+    SwerveModuleState state = SwerveModuleState();
+    state.speed = units::meters_per_second_t{fabs(GetDriveVelocity())};
+    state.angle = Rotation2d(units::radian_t{GetMagEncoderReading() / 180 * M_PI});
+    return state;
+  }
+
+  SwerveModulePosition GetSwerveModulePosition()
+  {
+    SwerveModulePosition state = SwerveModulePosition();
+    state.distance = units::meter_t{GetDriveEncoderMeters()};
+    state.angle = Rotation2d(units::radian_t{GetMagEncoderReading() / 180 * M_PI});
+    return state;
+  }
   // Spin swerve module motors to reach the drive speed and spin angle
   void driveSwerveModule(double driveSpeed, double targetAngle, double kp)
   {
     // current encoder reading as an angle
-    double wheelAngle = GetEncoderReadingAsAngle();
+    double wheelAngle = GetMagEncoderReading();
     // amount wheel has left to turn to reach target
     double error = 0;
     // if wheel should spin clockwise(1) or counterclockwise(-1) to reach the target
@@ -153,9 +172,10 @@ public:
     driveMotor->Set(ControlMode::PercentOutput, driveSpeed * driveDirection);
   }
 
-  void driveSwerveModuleMeters(double driveSpeed, double targetAngle, double kp)
+  void SetSwerveModuleState(double driveSpeed, double targetAngle)
   {
-    driveSwerveModule(driveSpeed / 5.556, targetAngle, kp);
+    //TODO Change 0.6
+    driveSwerveModule(driveSpeed / SWERVE_DRIVE_MAX_MPS, targetAngle, 0.6);
   }
 };
 
@@ -164,11 +184,11 @@ class SwerveDrive
 private:
   Pigeon2 *pigeonIMU;
   double driveLength, driveWidth;
-
+  SwerveDriveOdometry<4> *odometry;
 public:
   SwerveModule *FLModule, *FRModule, *BRModule, *BLModule;
 
-  // spin_kp is the p value used in the pid loop which points the wheel in the correct direction (TODO Clean up)
+  // spin_kp is the p value used in the pid loop which points the wheel in the correct direction (TODO Clean up and test spin_kp values)
   double spin_kp = 0.6;
 
   // Instantiates SwerveDrive class by creating 4 swerve modules
@@ -187,9 +207,36 @@ public:
     FRModule = new SwerveModule(_FRDriveMotor, _FRSpinMotor, _FRMagEncoder, _FREncoderOffset);
     BLModule = new SwerveModule(_BLDriveMotor, _BLSpinMotor, _BLMagEncoder, _BLEncoderOffset);
     BRModule = new SwerveModule(_BRDriveMotor, _BRSpinMotor, _BRMagEncoder, _BREncoderOffset);
+
+    //TODO clean
+    Translation2d m_frontLeft{0.5388_m, 0.5388_m};
+    Translation2d m_frontRight{0.5388_m, -0.5388_m};
+    Translation2d m_backLeft{-0.5388_m, 0.5388_m};
+    Translation2d m_backRight{-0.5388_m, -0.5388_m};
+    SwerveDriveKinematics<4> m_kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight};
+    wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
+      FRModule->GetSwerveModulePosition(),
+      BLModule->GetSwerveModulePosition(),
+      BRModule->GetSwerveModulePosition()};
+    odometry = new SwerveDriveOdometry{m_kinematics, Rotation2d(units::degree_t{fmod(pigeonIMU->GetYaw(), 360)}), positions, Pose2d(units::meter_t{0}, units::meter_t{0}, Rotation2d())};
+
     pigeonIMU = _pigeonIMU;
     driveLength = _driveLength;
     driveWidth = _driveWidth;
+  }
+
+  void updateOdometry()
+  {
+    wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
+      FRModule->GetSwerveModulePosition(),
+      BLModule->GetSwerveModulePosition(),
+      BRModule->GetSwerveModulePosition()};
+    odometry->Update(units::degree_t{fmod(pigeonIMU->GetYaw(), 360)}, positions);
+  }
+
+  Pose2d getPose()
+  {
+    return odometry->GetPose();
   }
 
   void moveSwerveDrive(double FWD_Drive_Speed, double STRAFE_Drive_Speed, double Turn_Speed)
@@ -256,8 +303,30 @@ public:
     BRModule->driveSwerveModule(BR_Drive_Speed, BR_Target_Angle, spin_kp);
   }
 
-  double averageDriveEncoder()
+  void SetModuleStates(double targetSpeeds[4], double targetAngles[4])
   {
-    return (FLModule->GetDriveEncoderMeters() + FRModule->GetDriveEncoderMeters() + BRModule->GetDriveEncoderMeters() + BLModule->GetDriveEncoderMeters()) / 4.0;
+    //Finds maximum drive speed value
+    double max = 0;
+    for (int i = 0; i < 4; i++)
+    {
+      if (max < targetSpeeds[i])
+      {
+        max = targetSpeeds[i];
+      }
+    }
+
+    //If the speed value is greater than 1, scale all drive speeds down so we do not cap out the motors
+    if (max > SWERVE_DRIVE_MAX_MPS)
+    {
+      for (int i = 0; i < 4; i++)
+      {
+        targetSpeeds[i] /= max;
+      }
+    }
+    
+    FRModule->SetSwerveModuleState(targetSpeeds[0], targetAngles[0]);
+    FLModule->SetSwerveModuleState(targetSpeeds[1], targetAngles[1]);
+    BRModule->SetSwerveModuleState(targetSpeeds[2], targetAngles[2]);
+    BLModule->SetSwerveModuleState(targetSpeeds[3], targetAngles[3]);
   }
 };

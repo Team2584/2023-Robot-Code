@@ -22,14 +22,10 @@
 #include <frc/DigitalInput.h>
 #include <frc/controller/PIDController.h>
 #include <frc/controller/SimpleMotorFeedforward.h>
-#include <frc/drive/DifferentialDrive.h>
 #include <frc/encoder.h>
-#include <frc/kinematics/ChassisSpeeds.h>
-#include <frc/kinematics/DifferentialDriveKinematics.h>
-#include <frc/kinematics/DifferentialDriveOdometry.h>
-#include <frc/kinematics/DifferentialDriveWheelSpeeds.h>
 #include <frc/kinematics/SwerveDriveKinematics.h>
 #include <frc/kinematics/SwerveModuleState.h>
+#include <frc/kinematics/SwerveDriveOdometry.h>
 #include <frc/motorcontrol/PWMSparkMax.h>
 #include <frc/XboxController.h>
 
