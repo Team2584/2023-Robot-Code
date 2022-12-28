@@ -29,18 +29,12 @@ DutyCycleEncoder BRMagEnc(0);
 Pigeon2 _pigeon(6);
 
 double thetaInit;
-//Find offsets with bevel gears on the right side of the drive train
-#define FL_WHEEL_OFFSET 0.867   
-#define FR_WHEEL_OFFSET 0.443
-#define BR_WHEEL_OFFSET 0.109
-#define BL_WHEEL_OFFSET 0.515
-#define DRIVE_LENGTH 24
-#define DRIVE_WIDTH 24
 
 //Customization Variabes
+#define CONTROLLER_DEADBAND 0.15
 #define MAX_SPIN_SPEED 0.2
 #define MAX_DRIVE_SPEED 0.2
 #define STARTING_DRIVE_HEADING 0
 #define CONTROLLER_TYPE 1
 
-
+#define ROBOT_STARTING_ANGLE 0

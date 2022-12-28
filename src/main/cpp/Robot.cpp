@@ -22,7 +22,7 @@ void Robot::RobotInit()
 
   swerveDrive = new SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, FL_WHEEL_OFFSET, &driveFR, &swerveFR, &FRMagEnc,
                                         FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
-                                        &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, DRIVE_LENGTH, DRIVE_WIDTH);
+                                        &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, ROBOT_STARTING_ANGLE);
 }
 
 /**
@@ -79,17 +79,15 @@ void Robot::AutonomousPeriodic()
 
 void Robot::TeleopInit()
 {
-  // REMOVE THIS BEFORE COMPETITION
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
-  frc::SmartDashboard::PutNumber("Target", 0);
+  swerveDrive->ResetOdometry();
 
-  swerveDrive->resetOdometry();
-/*
-  orchestra.LoadMusic("CHIRP");
-  orchestra.AddInstrument(swerveBL);  
-  orchestra.AddInstrument(driveBL);
-  orchestra.Play();
-*/
+  /*
+    orchestra.LoadMusic("CHIRP");
+    orchestra.AddInstrument(swerveBL);  
+    orchestra.AddInstrument(driveBL);
+    orchestra.Play();
+  */
 }
 
 void Robot::TeleopPeriodic()
@@ -112,15 +110,14 @@ void Robot::TeleopPeriodic()
   }
   // Remove ghost movement by making sure joystick is moved a certain amount
   double joy_lStick_distance = sqrt(pow(joy_lStick_X, 2.0) + pow(joy_lStick_Y, 2.0));
-  double joystick_deadband = 0.15;
 
-  if (joy_lStick_distance < joystick_deadband)
+  if (joy_lStick_distance < CONTROLLER_DEADBAND)
   {
     joy_lStick_X = 0;
     joy_lStick_Y = 0;
   }
 
-  if (abs(joy_rStick_X) < joystick_deadband)
+  if (abs(joy_rStick_X) < CONTROLLER_DEADBAND)
   {
     joy_rStick_X = 0;
   }
@@ -146,16 +143,17 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("Strafe Drive Speed", STRAFE_Drive_Speed);
   frc::SmartDashboard::PutNumber("Turn Drive Speed", Turn_Speed);
 
-  swerveDrive->updateOdometry();
-  Pose2d pose = swerveDrive->getPose();
+  swerveDrive->UpdateOdometry();
+  Pose2d pose = swerveDrive->GetPose();
   frc::SmartDashboard::PutNumber("swerve x", pose.X().value());
   frc::SmartDashboard::PutNumber("swerve y", pose.Y().value());
   frc::SmartDashboard::PutNumber("swerve theta", pose.Rotation().Degrees().value());
-  frc::SmartDashboard::PutNumber("FL Rotations", swerveDrive->BLModule->GetDriveEncoderMeters());
+
+  frc::SmartDashboard::PutNumber("FL Rotations", swerveDrive->BLModule->GetSpinEncoderRadians());
 
   // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen, 
   // max drive and spin speeds
-  swerveDrive->moveSwerveDrive(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED,
+  swerveDrive->DriveSwervePercent(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED,
                                 Turn_Speed * MAX_SPIN_SPEED);
 
 

@@ -21,11 +21,14 @@
 
 #include <frc/DigitalInput.h>
 #include <frc/controller/PIDController.h>
+#include <frc/controller/ProfiledPIDController.h>
 #include <frc/controller/SimpleMotorFeedforward.h>
 #include <frc/encoder.h>
 #include <frc/kinematics/SwerveDriveKinematics.h>
 #include <frc/kinematics/SwerveModuleState.h>
 #include <frc/kinematics/SwerveDriveOdometry.h>
+#include <frc/trajectory/TrajectoryConfig.h>
+#include <frc/trajectory/TrajectoryGenerator.h>
 #include <frc/motorcontrol/PWMSparkMax.h>
 #include <frc/XboxController.h>
 
@@ -40,6 +43,10 @@
 #include <networktables/NetworkTableEntry.h>
 #include <wpi/future.h>
 #include <wpi/sendable/SendableRegistry.h>
+
+#include <frc2/command/InstantCommand.h>
+#include <frc2/command/SequentialCommandGroup.h>
+#include <frc2/command/SwerveControllerCommand.h>
 
 #include <units/acceleration.h>
 #include <units/angle.h>
