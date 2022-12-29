@@ -12,7 +12,8 @@ private:
   frc::PIDController *spinPIDController;
   double encoderOffset;
   double driveEncoderInitial;
-  double spinEncoderInitial = 0;
+  double spinEncoderInitialHeading;
+  double spinEncoderInitialValue;
 
 public:
   // Constructor for swerve module, setting all instance variables
@@ -45,7 +46,8 @@ public:
   void ResetEncoders()
   {
     driveEncoderInitial = driveMotor->GetSelectedSensorPosition();
-    spinEncoderInitial = fmod(GetMagEncoderReading() - GetSpinEncoderRadians(), 2 * M_PI);
+    spinEncoderInitialHeading = GetMagEncoderReading();
+    spinEncoderInitialValue = -1 * spinMotor->GetSelectedSensorPosition();
   }
 
   // Converts Talon Drive Encoder to Meters
@@ -63,7 +65,8 @@ public:
   //Finds Spin Encoder Rotation in Radians
   double GetSpinEncoderRadians()
   {
-    double rotation = (spinMotor->GetSelectedSensorPosition() / 2048 / SPIN_MOTOR_GEAR_RATIO * 2 * M_PI) + spinEncoderInitial;
+    //TODO
+    double rotation = ((-1 * spinMotor->GetSelectedSensorPosition() - spinEncoderInitialValue) / 2048 / SPIN_MOTOR_GEAR_RATIO * 2 * M_PI) - spinEncoderInitialHeading;
     return fmod(rotation, 2 * M_PI);
   }
 
@@ -97,7 +100,7 @@ public:
   {
     double targetAngle = targetRadian * 180 / M_PI;
     // current encoder reading as an angle
-    double wheelAngle = GetSpinEncoderRadians() * 180 / M_PI;
+    double wheelAngle = GetMagEncoderReading() * 180 / M_PI;
     // amount wheel has left to turn to reach target
     double error = 0;
     // if wheel should spin clockwise(1) or counterclockwise(-1) to reach the target
@@ -333,7 +336,7 @@ public:
 
     frc::SmartDashboard::PutNumber("FR Drive Speed", FR_Drive_Speed);
     frc::SmartDashboard::PutNumber("FR Target Angle", FR_Target_Angle);
-
+  
     // Make all the motors move
     FLModule->DriveSwerveModulePercent(FL_Drive_Speed, FL_Target_Angle);
     FRModule->DriveSwerveModulePercent(FR_Drive_Speed, FR_Target_Angle);

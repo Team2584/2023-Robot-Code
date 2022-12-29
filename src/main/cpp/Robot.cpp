@@ -149,7 +149,7 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("swerve y", pose.Y().value());
   frc::SmartDashboard::PutNumber("swerve theta", pose.Rotation().Degrees().value());
 
-  frc::SmartDashboard::PutNumber("FL Rotations", swerveDrive->BLModule->GetSpinEncoderRadians());
+  frc::SmartDashboard::PutNumber("FL Drive", swerveDrive->FLModule->GetDriveEncoderMeters());
 
   // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen, 
   // max drive and spin speeds
