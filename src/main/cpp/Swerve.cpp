@@ -96,9 +96,8 @@ public:
   }
 
   // Spin swerve module motors to reach the drive speed and spin angle 
-  void DriveSwerveModulePercent(double driveSpeed, double targetRadian)
+  void DriveSwerveModulePercent(double driveSpeed, double targetAngle)
   {
-    double targetAngle = targetRadian * 180 / M_PI;
     // current encoder reading as an angle
     double wheelAngle = GetMagEncoderReading() * 180 / M_PI;
     // amount wheel has left to turn to reach target
@@ -199,7 +198,6 @@ class SwerveDrive
 {
 private:
   Pigeon2 *pigeonIMU;
-  double driveLength, driveWidth;
   Translation2d m_frontLeft;
   Translation2d m_frontRight;
   Translation2d m_backLeft;
@@ -268,6 +266,8 @@ public:
 
   void UpdateOdometry()
   {
+    SmartDashboard::PutNumber("FL POS", BLModule->GetSwerveModulePosition().distance.value());
+    SmartDashboard::PutNumber("FL ANGLE", BLModule->GetSwerveModulePosition().angle.Degrees().value());
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
       FRModule->GetSwerveModulePosition(),
       BLModule->GetSwerveModulePosition(),
@@ -297,12 +297,12 @@ public:
     // Equations explained at:
     // https://www.chiefdelphi.com/t/paper-4-wheel-independent-drive-independent-steering-swerve/107383
     // After clicking above link press the top download to see how the equations work
-    double driveRadius = sqrt(pow(driveLength, 2) + pow(driveWidth, 2));
+    double driveRadius = sqrt(pow(DRIVE_LENGTH, 2) + pow(DRIVE_WIDTH, 2));
 
-    double A = STRAFE_Drive_Speed - Turn_Speed * (driveLength / driveRadius);
-    double B = STRAFE_Drive_Speed + Turn_Speed * (driveLength / driveRadius);
-    double C = FWD_Drive_Speed - Turn_Speed * (driveLength / driveRadius);
-    double D = FWD_Drive_Speed + Turn_Speed * (driveLength / driveRadius);
+    double A = STRAFE_Drive_Speed - Turn_Speed * (DRIVE_LENGTH / driveRadius);
+    double B = STRAFE_Drive_Speed + Turn_Speed * (DRIVE_LENGTH / driveRadius);
+    double C = FWD_Drive_Speed - Turn_Speed * (DRIVE_WIDTH / driveRadius);
+    double D = FWD_Drive_Speed + Turn_Speed * (DRIVE_WIDTH / driveRadius);
 
     double FR_Target_Angle = atan2(B, C) * 180 / M_PI;
     double FL_Target_Angle = atan2(B, D) * 180 / M_PI;
@@ -336,7 +336,7 @@ public:
 
     frc::SmartDashboard::PutNumber("FR Drive Speed", FR_Drive_Speed);
     frc::SmartDashboard::PutNumber("FR Target Angle", FR_Target_Angle);
-  
+
     // Make all the motors move
     FLModule->DriveSwerveModulePercent(FL_Drive_Speed, FL_Target_Angle);
     FRModule->DriveSwerveModulePercent(FR_Drive_Speed, FR_Target_Angle);

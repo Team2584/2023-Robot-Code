@@ -139,7 +139,7 @@ void Robot::TeleopPeriodic()
   double STRAFE_Drive_Speed = -1 * joy_lStick_Y * sin(pigeon_angle) + joy_lStick_X * cos(pigeon_angle);
   double Turn_Speed = joy_rStick_X * 1.2;
 
-  frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed);
+  frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed * MAX_DRIVE_SPEED);
   frc::SmartDashboard::PutNumber("Strafe Drive Speed", STRAFE_Drive_Speed);
   frc::SmartDashboard::PutNumber("Turn Drive Speed", Turn_Speed);
 
@@ -155,7 +155,6 @@ void Robot::TeleopPeriodic()
   // max drive and spin speeds
   swerveDrive->DriveSwervePercent(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED,
                                 Turn_Speed * MAX_SPIN_SPEED);
-
 
   //Reset Pigion Heading
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())

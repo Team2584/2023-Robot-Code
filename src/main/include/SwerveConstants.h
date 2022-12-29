@@ -5,11 +5,11 @@
 #define BL_WHEEL_OFFSET 0.515
 
 //Assuming a rectangular drive train (input distance between center of wheels)
-#define DRIVE_LENGTH 24
-#define DRIVE_WIDTH 24
+#define DRIVE_LENGTH 0.29845 * 2
+#define DRIVE_WIDTH 0.2953 * 2
 
 //Encoder constants
-#define DRIVE_MOTOR_GEAR_RATIO 6.54
+#define DRIVE_MOTOR_GEAR_RATIO 6.54 
 #define DRIVE_MOTOR_CIRCUMFERENCE 0.10322 * M_PI
 #define SPIN_MOTOR_GEAR_RATIO 15.438
 
