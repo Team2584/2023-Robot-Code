@@ -212,6 +212,7 @@ private:
 
 public:
   SwerveModule *FLModule, *FRModule, *BRModule, *BLModule;
+  double pigeon_initial;
 
   // Instantiates SwerveDrive class by creating 4 swerve modules
   SwerveDrive(ctre::phoenix::motorcontrol::can::TalonFX *_FLDriveMotor,
@@ -243,7 +244,7 @@ public:
     
     pigeonIMU = _pigeonIMU;
 
-    thetaPidController.EnableContinuousInput(0_m, units::centimeter_t{2 * M_PI});
+    thetaPidController.EnableContinuousInput(units::centimeter_t{-1 * M_PI}, units::centimeter_t{M_PI});
 
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
       FRModule->GetSwerveModulePosition(),
@@ -252,9 +253,22 @@ public:
 
     //will screw up when robot doesn't start at 0 degrees
     odometry = new SwerveDriveOdometry<4>(kinematics, 
-    Rotation2d(units::degree_t{fmod(pigeonIMU->GetYaw(), 360)}), 
+    Rotation2d(units::radian_t{GetIMURadians()}), 
     positions, 
     frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
+  }
+
+  double GetIMURadians()
+  {
+    double pigeon_angle = fmod(pigeonIMU->GetYaw(), 360);
+    pigeon_angle -= pigeon_initial;
+    if (pigeon_angle < 0)
+      pigeon_angle += 360;
+    pigeon_angle = 360 - pigeon_angle;
+    if (pigeon_angle == 360)
+      pigeon_angle = 0;
+    pigeon_angle *= M_PI / 180;
+    return pigeon_angle;
   }
 
   //Resets Odometry
@@ -271,20 +285,21 @@ public:
       BRModule->GetSwerveModulePosition()};
 
     odometry->ResetPosition( 
-    Rotation2d(units::degree_t{fmod(pigeonIMU->GetYaw(), 360)}), 
+    Rotation2d(units::radian_t{GetIMURadians()}), 
     positions, 
-    frc::Pose2d(0_m, 0_m, Rotation2d()));
+    frc::Pose2d(0_m, 0_m, Rotation2d(0_rad)));
   }
 
   void UpdateOdometry()
   {
     SmartDashboard::PutNumber("FL POS", BLModule->GetSwerveModulePosition().distance.value());
     SmartDashboard::PutNumber("FL ANGLE", BLModule->GetSwerveModulePosition().angle.Degrees().value());
+    SmartDashboard::PutNumber("ROBOT ANGLE", GetIMURadians());
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
       FRModule->GetSwerveModulePosition(),
       BLModule->GetSwerveModulePosition(),
       BRModule->GetSwerveModulePosition()};
-    odometry->Update(units::degree_t{fmod(pigeonIMU->GetYaw(), 360)}, positions);
+    odometry->Update(units::radian_t{GetIMURadians()}, positions);
   }
 
   Pose2d GetPose()
@@ -356,8 +371,14 @@ public:
     BRModule->DriveSwerveModulePercent(BR_Drive_Speed, BR_Target_Angle);
   }
 
-  void DriveSwerveMetersAndRadians(double FWD_Drive_Speed, double STRAFE_Drive_Speed, double Turn_Speed)
+  void DriveSwerveMetersAndRadiansFieldOriented(double FWD_Drive_Speed, double STRAFE_Drive_Speed, double Turn_Speed)
   {
+    // Use pigion_angle to determine what our target movement vector is in relation to the robot
+    // This code keeps the driving "field oriented" by determining the angle in relation to the front of the robot we
+    // really want to move towards
+    double pigeon_angle = GetIMURadians();
+    FWD_Drive_Speed = FWD_Drive_Speed * cos(pigeon_angle) + STRAFE_Drive_Speed * sin(pigeon_angle);
+    STRAFE_Drive_Speed = -1 * FWD_Drive_Speed * sin(pigeon_angle) + STRAFE_Drive_Speed * cos(pigeon_angle);
     DriveSwervePercent(FWD_Drive_Speed / SWERVE_DRIVE_MAX_MPS, STRAFE_Drive_Speed / SWERVE_DRIVE_MAX_MPS, Turn_Speed / MAX_RADIAN_PER_SECOND);
   }
 
@@ -374,8 +395,11 @@ public:
     double x = xPidContoller.Calculate(odometry->GetPose().X(), target.X());
     double y = yPidContoller.Calculate(odometry->GetPose().Y(), target.Y());
     double theta = thetaPidController.Calculate(units::centimeter_t{odometry->GetPose().Rotation().Radians().value()}, units::centimeter_t{target.Rotation().Radians().value()});
+    SmartDashboard::PutNumber("Drive To X", x);
+    SmartDashboard::PutNumber("Drive To Y", y);
+    SmartDashboard::PutNumber("Drive To Theta", theta);
 
-    DriveSwerveMetersAndRadians(x, y, theta);
+    DriveSwerveMetersAndRadiansFieldOriented(x, y, theta);
   }
 
   void GenerateTrajecotory(vector<Translation2d> waypoints, Pose2d goal)

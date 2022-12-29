@@ -80,6 +80,7 @@ void Robot::AutonomousPeriodic()
 void Robot::TeleopInit()
 {
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
+  swerveDrive->pigeon_initial = pigeon_initial;
   swerveDrive->ResetOdometry();
 
   /*
@@ -149,21 +150,33 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("swerve y", pose.Y().value());
   frc::SmartDashboard::PutNumber("swerve theta", pose.Rotation().Degrees().value());
 
-  frc::SmartDashboard::PutNumber("FL Drive", swerveDrive->FLModule->GetDriveEncoderMeters());
+  frc::SmartDashboard::PutNumber("FL Angle", swerveDrive->FLModule->GetSwerveModulePosition().angle.Degrees().value());
 
   // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen, 
   // max drive and spin speeds
   swerveDrive->DriveSwervePercent(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED,
                                 Turn_Speed * MAX_SPIN_SPEED);
 
+
+  if (CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed())
+  {
+    swerveDrive->DriveToPose(Pose2d(0_m, 0_m, Rotation2d(0_rad)));
+  }
+  else if (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton())
+  {
+    swerveDrive->DriveToPose(Pose2d(0_m, 0_m, Rotation2d(0_rad)));  
+  }
+  
   //Reset Pigion Heading
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())
   {
     pigeon_initial = fmod(_pigeon.GetYaw(), 360);
+    swerveDrive->pigeon_initial = pigeon_initial;
   }
   else if (CONTROLLER_TYPE == 1 && xbox_Drive->GetYButtonPressed())
   {
     pigeon_initial = fmod(_pigeon.GetYaw(), 360);
+    swerveDrive->pigeon_initial = pigeon_initial;
   }
 }
 

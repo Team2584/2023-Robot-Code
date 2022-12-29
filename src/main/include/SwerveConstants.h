@@ -20,16 +20,16 @@
 
 //PID VALUES
 #define WHEEL_SPIN_KP 0.6
-#define X_KP 3
+#define X_KP 5
 #define X_KD 0
-#define Y_KP 3
+#define Y_KP 5
 #define Y_KD 0
-#define THETA_KP 3
+#define THETA_KP 2
 #define THETA_KD 0
 
 //RAMP UP VALUES
 #define AUTO_MAX_MPS 3_mps
-#define AUTO_MAX_MPS_SQ 2_mps_sq
-#define AUTO_MAX_RADPS 1.5_mps
+#define AUTO_MAX_MPS_SQ 0.001_mps_sq
+#define AUTO_MAX_RADPS 0.5_mps
 #define AUTO_MAX_RADPS_SQ 1_mps_sq
 
