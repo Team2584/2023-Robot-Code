@@ -91,7 +91,7 @@ public:
   {
     SwerveModulePosition state = SwerveModulePosition();
     state.distance = units::length::centimeter_t{GetDriveEncoderMeters() * 100}; // It works, don't judge
-    state.angle = Rotation2d(units::radian_t{GetMagEncoderReading() / 180 * M_PI});
+    state.angle = Rotation2d(units::radian_t{GetMagEncoderReading()});
     return state;
   }
 
