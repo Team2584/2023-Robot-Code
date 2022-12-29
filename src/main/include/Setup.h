@@ -37,4 +37,3 @@ double thetaInit;
 #define STARTING_DRIVE_HEADING 0
 #define CONTROLLER_TYPE 1
 
-#define ROBOT_STARTING_ANGLE 0

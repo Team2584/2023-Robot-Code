@@ -205,6 +205,10 @@ private:
   SwerveDriveKinematics<4> kinematics;
   SwerveDriveOdometry<4> *odometry;
   Trajectory currentTrajectory;
+  frc::ProfiledPIDController<units::meters> xPidContoller;
+  frc::ProfiledPIDController<units::meters> yPidContoller;
+  frc::ProfiledPIDController<units::centimeter> thetaPidController;
+
 
 public:
   SwerveModule *FLModule, *FRModule, *BRModule, *BLModule;
@@ -224,7 +228,13 @@ public:
     m_frontRight{0.29845_m, -0.2953_m},
     m_backLeft{-0.29845_m, 0.2953_m},
     m_backRight{-0.29845_m, -0.2953_m},
-    kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight}
+    kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight},
+    xPidContoller{X_KP, 0, X_KD,
+      frc::TrapezoidProfile<units::meters>::Constraints{AUTO_MAX_MPS, AUTO_MAX_MPS_SQ}},
+    yPidContoller{Y_KP, 0, Y_KD,
+      frc::TrapezoidProfile<units::meters>::Constraints{AUTO_MAX_MPS, AUTO_MAX_MPS_SQ}},
+    thetaPidController{THETA_KP, 0, THETA_KD,
+      frc::TrapezoidProfile<units::centimeter>::Constraints{AUTO_MAX_RADPS, AUTO_MAX_RADPS_SQ}}
   {
     FLModule = new SwerveModule(_FLDriveMotor, _FLSpinMotor, _FLMagEncoder, _FLEncoderOffset);
     FRModule = new SwerveModule(_FRDriveMotor, _FRSpinMotor, _FRMagEncoder, _FREncoderOffset);
@@ -232,6 +242,8 @@ public:
     BRModule = new SwerveModule(_BRDriveMotor, _BRSpinMotor, _BRMagEncoder, _BREncoderOffset);
     
     pigeonIMU = _pigeonIMU;
+
+    thetaPidController.EnableContinuousInput(0_m, units::centimeter_t{2 * M_PI});
 
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
       FRModule->GetSwerveModulePosition(),
@@ -359,7 +371,11 @@ public:
 
   void DriveToPose(Pose2d target)
   {
-    return;
+    double x = xPidContoller.Calculate(odometry->GetPose().X(), target.X());
+    double y = yPidContoller.Calculate(odometry->GetPose().Y(), target.Y());
+    double theta = thetaPidController.Calculate(units::centimeter_t{odometry->GetPose().Rotation().Radians().value()}, units::centimeter_t{target.Rotation().Radians().value()});
+
+    DriveSwerveMetersAndRadians(x, y, theta);
   }
 
   void GenerateTrajecotory(vector<Translation2d> waypoints, Pose2d goal)
