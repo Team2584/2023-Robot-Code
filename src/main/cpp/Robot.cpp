@@ -15,9 +15,9 @@ double pigeon_initial;
 SwerveDrive *swerveDrive;
 
 // For slew rate limiting
-SlewRateLimiter xLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
-SlewRateLimiter yLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
-SlewRateLimiter thetaLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
+//SlewRateLimiter xLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
+//SlewRateLimiter yLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
+//SlewRateLimiter thetaLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
 
 // To find values from cameras
 nt::NetworkTableEntry xEntry;
@@ -156,9 +156,9 @@ void Robot::TeleopPeriodic()
   double STRAFE_Drive_Speed = -1 * joy_lStick_Y * sin(pigeon_angle) + joy_lStick_X * cos(pigeon_angle);
   double Turn_Speed = joy_rStick_X * 1.2;
 
-  FWD_Drive_Speed = xLimiter.Calculate(units::meters_per_second_t{FWD_Drive_Speed}).value();
-  STRAFE_Drive_Speed = yLimiter.Calculate(units::meters_per_second_t{STRAFE_Drive_Speed}).value();
-  Turn_Speed = thetaLimiter.Calculate(units::meters_per_second_t{Turn_Speed}).value();
+  //FWD_Drive_Speed = xLimiter.Calculate(units::meters_per_second_t{FWD_Drive_Speed}).value();
+  //STRAFE_Drive_Speed = yLimiter.Calculate(units::meters_per_second_t{STRAFE_Drive_Speed}).value();
+  //Turn_Speed = thetaLimiter.Calculate(units::meters_per_second_t{Turn_Speed}).value();
   
 
   frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed * MAX_DRIVE_SPEED);
@@ -175,9 +175,9 @@ void Robot::TeleopPeriodic()
 
   // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen, 
   // max drive and spin speeds
-    if (xbox_Drive->GetXButton())
+  if (xbox_Drive->GetXButton())
   {
-    swerveDrive->TurnToPointWhileDriving(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED, Translation2d(1_m, 0_m))
+    swerveDrive->TurnToPointWhileDriving(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED, Translation2d(1_m, 0_m));
   }
   else
   {
