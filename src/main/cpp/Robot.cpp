@@ -175,8 +175,16 @@ void Robot::TeleopPeriodic()
 
   // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen, 
   // max drive and spin speeds
-  swerveDrive->DriveSwervePercent(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED,
+    if (xbox_Drive->GetXButton())
+  {
+    swerveDrive->TurnToPointWhileDriving(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED, Translation2d(1_m, 0_m))
+  }
+  else
+  {
+    swerveDrive->DriveSwervePercent(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED,
                                 Turn_Speed * MAX_SPIN_SPEED);
+  }
+
 
 
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed())
