@@ -209,6 +209,7 @@ private:
   frc::ProfiledPIDController<units::meters> yPidContoller;
   frc::ProfiledPIDController<units::centimeter> thetaPidController;
 
+  units::second_t lastOdometryRefresh = Timer::GetFPGATimestamp();
 
 public:
   SwerveModule *FLModule, *FRModule, *BRModule, *BLModule;
@@ -271,8 +272,13 @@ public:
     return pigeon_angle;
   }
 
-  //Resets Odometry
   void ResetOdometry()
+  {
+    ResetOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)))
+  }
+
+  //Resets Odometry
+  void ResetOdometry(Pose2d position)
   {
     FLModule->ResetEncoders();
     FRModule->ResetEncoders();
@@ -287,7 +293,7 @@ public:
     odometry->ResetPosition( 
     Rotation2d(units::radian_t{GetIMURadians()}), 
     positions, 
-    frc::Pose2d(0_m, 0_m, Rotation2d(0_rad)));
+    frc::Pose2d(position));
   }
 
   void UpdateOdometry()
@@ -411,6 +417,7 @@ public:
 
   void DriveToPoseVision(Pose2d target)
   {
+    //this code is weird because it assumes the robot is at 0,0 and the target is some distance away from that as described by the vision tracking
     double x = xPidContoller.Calculate(0_m, target.X());
     double y = yPidContoller.Calculate(0_m, target.Y());
     double theta = thetaPidController.Calculate(0_cm, units::centimeter_t{target.Rotation().Radians().value()});
@@ -419,6 +426,19 @@ public:
     SmartDashboard::PutNumber("Drive To Theta", theta);
 
     DriveSwerveMetersAndRadiansFieldOriented(x, y, theta);
+  }
+
+  void DriveToPoseCombo(Pose2d visionInput, Pose2d target, double refreshTime)
+  {
+    //This code is weird because it assumes the feducial is at 0m, 0m (x, y)
+    if (refreshTime < (Timer::GetFPGATimestamp() - lastOdometryRefresh).value())
+    {
+      //line below may not work idk lmao
+      ResetOdometry(visionInput.operator*(-1));
+      lastOdometryRefresh = Timer::GetFPGATimestamp();
+    }
+
+    DriveToPoseOdometry(target);
   }
 
   void GenerateTrajecotory(vector<Translation2d> waypoints, Pose2d goal)

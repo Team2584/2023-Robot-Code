@@ -19,11 +19,22 @@ SlewRateLimiter xLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
 SlewRateLimiter yLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
 SlewRateLimiter thetaLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
 
+// To find values from cameras
+nt::NetworkTableEntry xEntry;
+nt::NetworkTableEntry yEntry;
+
+
 void Robot::RobotInit()
 {
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
   m_chooser.AddOption(kAutoNameCustom, kAutoNameCustom);
   frc::SmartDashboard::PutData("Auto Modes", &m_chooser);
+
+  auto inst = nt::NetworkTableInstance::GetDefault();
+  auto table = inst.GetTable("vision");
+  xEntry = table->GetEntry("tag0_x");
+  yEntry = table->GetEntry("tag0_z");
+
 
   swerveDrive = new SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, FL_WHEEL_OFFSET, &driveFR, &swerveFR, &FRMagEnc,
                                         FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
@@ -46,7 +57,7 @@ void Robot::RobotPeriodic()
  * This autonomous (along with the chooser code above) shows how to select
  * between different autonomous modes using the dashboard. The sendable chooser
  * code works with the Java SmartDashboard. If you prefer the LabVIEW Dashboard,
- * remove all of the chooser code and uncomment the GetString line to get the
+ * remove all of the chooser code and uncomment the GetString line to get the 
  * auto name from the text box below the Gyro.
  *
  * You can add additional auto modes by adding additional comparisons to the
@@ -168,7 +179,6 @@ void Robot::TeleopPeriodic()
                                 Turn_Speed * MAX_SPIN_SPEED);
 
 
-
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed())
   {
     swerveDrive->SetDriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));
@@ -187,6 +197,13 @@ void Robot::TeleopPeriodic()
     swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));  
   }
   
+  if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetAButton()))
+  {
+    double x = xEntry.GetFloat(0);
+    double y = yEntry.GetFloat(0) - 1;
+    swerveDrive->DriveToPoseVision(Pose2d(units::centimeter_t{x * 100}, units::centimeter_t{y * 100}, Rotation2d(0_rad)));
+  }
+
   //Reset Pigion Heading
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())
   {
