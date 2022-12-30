@@ -34,6 +34,7 @@ double thetaInit;
 #define CONTROLLER_DEADBAND 0.15
 #define MAX_SPIN_SPEED 0.2
 #define MAX_DRIVE_SPEED 0.2
+#define MAX_DRIVE_ACCLERATION 0.3_mps_sq
 #define STARTING_DRIVE_HEADING 0
 #define CONTROLLER_TYPE 1
 

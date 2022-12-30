@@ -390,11 +390,30 @@ public:
     BLModule->DriveSwerveModuleMeters(states[3].speed.value(), states[3].angle.Degrees().value());
   }
 
-  void DriveToPose(Pose2d target)
+  void SetDriveToPoseOdometry(Pose2d target)
+  {
+    xPidContoller.SetGoal(target.X());
+    yPidContoller.SetGoal(target.Y());
+    thetaPidController.SetGoal(units::centimeter_t{target.Rotation().Radians().value()});
+  }
+
+  void DriveToPoseOdometry(Pose2d target)
   {
     double x = xPidContoller.Calculate(odometry->GetPose().X(), target.X());
     double y = yPidContoller.Calculate(odometry->GetPose().Y(), target.Y());
     double theta = thetaPidController.Calculate(units::centimeter_t{odometry->GetPose().Rotation().Radians().value()}, units::centimeter_t{target.Rotation().Radians().value()});
+    SmartDashboard::PutNumber("Drive To X", x);
+    SmartDashboard::PutNumber("Drive To Y", y);
+    SmartDashboard::PutNumber("Drive To Theta", theta);
+
+    DriveSwerveMetersAndRadiansFieldOriented(x, y, theta);
+  }
+
+  void DriveToPoseVision(Pose2d target)
+  {
+    double x = xPidContoller.Calculate(0_m, target.X());
+    double y = yPidContoller.Calculate(0_m, target.Y());
+    double theta = thetaPidController.Calculate(0_cm, units::centimeter_t{target.Rotation().Radians().value()});
     SmartDashboard::PutNumber("Drive To X", x);
     SmartDashboard::PutNumber("Drive To Y", y);
     SmartDashboard::PutNumber("Drive To Theta", theta);

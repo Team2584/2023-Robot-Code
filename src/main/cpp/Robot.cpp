@@ -14,6 +14,11 @@ double pigeon_initial;
 // Instantiates a SwerveDrive object with all the correct references to motors and offset values
 SwerveDrive *swerveDrive;
 
+// For slew rate limiting
+SlewRateLimiter xLimiter;
+SlewRateLimiter yLimiter;
+SlewRateLimiter thetaLimiter;
+
 void Robot::RobotInit()
 {
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
@@ -23,6 +28,10 @@ void Robot::RobotInit()
   swerveDrive = new SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, FL_WHEEL_OFFSET, &driveFR, &swerveFR, &FRMagEnc,
                                         FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
                                         &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, STARTING_DRIVE_HEADING);
+
+  xLimiter = SlewRateLimiter(MAX_DRIVE_ACCLERATION, 0_mps);
+  yLimiter = SlewRateLimiter(MAX_DRIVE_ACCLERATION, 0_mps);
+  thetaLimiter = SlewRateLimiter(MAX_DRIVE_ACCLERATION, 0_mps);
 }
 
 /**
@@ -140,6 +149,11 @@ void Robot::TeleopPeriodic()
   double STRAFE_Drive_Speed = -1 * joy_lStick_Y * sin(pigeon_angle) + joy_lStick_X * cos(pigeon_angle);
   double Turn_Speed = joy_rStick_X * 1.2;
 
+  FWD_Drive_Speed = xLimiter.calculate(FWD_Drive_Speed);
+  STRAFE_Drive_Speed = yLimiter.calculate(STRAFE_Drive_Speed);
+  Turn_Speed = theta.calculate(Turn_Speed);
+  
+
   frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed * MAX_DRIVE_SPEED);
   frc::SmartDashboard::PutNumber("Strafe Drive Speed", STRAFE_Drive_Speed);
   frc::SmartDashboard::PutNumber("Turn Drive Speed", Turn_Speed);
@@ -158,13 +172,23 @@ void Robot::TeleopPeriodic()
                                 Turn_Speed * MAX_SPIN_SPEED);
 
 
+
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed())
   {
-    swerveDrive->DriveToPose(Pose2d(0_m, 0_m, Rotation2d(0_rad)));
+    swerveDrive->SetDriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));
   }
   else if (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton())
   {
-    swerveDrive->DriveToPose(Pose2d(0_m, 0_m, Rotation2d(0_rad)));  
+    swerveDrive->SetDriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));  
+  }
+
+  if (CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed())
+  {
+    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));
+  }
+  else if (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton())
+  {
+    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));  
   }
   
   //Reset Pigion Heading
