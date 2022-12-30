@@ -15,9 +15,9 @@ double pigeon_initial;
 SwerveDrive *swerveDrive;
 
 // For slew rate limiting
-SlewRateLimiter xLimiter;
-SlewRateLimiter yLimiter;
-SlewRateLimiter thetaLimiter;
+SlewRateLimiter xLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
+SlewRateLimiter yLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
+SlewRateLimiter thetaLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
 
 void Robot::RobotInit()
 {
@@ -28,10 +28,6 @@ void Robot::RobotInit()
   swerveDrive = new SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, FL_WHEEL_OFFSET, &driveFR, &swerveFR, &FRMagEnc,
                                         FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
                                         &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, STARTING_DRIVE_HEADING);
-
-  xLimiter = SlewRateLimiter(MAX_DRIVE_ACCLERATION, 0_mps);
-  yLimiter = SlewRateLimiter(MAX_DRIVE_ACCLERATION, 0_mps);
-  thetaLimiter = SlewRateLimiter(MAX_DRIVE_ACCLERATION, 0_mps);
 }
 
 /**
@@ -149,9 +145,9 @@ void Robot::TeleopPeriodic()
   double STRAFE_Drive_Speed = -1 * joy_lStick_Y * sin(pigeon_angle) + joy_lStick_X * cos(pigeon_angle);
   double Turn_Speed = joy_rStick_X * 1.2;
 
-  FWD_Drive_Speed = xLimiter.calculate(FWD_Drive_Speed);
-  STRAFE_Drive_Speed = yLimiter.calculate(STRAFE_Drive_Speed);
-  Turn_Speed = theta.calculate(Turn_Speed);
+  FWD_Drive_Speed = xLimiter.Calculate(units::meters_per_second_t{FWD_Drive_Speed}).value();
+  STRAFE_Drive_Speed = yLimiter.Calculate(units::meters_per_second_t{STRAFE_Drive_Speed}).value();
+  Turn_Speed = thetaLimiter.Calculate(units::meters_per_second_t{Turn_Speed}).value();
   
 
   frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed * MAX_DRIVE_SPEED);
