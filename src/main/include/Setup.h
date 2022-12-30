@@ -30,11 +30,11 @@ Pigeon2 _pigeon(6);
 
 double thetaInit;
 
-//Customization Variabes
+//Customization Variabes (all in percent power so the driver's weak brain don't get confused)
 #define CONTROLLER_DEADBAND 0.15
 #define MAX_SPIN_SPEED 0.2
 #define MAX_DRIVE_SPEED 0.2
-#define MAX_DRIVE_ACCLERATION 0.3_mps_sq
+#define MAX_DRIVE_ACCLERATION 0.3_mps_sq //in max change in percent per second
 #define STARTING_DRIVE_HEADING 0
 #define CONTROLLER_TYPE 1
 

@@ -274,7 +274,7 @@ public:
 
   void ResetOdometry()
   {
-    ResetOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)))
+    ResetOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));
   }
 
   //Resets Odometry
@@ -439,6 +439,14 @@ public:
     }
 
     DriveToPoseOdometry(target);
+  }
+
+  void TurnToPointWhileDriving(double fwdSpeed, double strafeSpeed, Translation2d point)
+  {
+    Translation2d diff = point - GetPose().Translation();
+    double targetAngle = atan2(diff.Y().value(), diff.X().value());
+    double theta = thetaPidController.Calculate(units::centimeter_t{GetPose().Rotation().Radians().value()}, units::centimeter_t{targetAngle});
+    DriveSwervePercent(fwdSpeed, strafeSpeed, theta / MAX_RADIAN_PER_SECOND);
   }
 
   void GenerateTrajecotory(vector<Translation2d> waypoints, Pose2d goal)
