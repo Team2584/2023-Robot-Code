@@ -14,41 +14,53 @@ double pigeon_initial;
 // Instantiates a SwerveDrive object with all the correct references to motors and offset values
 SwerveDrive *swerveDrive;
 
-// For slew rate limiting
-//SlewRateLimiter xLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
-//SlewRateLimiter yLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
-//SlewRateLimiter thetaLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
-
 // To find values from cameras
 nt::NetworkTableInstance inst;
 shared_ptr<nt::NetworkTable> table;
 nt::DoubleTopic xTopic;
 nt::DoubleTopic yTopic;
+nt::DoubleTopic thetaTopic;
 nt::StringTopic sanityTopic;
 nt::BooleanTopic existsTopic;
 nt::DoubleEntry xEntry;
 nt::DoubleEntry yEntry;
+nt::DoubleEntry thetaEntry;
 nt::StringEntry sanityEntry;
 nt::BooleanEntry existsEntry;
 
+// To track time for slew rate and accleration control
+frc::Timer timer;
+double lastTime = 0;
+double lastFwd = 0;
+double lastStrafe = 0;
+double lastTurn = 0;
+
 void Robot::RobotInit()
 {
+  //Autonomous Choosing
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
   m_chooser.AddOption(kAutoNameCustom, kAutoNameCustom);
   frc::SmartDashboard::PutData("Auto Modes", &m_chooser);
 
+  //Finding values from network tables
   inst = nt::NetworkTableInstance::GetDefault();
   inst.StartServer();
   table = inst.GetTable("vision");
   xTopic = table->GetDoubleTopic("tag0_x");
   yTopic = table->GetDoubleTopic("tag0_z");
+  thetaTopic = table->GetDoubleTopic("tag0_theta");
   sanityTopic = table->GetStringTopic("sanitycheck");
   existsTopic = table->GetBooleanTopic("tag0_detect");
   xEntry = xTopic.GetEntry(0);
   yEntry = yTopic.GetEntry(0);
+  thetaEntry = thetaTopic.GetEntry(0);
   sanityEntry = sanityTopic.GetEntry("didn't work");
   existsEntry = existsTopic.GetEntry(false);
 
+  //Initializing things
+  timer = Timer();
+
+  //Initializing Subsystems
   swerveDrive = new SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, FL_WHEEL_OFFSET, &driveFR, &swerveFR, &FRMagEnc,
                                         FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
                                         &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, STARTING_DRIVE_HEADING);
@@ -108,9 +120,17 @@ void Robot::AutonomousPeriodic()
 
 void Robot::TeleopInit()
 {
+  //Prepare swerve drive odometry
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
   swerveDrive->ResetOdometry();
+
+  timer.Reset();
+  timer.Start();
+  lastTime = 0;
+  lastFwd = 0;
+  lastTurn = 0;
+  lastStrafe = 0;
 
   /*
     orchestra.LoadMusic("CHIRP");
@@ -167,47 +187,56 @@ void Robot::TeleopPeriodic()
   // really want to move towards
   double FWD_Drive_Speed = joy_lStick_Y * cos(pigeon_angle) + joy_lStick_X * sin(pigeon_angle);
   double STRAFE_Drive_Speed = -1 * joy_lStick_Y * sin(pigeon_angle) + joy_lStick_X * cos(pigeon_angle);
-  double Turn_Speed = joy_rStick_X * 1.2;
+  double Turn_Speed = joy_rStick_X;
 
-  //FWD_Drive_Speed = xLimiter.Calculate(units::meters_per_second_t{FWD_Drive_Speed}).value();
-  //STRAFE_Drive_Speed = yLimiter.Calculate(units::meters_per_second_t{STRAFE_Drive_Speed}).value();
-  //Turn_Speed = thetaLimiter.Calculate(units::meters_per_second_t{Turn_Speed}).value();
-  
-
-  frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed * MAX_DRIVE_SPEED);
-  frc::SmartDashboard::PutNumber("Strafe Drive Speed", STRAFE_Drive_Speed);
-  frc::SmartDashboard::PutNumber("Turn Drive Speed", Turn_Speed);
+  FWD_Drive_Speed *= MAX_DRIVE_SPEED;
+  STRAFE_Drive_Speed *= MAX_DRIVE_SPEED;
+  Turn_Speed *= MAX_SPIN_SPEED;
 
   swerveDrive->UpdateOdometry();
   Pose2d pose = swerveDrive->GetPose();
-  frc::SmartDashboard::PutNumber("swerve x", pose.X().value());
-  frc::SmartDashboard::PutNumber("swerve y", pose.Y().value());
-  frc::SmartDashboard::PutNumber("swerve theta", pose.Rotation().Degrees().value());
+
+  swerveDrive->SetPoseVision(Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()})));
+
+  //Slew Rate Control
+  double time = timer.Get().value();
+  double elapsedTime = time - lastTime;
+  lastFwd += std::clamp(FWD_Drive_Speed - lastFwd, -1 * MAX_DRIVE_ACCELERATION * elapsedTime,
+                   MAX_DRIVE_ACCELERATION * elapsedTime);
+  FWD_Drive_Speed = lastFwd;
+  lastStrafe += std::clamp(STRAFE_Drive_Speed - lastStrafe, -1 * MAX_DRIVE_ACCELERATION * elapsedTime,
+                   MAX_DRIVE_ACCELERATION * elapsedTime);
+  STRAFE_Drive_Speed = lastStrafe;
+  lastTurn += std::clamp(Turn_Speed - lastTurn, -1 * MAX_SPIN_ACCELERATION * elapsedTime,
+                   MAX_SPIN_ACCELERATION * elapsedTime);
+  Turn_Speed = lastTurn;
+  lastTime = time;
+
+  frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed);
+  frc::SmartDashboard::PutNumber("Strafe Drive Speed", STRAFE_Drive_Speed);
+  frc::SmartDashboard::PutNumber("Turn Drive Speed", Turn_Speed);
+  
+  SmartDashboard::PutNumber("Network Table X", xEntry.Get());
+  SmartDashboard::PutNumber("Network Table Y", yEntry.Get());
+  SmartDashboard::PutNumber("Network Table Theta", thetaEntry.Get());
+  SmartDashboard::PutString("Network Table Sanity", sanityEntry.Get());
+  SmartDashboard::PutBoolean("Network Table Tag Exists", existsEntry.Get());
+
+  frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
+  frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
+  frc::SmartDashboard::PutNumber("Odometry Theta", pose.Rotation().Degrees().value());
+
+  frc::SmartDashboard::PutNumber("TIMER", timer.Get().value());
 
   // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen, 
   // max drive and spin speeds
   if (xbox_Drive->GetXButton())
   {
-   swerveDrive->TurnToPointWhileDriving(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED, Translation2d(1_m, 0_m));
+    swerveDrive->TurnToPointWhileDriving(FWD_Drive_Speed, STRAFE_Drive_Speed, Translation2d(1_m, 0_m));
   }
   else
   {
-    swerveDrive->DriveSwervePercent(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED,
-                                Turn_Speed * MAX_SPIN_SPEED);
-  }
-
-  SmartDashboard::PutNumber("Network Table X", xEntry.Get());
-  SmartDashboard::PutNumber("Network Table Y", yEntry.Get());
-  SmartDashboard::PutString("Network Table Sanity", sanityEntry.Get());
-  SmartDashboard::PutBoolean("Network Table Tag Exists", existsEntry.Get());
-
-  if (CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed())
-  {
-    swerveDrive->SetDriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));
-  }
-  else if (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton())
-  {
-    swerveDrive->SetDriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));  
+    swerveDrive->DriveSwervePercent(FWD_Drive_Speed, STRAFE_Drive_Speed, Turn_Speed);
   }
 
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed())

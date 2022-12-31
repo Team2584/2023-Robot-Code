@@ -20,20 +20,18 @@
 #define WHEEL_SPIN_KP 0.6
 
 //PID VALUES FOR DRIVE TO POSE
-#define X_KP 5
+#define X_KP 4
 #define X_KD 0
-#define Y_KP 5
+#define Y_KP 4
 #define Y_KD 0
 #define THETA_KP 2
 #define THETA_KD 0
 
-//PID VALUES FOR DRIVE USING ONLY VISION
-#define V_X_KP 5
-#define V_X_KD 0
-#define V_Y_KP 5
-#define V_Y_KD 0
-#define V_THETA_KP 2
-#define V_THETA_KD 0
+//Conbined Pose Estimation Values
+#define ODOMETRY_REFRESH_TIME 1 //seconds
+
+
+
 
 //RAMP UP VALUES
 #define AUTO_MAX_MPS 3_mps

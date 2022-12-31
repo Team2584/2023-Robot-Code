@@ -211,6 +211,8 @@ private:
 
   units::second_t lastOdometryRefresh = Timer::GetFPGATimestamp();
 
+  Pose2d visionPose;
+
 public:
   SwerveModule *FLModule, *FRModule, *BRModule, *BLModule;
   double pigeon_initial;
@@ -310,7 +312,30 @@ public:
 
   Pose2d GetPose()
   {
+    return GetPoseOdometry();
+  }
+
+  Pose2d GetPoseOdometry()
+  {
     return odometry->GetPose();
+  }
+
+  void SetPoseVision(Pose2d pose)
+  {
+    visionPose = pose;
+  }
+
+  Pose2d GetPoseVision()
+  {
+    return visionPose;
+  }
+
+  void SetModuleStates(std::array<SwerveModuleState, 4> states)
+  { 
+    FRModule->DriveSwerveModuleMeters(states[0].speed.value(), states[0].angle.Degrees().value());
+    FLModule->DriveSwerveModuleMeters(states[1].speed.value(), states[1].angle.Degrees().value());
+    BRModule->DriveSwerveModuleMeters(states[2].speed.value(), states[2].angle.Degrees().value());
+    BLModule->DriveSwerveModuleMeters(states[3].speed.value(), states[3].angle.Degrees().value());
   }
 
   void DriveSwervePercent(double FWD_Drive_Speed, double STRAFE_Drive_Speed, double Turn_Speed)
@@ -385,50 +410,31 @@ public:
     DriveSwervePercent(FWD_Drive_Speed / SWERVE_DRIVE_MAX_MPS, STRAFE_Drive_Speed / SWERVE_DRIVE_MAX_MPS, Turn_Speed / MAX_RADIAN_PER_SECOND);
   }
 
-  void SetModuleStates(std::array<SwerveModuleState, 4> states)
-  { 
-    FRModule->DriveSwerveModuleMeters(states[0].speed.value(), states[0].angle.Degrees().value());
-    FLModule->DriveSwerveModuleMeters(states[1].speed.value(), states[1].angle.Degrees().value());
-    BRModule->DriveSwerveModuleMeters(states[2].speed.value(), states[2].angle.Degrees().value());
-    BLModule->DriveSwerveModuleMeters(states[3].speed.value(), states[3].angle.Degrees().value());
-  }
-
-  void SetDriveToPoseOdometry(Pose2d target)
+  void DriveToPose(Pose2d current, Pose2d target)
   {
-    xPidContoller.SetGoal(target.X());
-    yPidContoller.SetGoal(target.Y());
-    thetaPidController.SetGoal(units::centimeter_t{target.Rotation().Radians().value()});
+    double x = xPidContoller.Calculate(current.X(), target.X());
+    double y = yPidContoller.Calculate(current.Y(), target.Y());
+    double theta = thetaPidController.Calculate(units::centimeter_t{current.Rotation().Radians().value()}, units::centimeter_t{target.Rotation().Radians().value()});
+
+    DriveSwerveMetersAndRadiansFieldOriented(x, y, theta);
   }
 
   void DriveToPoseOdometry(Pose2d target)
   {
-    double x = xPidContoller.Calculate(odometry->GetPose().X(), target.X());
-    double y = yPidContoller.Calculate(odometry->GetPose().Y(), target.Y());
-    double theta = thetaPidController.Calculate(units::centimeter_t{odometry->GetPose().Rotation().Radians().value()}, units::centimeter_t{target.Rotation().Radians().value()});
-
-    DriveSwerveMetersAndRadiansFieldOriented(x, y, theta);
+    DriveToPose(odometry->GetPose(), target);
   }
 
   void DriveToPoseVision(Pose2d target)
   {
-    //this code is weird because it assumes the robot is at 0,0 and the target is some distance away from that as described by the vision tracking
-    double x = xPidContoller.Calculate(0_m, target.X());
-    double y = yPidContoller.Calculate(0_m, target.Y());
-    double theta = thetaPidController.Calculate(0_cm, units::centimeter_t{target.Rotation().Radians().value()});
-    SmartDashboard::PutNumber("Drive To X", x);
-    SmartDashboard::PutNumber("Drive To Y", y);
-    SmartDashboard::PutNumber("Drive To Theta", theta);
-
-    DriveSwerveMetersAndRadiansFieldOriented(x, y, theta);
+    DriveToPose(visionPose, target);
   }
 
-  void DriveToPoseCombo(Pose2d visionInput, Pose2d target, double refreshTime)
+  void DriveToPoseCombo(Pose2d target)
   {
     //This code is weird because it assumes the feducial is at 0m, 0m (x, y)
-    if (refreshTime < (Timer::GetFPGATimestamp() - lastOdometryRefresh).value())
+    if (ODOMETRY_REFRESH_TIME < (Timer::GetFPGATimestamp() - lastOdometryRefresh).value())
     {
-      //line below may not work idk lmao
-      ResetOdometry(visionInput.operator*(-1));
+      ResetOdometry(visionPose);
       lastOdometryRefresh = Timer::GetFPGATimestamp();
     }
 
