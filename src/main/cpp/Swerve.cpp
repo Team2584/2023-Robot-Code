@@ -287,13 +287,11 @@ public:
     odometry->ResetPosition( 
     Rotation2d(units::radian_t{GetIMURadians()}), 
     positions, 
-    frc::Pose2d(position));
+    frc::Pose2d(Pose2d(position.Y(), position.X(), position.Rotation())));
   }
 
   void UpdateOdometry()
   {
-    SmartDashboard::PutNumber("FL POS", BLModule->GetSwerveModulePosition().distance.value());
-    SmartDashboard::PutNumber("FL ANGLE", BLModule->GetSwerveModulePosition().angle.Degrees().value());
     SmartDashboard::PutNumber("ROBOT ANGLE", GetIMURadians());
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
       FRModule->GetSwerveModulePosition(),
@@ -309,7 +307,8 @@ public:
 
   Pose2d GetPoseOdometry()
   {
-    return odometry->GetPose();
+    Pose2d pose = odometry->GetPose();
+    return Pose2d(pose.Y(), pose.X(), pose.Rotation()); 
   }
 
   void SetPoseVision(Pose2d pose)
@@ -330,8 +329,17 @@ public:
     BLModule->DriveSwerveModuleMeters(states[3].speed.value(), states[3].angle.Degrees().value());
   }
 
-  void DriveSwervePercent(double FWD_Drive_Speed, double STRAFE_Drive_Speed, double Turn_Speed)
+  void DriveSwervePercent(double STRAFE_Drive_Speed, double FWD_Drive_Speed, double Turn_Speed)
   {
+    double angle = GetPose().Rotation().Radians().value();
+    double oldFwd = FWD_Drive_Speed;
+    FWD_Drive_Speed = FWD_Drive_Speed * cos(angle) + STRAFE_Drive_Speed * sin(angle);
+    STRAFE_Drive_Speed = -1 * oldFwd * sin(angle) + STRAFE_Drive_Speed * cos(angle);
+
+    SmartDashboard::PutNumber("Real FWD Drive", FWD_Drive_Speed);
+    SmartDashboard::PutNumber("Real STRAFE Drive", STRAFE_Drive_Speed);
+    SmartDashboard::PutNumber("Real Angle", angle);
+
     // If there is no drive input, don't drive the robot and just end the function
     if (FWD_Drive_Speed == 0 && STRAFE_Drive_Speed == 0 && Turn_Speed == 0)
     {
@@ -391,32 +399,29 @@ public:
     BRModule->DriveSwerveModulePercent(BR_Drive_Speed, BR_Target_Angle);
   }
 
-  void DriveSwerveMetersAndRadiansFieldOriented(double FWD_Drive_Speed, double STRAFE_Drive_Speed, double Turn_Speed)
+  void DriveSwerveMetersAndRadians(double STRAFE_Drive_Speed, double FWD_Drive_Speed, double Turn_Speed)
   {
-    // Use pigion_angle to determine what our target movement vector is in relation to the robot
-    // This code keeps the driving "field oriented" by determining the angle in relation to the front of the robot we
-    // really want to move towards
-    double pigeon_angle = GetIMURadians();
-    FWD_Drive_Speed = FWD_Drive_Speed * cos(pigeon_angle) + STRAFE_Drive_Speed * sin(pigeon_angle);
-    STRAFE_Drive_Speed = -1 * FWD_Drive_Speed * sin(pigeon_angle) + STRAFE_Drive_Speed * cos(pigeon_angle);
-    DriveSwervePercent(FWD_Drive_Speed / SWERVE_DRIVE_MAX_MPS, STRAFE_Drive_Speed / SWERVE_DRIVE_MAX_MPS, Turn_Speed / MAX_RADIAN_PER_SECOND);
+    DriveSwervePercent(STRAFE_Drive_Speed / SWERVE_DRIVE_MAX_MPS, FWD_Drive_Speed / SWERVE_DRIVE_MAX_MPS, Turn_Speed / MAX_RADIAN_PER_SECOND);
   }
 
   void DriveToPose(Pose2d current, Pose2d target, double elapsedTime)
   {
     double intendedVelocity;
+
     double xDistance = target.X().value() - current.X().value();
     if (fabs(xDistance) < ALLOWABLE_ERROR_TRANSLATION)
       xDistance = 0;
     intendedVelocity = std::clamp(TRANSLATION_KP * xDistance, -1 * TRANSLATION_MAX_SPEED, TRANSLATION_MAX_SPEED);
     lastX += std::clamp(intendedVelocity - lastX, -1 * TRANSLATION_MAX_ACCEL * elapsedTime,
                    TRANSLATION_MAX_ACCEL * elapsedTime);
+
     double yDistance = target.Y().value() - current.Y().value();
     if (fabs(yDistance) < ALLOWABLE_ERROR_TRANSLATION)
       yDistance = 0;
     intendedVelocity = std::clamp(TRANSLATION_KP * yDistance, -1 * TRANSLATION_MAX_SPEED, TRANSLATION_MAX_SPEED);
     lastY += std::clamp(intendedVelocity - lastY, -1 * TRANSLATION_MAX_ACCEL * elapsedTime,
                    TRANSLATION_MAX_ACCEL * elapsedTime);
+
     double thetaDistance = target.RelativeTo(current).Rotation().Radians().value();
     if (thetaDistance > 180)
       thetaDistance = thetaDistance - 360;
@@ -425,7 +430,15 @@ public:
     intendedVelocity = std::clamp(SPIN_KP * thetaDistance, -1 * SPIN_MAX_SPEED, SPIN_MAX_SPEED);
     lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * SPIN_MAX_ACCEL * elapsedTime,
                    SPIN_MAX_ACCEL * elapsedTime);
+
+    SmartDashboard::PutNumber("XDistance", xDistance);
+    SmartDashboard::PutNumber("YDistance", yDistance);
     SmartDashboard::PutNumber("ThetaDistance", thetaDistance);
+
+    SmartDashboard::PutNumber("Drive X", lastX);
+    SmartDashboard::PutNumber("Drive Y", lastY);
+    SmartDashboard::PutNumber("Drive Spin", lastSpin);
+
     DriveSwervePercent(lastX, lastY, lastSpin);
   }
 
@@ -451,10 +464,10 @@ public:
     DriveToPoseOdometry(target, elapsedTime);
   }
 
-  void TurnToPointWhileDriving(double fwdSpeed, double strafeSpeed, Translation2d point, double elapsedTime)
+  void TurnToPointWhileDriving(double strafeSpeed, double fwdSpeed, Translation2d point, double elapsedTime)
   {
     Translation2d diff = point - GetPose().Translation();
-    Rotation2d targetAngle = Rotation2d(units::radian_t{atan2(diff.Y().value(), diff.X().value())});
+    Rotation2d targetAngle = Rotation2d(units::radian_t{atan2(diff.X().value(), diff.Y().value())});
     double thetaDistance = (targetAngle - GetPose().Rotation()).Radians().value();
     if (thetaDistance > 180)
       thetaDistance = thetaDistance - 360;
@@ -463,8 +476,7 @@ public:
     double intendedVelocity = std::clamp(SPIN_KP * thetaDistance, -1 * SPIN_MAX_SPEED, SPIN_MAX_SPEED);
     lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * SPIN_MAX_ACCEL * elapsedTime,
                    SPIN_MAX_ACCEL * elapsedTime);
-    SmartDashboard::PutNumber("ThetaDistance", thetaDistance);
-    DriveSwervePercent(fwdSpeed, strafeSpeed, lastSpin);
+    DriveSwervePercent(strafeSpeed, fwdSpeed, lastSpin);
   }
 
   void GenerateTrajecotory(vector<Translation2d> waypoints, Pose2d goal)

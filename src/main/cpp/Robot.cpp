@@ -182,16 +182,11 @@ void Robot::TeleopPeriodic()
     pigeon_angle = 0;
   pigeon_angle *= M_PI / 180;
 
-  // Use pigion_angle to determine what our target movement vector is in relation to the robot
-  // This code keeps the driving "field oriented" by determining the angle in relation to the front of the robot we
-  // really want to move towards
-  double FWD_Drive_Speed = joy_lStick_Y * cos(pigeon_angle) + joy_lStick_X * sin(pigeon_angle);
-  double STRAFE_Drive_Speed = -1 * joy_lStick_Y * sin(pigeon_angle) + joy_lStick_X * cos(pigeon_angle);
-  double Turn_Speed = joy_rStick_X;
+  SmartDashboard::PutNumber("Old Angle", pigeon_angle);
 
-  FWD_Drive_Speed *= MAX_DRIVE_SPEED;
-  STRAFE_Drive_Speed *= MAX_DRIVE_SPEED;
-  Turn_Speed *= MAX_SPIN_SPEED;
+  double FWD_Drive_Speed = joy_lStick_Y * MAX_DRIVE_SPEED;
+  double STRAFE_Drive_Speed = joy_lStick_X * MAX_DRIVE_SPEED;
+  double Turn_Speed = joy_rStick_X * MAX_SPIN_SPEED;
 
   swerveDrive->UpdateOdometry();
   Pose2d pose = swerveDrive->GetPose();
@@ -211,6 +206,12 @@ void Robot::TeleopPeriodic()
                    MAX_SPIN_ACCELERATION * elapsedTime);
   Turn_Speed = lastTurn;
   lastTime = time;
+
+  if (existsEntry.Get())
+  {
+    swerveDrive->SetPoseVision(Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()})));
+    swerveDrive->ResetOdometry(Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()})));
+  }
 
   frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed);
   frc::SmartDashboard::PutNumber("Strafe Drive Speed", STRAFE_Drive_Speed);
@@ -232,11 +233,11 @@ void Robot::TeleopPeriodic()
   // max drive and spin speeds
   if (xbox_Drive->GetXButton())
   {
-    swerveDrive->TurnToPointWhileDriving(FWD_Drive_Speed, STRAFE_Drive_Speed, Translation2d(1_m, 0_m), elapsedTime);
+    swerveDrive->TurnToPointWhileDriving(STRAFE_Drive_Speed, FWD_Drive_Speed, Translation2d(0_m, 1_m), elapsedTime);
   }
   else
   {
-    swerveDrive->DriveSwervePercent(FWD_Drive_Speed, STRAFE_Drive_Speed, Turn_Speed);
+    swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
   }
 
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed())
@@ -252,8 +253,6 @@ void Robot::TeleopPeriodic()
   {
     if (existsEntry.Get())
     {
-      swerveDrive->SetPoseVision(Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()})));
-      swerveDrive->ResetOdometry(Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()})));
       swerveDrive->DriveToPoseVision(Pose2d(0_m, -2_m, Rotation2d(0_rad)), elapsedTime);
     }
     else 
