@@ -45,12 +45,12 @@ void Robot::RobotInit()
   //Finding values from network tables
   inst = nt::NetworkTableInstance::GetDefault();
   inst.StartServer();
-  table = inst.GetTable("vision");
-  xTopic = table->GetDoubleTopic("tag0_x");
-  yTopic = table->GetDoubleTopic("tag0_z");
-  thetaTopic = table->GetDoubleTopic("tag0_theta");
+  table = inst.GetTable("vision/localization");
+  xTopic = table->GetDoubleTopic("x");
+  yTopic = table->GetDoubleTopic("y");
+  thetaTopic = table->GetDoubleTopic("theta");
   sanityTopic = table->GetStringTopic("sanitycheck");
-  existsTopic = table->GetBooleanTopic("tag0_detect");
+  existsTopic = table->GetBooleanTopic("robot_pos_good");
   xEntry = xTopic.GetEntry(0);
   yEntry = yTopic.GetEntry(0);
   thetaEntry = thetaTopic.GetEntry(0);
@@ -215,7 +215,7 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed);
   frc::SmartDashboard::PutNumber("Strafe Drive Speed", STRAFE_Drive_Speed);
   frc::SmartDashboard::PutNumber("Turn Drive Speed", Turn_Speed);
-  
+
   SmartDashboard::PutNumber("Network Table X", xEntry.Get());
   SmartDashboard::PutNumber("Network Table Y", yEntry.Get());
   SmartDashboard::PutNumber("Network Table Theta", thetaEntry.Get());
@@ -232,7 +232,7 @@ void Robot::TeleopPeriodic()
   // max drive and spin speeds
   if (xbox_Drive->GetXButton())
   {
-    swerveDrive->TurnToPointWhileDriving(FWD_Drive_Speed, STRAFE_Drive_Speed, Translation2d(1_m, 0_m));
+    swerveDrive->TurnToPointWhileDriving(FWD_Drive_Speed, STRAFE_Drive_Speed, Translation2d(1_m, 0_m), elapsedTime);
   }
   else
   {
@@ -250,11 +250,16 @@ void Robot::TeleopPeriodic()
   
   if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetAButton()))
   {
-    double x = xEntry.Get();
-    double y = yEntry.Get() - 2;
-
     if (existsEntry.Get())
-      swerveDrive->DriveToPoseVision(Pose2d(units::centimeter_t{y * 100}, units::centimeter_t{x * 100}, Rotation2d(0_rad)), elapsedTime);
+    {
+      swerveDrive->SetPoseVision(Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()})));
+      swerveDrive->ResetOdometry(Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()})));
+      swerveDrive->DriveToPoseVision(Pose2d(0_m, -2_m, Rotation2d(0_rad)), elapsedTime);
+    }
+    else 
+    {
+      swerveDrive->DriveToPoseOdometry(Pose2d(0_m, -2_m, Rotation2d(0_rad)), elapsedTime);
+    }
   }
 
   //Reset Pigion Heading*

@@ -207,6 +207,7 @@ private:
   Trajectory currentTrajectory;
 
   Pose2d visionPose;
+  double timeSinceOdometryRefresh;
 
   double lastX;
   double lastY;
@@ -440,21 +441,30 @@ public:
 
   void DriveToPoseCombo(Pose2d target, double elapsedTime)
   {
-    //This code is weird because it assumes the feducial is at 0m, 0m (x, y)
-    if (ODOMETRY_REFRESH_TIME < elapsedTime)
+    timeSinceOdometryRefresh += elapsedTime;
+    if (ODOMETRY_REFRESH_TIME < timeSinceOdometryRefresh)
     {
+      timeSinceOdometryRefresh = 0;
       ResetOdometry(visionPose);
     }
 
     DriveToPoseOdometry(target, elapsedTime);
   }
 
-  void TurnToPointWhileDriving(double fwdSpeed, double strafeSpeed, Translation2d point)
+  void TurnToPointWhileDriving(double fwdSpeed, double strafeSpeed, Translation2d point, double elapsedTime)
   {
     Translation2d diff = point - GetPose().Translation();
-    double targetAngle = atan2(diff.Y().value(), diff.X().value());
-   // double theta = thetaPidController.Calculate(units::centimeter_t{GetPose().Rotation().Radians().value()}, units::centimeter_t{targetAngle});
-   // DriveSwervePercent(fwdSpeed, strafeSpeed, theta / MAX_RADIAN_PER_SECOND);
+    Rotation2d targetAngle = Rotation2d(units::radian_t{atan2(diff.Y().value(), diff.X().value())});
+    double thetaDistance = (targetAngle - GetPose().Rotation()).Radians().value();
+    if (thetaDistance > 180)
+      thetaDistance = thetaDistance - 360;
+    if (fabs(thetaDistance) < ALLOWABLE_ERROR_ROTATION)
+      thetaDistance = 0;
+    double intendedVelocity = std::clamp(SPIN_KP * thetaDistance, -1 * SPIN_MAX_SPEED, SPIN_MAX_SPEED);
+    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * SPIN_MAX_ACCEL * elapsedTime,
+                   SPIN_MAX_ACCEL * elapsedTime);
+    SmartDashboard::PutNumber("ThetaDistance", thetaDistance);
+    DriveSwervePercent(fwdSpeed, strafeSpeed, lastSpin);
   }
 
   void GenerateTrajecotory(vector<Translation2d> waypoints, Pose2d goal)
