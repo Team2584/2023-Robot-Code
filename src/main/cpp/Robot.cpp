@@ -20,9 +20,16 @@ SwerveDrive *swerveDrive;
 //SlewRateLimiter thetaLimiter{-MAX_DRIVE_ACCLERATION, MAX_DRIVE_ACCLERATION, 0_mps};
 
 // To find values from cameras
-nt::NetworkTableEntry xEntry;
-nt::NetworkTableEntry yEntry;
-
+nt::NetworkTableInstance inst;
+shared_ptr<nt::NetworkTable> table;
+nt::DoubleTopic xTopic;
+nt::DoubleTopic yTopic;
+nt::StringTopic sanityTopic;
+nt::BooleanTopic existsTopic;
+nt::DoubleEntry xEntry;
+nt::DoubleEntry yEntry;
+nt::StringEntry sanityEntry;
+nt::BooleanEntry existsEntry;
 
 void Robot::RobotInit()
 {
@@ -30,11 +37,17 @@ void Robot::RobotInit()
   m_chooser.AddOption(kAutoNameCustom, kAutoNameCustom);
   frc::SmartDashboard::PutData("Auto Modes", &m_chooser);
 
-  auto inst = nt::NetworkTableInstance::GetDefault();
-  auto table = inst.GetTable("vision");
-  xEntry = table->GetEntry("tag0_x");
-  yEntry = table->GetEntry("tag0_z");
-
+  inst = nt::NetworkTableInstance::GetDefault();
+  inst.StartServer();
+  table = inst.GetTable("vision");
+  xTopic = table->GetDoubleTopic("tag0_x");
+  yTopic = table->GetDoubleTopic("tag0_z");
+  sanityTopic = table->GetStringTopic("sanitycheck");
+  existsTopic = table->GetBooleanTopic("tag0_detect");
+  xEntry = xTopic.GetEntry(0);
+  yEntry = yTopic.GetEntry(0);
+  sanityEntry = sanityTopic.GetEntry("didn't work");
+  existsEntry = existsTopic.GetEntry(false);
 
   swerveDrive = new SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, FL_WHEEL_OFFSET, &driveFR, &swerveFR, &FRMagEnc,
                                         FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
@@ -171,13 +184,11 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("swerve y", pose.Y().value());
   frc::SmartDashboard::PutNumber("swerve theta", pose.Rotation().Degrees().value());
 
-  frc::SmartDashboard::PutNumber("FL Angle", swerveDrive->FLModule->GetSwerveModulePosition().angle.Degrees().value());
-
   // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen, 
   // max drive and spin speeds
   if (xbox_Drive->GetXButton())
   {
-    swerveDrive->TurnToPointWhileDriving(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED, Translation2d(1_m, 0_m));
+   swerveDrive->TurnToPointWhileDriving(FWD_Drive_Speed * MAX_DRIVE_SPEED, STRAFE_Drive_Speed * MAX_DRIVE_SPEED, Translation2d(1_m, 0_m));
   }
   else
   {
@@ -185,7 +196,10 @@ void Robot::TeleopPeriodic()
                                 Turn_Speed * MAX_SPIN_SPEED);
   }
 
-
+  SmartDashboard::PutNumber("Network Table X", xEntry.Get());
+  SmartDashboard::PutNumber("Network Table Y", yEntry.Get());
+  SmartDashboard::PutString("Network Table Sanity", sanityEntry.Get());
+  SmartDashboard::PutBoolean("Network Table Tag Exists", existsEntry.Get());
 
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed())
   {
@@ -207,12 +221,14 @@ void Robot::TeleopPeriodic()
   
   if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetAButton()))
   {
-    double x = xEntry.GetFloat(0);
-    double y = yEntry.GetFloat(0) - 1;
-    swerveDrive->DriveToPoseVision(Pose2d(units::centimeter_t{x * 100}, units::centimeter_t{y * 100}, Rotation2d(0_rad)));
+    double x = xEntry.Get();
+    double y = yEntry.Get() - 2;
+
+    if (existsEntry.Get())
+      swerveDrive->DriveToPoseVision(Pose2d(units::centimeter_t{y * 100}, units::centimeter_t{x * 100}, Rotation2d(0_rad)));
   }
 
-  //Reset Pigion Heading
+  //Reset Pigion Heading*
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())
   {
     pigeon_initial = fmod(_pigeon.GetYaw(), 360);

@@ -17,9 +17,9 @@
 #define SWERVE_DRIVE_MAX_MPS 5.556
 #define SWERVE_DRIVE_MAX_ACCELERATION 3 //TODO
 #define MAX_RADIAN_PER_SECOND 4 // TODO
-
-//PID VALUES
 #define WHEEL_SPIN_KP 0.6
+
+//PID VALUES FOR DRIVE TO POSE
 #define X_KP 5
 #define X_KD 0
 #define Y_KP 5
@@ -27,9 +27,18 @@
 #define THETA_KP 2
 #define THETA_KD 0
 
+//PID VALUES FOR DRIVE USING ONLY VISION
+#define V_X_KP 5
+#define V_X_KD 0
+#define V_Y_KP 5
+#define V_Y_KD 0
+#define V_THETA_KP 2
+#define V_THETA_KD 0
+
 //RAMP UP VALUES
 #define AUTO_MAX_MPS 3_mps
-#define AUTO_MAX_MPS_SQ 0.001_mps_sq
+#define AUTO_MAX_MPS_SQ 3_mps_sq
 #define AUTO_MAX_RADPS 0.5_mps
 #define AUTO_MAX_RADPS_SQ 1_mps_sq
+
 

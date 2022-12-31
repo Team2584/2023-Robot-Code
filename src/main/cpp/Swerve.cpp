@@ -367,9 +367,6 @@ public:
       BR_Drive_Speed /= max;
     }
 
-    frc::SmartDashboard::PutNumber("FR Drive Speed", FR_Drive_Speed);
-    frc::SmartDashboard::PutNumber("FR Target Angle", FR_Target_Angle);
-
     // Make all the motors move
     FLModule->DriveSwerveModulePercent(FL_Drive_Speed, FL_Target_Angle);
     FRModule->DriveSwerveModulePercent(FR_Drive_Speed, FR_Target_Angle);
@@ -408,9 +405,6 @@ public:
     double x = xPidContoller.Calculate(odometry->GetPose().X(), target.X());
     double y = yPidContoller.Calculate(odometry->GetPose().Y(), target.Y());
     double theta = thetaPidController.Calculate(units::centimeter_t{odometry->GetPose().Rotation().Radians().value()}, units::centimeter_t{target.Rotation().Radians().value()});
-    SmartDashboard::PutNumber("Drive To X", x);
-    SmartDashboard::PutNumber("Drive To Y", y);
-    SmartDashboard::PutNumber("Drive To Theta", theta);
 
     DriveSwerveMetersAndRadiansFieldOriented(x, y, theta);
   }
