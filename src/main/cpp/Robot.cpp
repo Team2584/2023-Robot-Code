@@ -125,6 +125,8 @@ void Robot::TeleopInit()
   swerveDrive->pigeon_initial = pigeon_initial;
   swerveDrive->ResetOdometry();
 
+  sanityEntry.Set("ha");
+
   timer.Reset();
   timer.Start();
   lastTime = 0;
@@ -189,9 +191,9 @@ void Robot::TeleopPeriodic()
   double Turn_Speed = joy_rStick_X * MAX_SPIN_SPEED;
 
   swerveDrive->UpdateOdometry();
-  Pose2d pose = swerveDrive->GetPose();
-
   swerveDrive->SetPoseVision(Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()})));
+
+  Pose2d pose = swerveDrive->GetPose();
 
   //Slew Rate Control
   double time = timer.Get().value();
@@ -253,11 +255,11 @@ void Robot::TeleopPeriodic()
   {
     if (existsEntry.Get())
     {
-      swerveDrive->DriveToPoseVision(Pose2d(0_m, -2_m, Rotation2d(0_rad)), elapsedTime);
+      swerveDrive->DriveToPoseVision(Pose2d(0_m, -1_m, Rotation2d(0_rad)), elapsedTime);
     }
     else 
     {
-      swerveDrive->DriveToPoseOdometry(Pose2d(0_m, -2_m, Rotation2d(0_rad)), elapsedTime);
+      swerveDrive->DriveToPoseOdometry(Pose2d(0_m, -1_m, Rotation2d(0_rad)), elapsedTime);
     }
   }
 

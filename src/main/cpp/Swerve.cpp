@@ -209,9 +209,9 @@ private:
   Pose2d visionPose;
   double timeSinceOdometryRefresh;
 
-  double lastX;
-  double lastY;
-  double lastSpin;
+  double lastX = 0;
+  double lastY = 0;
+  double lastSpin = 0 ;
 
 public:
   SwerveModule *FLModule, *FRModule, *BRModule, *BLModule;
@@ -335,10 +335,6 @@ public:
     double oldFwd = FWD_Drive_Speed;
     FWD_Drive_Speed = FWD_Drive_Speed * cos(angle) + STRAFE_Drive_Speed * sin(angle);
     STRAFE_Drive_Speed = -1 * oldFwd * sin(angle) + STRAFE_Drive_Speed * cos(angle);
-
-    SmartDashboard::PutNumber("Real FWD Drive", FWD_Drive_Speed);
-    SmartDashboard::PutNumber("Real STRAFE Drive", STRAFE_Drive_Speed);
-    SmartDashboard::PutNumber("Real Angle", angle);
 
     // If there is no drive input, don't drive the robot and just end the function
     if (FWD_Drive_Speed == 0 && STRAFE_Drive_Speed == 0 && Turn_Speed == 0)
@@ -479,7 +475,7 @@ public:
     DriveSwervePercent(strafeSpeed, fwdSpeed, lastSpin);
   }
 
-  void GenerateTrajecotory(vector<Translation2d> waypoints, Pose2d goal)
+  void FollowTrajectory(vector<Translation2d> waypoints, Pose2d goal)
   {
     //unfinished
     TrajectoryConfig trajectoryConfig{units::meters_per_second_t{SWERVE_DRIVE_MAX_MPS}, units::meters_per_second_squared_t{SWERVE_DRIVE_MAX_ACCELERATION}};
