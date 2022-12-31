@@ -20,12 +20,16 @@
 #define WHEEL_SPIN_KP 0.6
 
 //PID VALUES FOR DRIVE TO POSE
-#define TRANSLATION_KP 0.5    //old is 1.45
+#define TRANSLATION_KP 0.7    //old is 1.45
+#define TRANSLATION_KI 0
+#define TRANSLATION_KI_MAX 0.1
 #define TRANSLATION_MAX_SPEED 0.15
 #define TRANSLATION_MAX_ACCEL 0.5
-#define SPIN_KP 0.3 //old is 0.7
+#define SPIN_KP 0.3  //old is 0.7
+#define SPIN_KI 0
+#define SPIN_KI_MAX 0.1
 #define SPIN_MAX_SPEED 0.2
-#define SPIN_MAX_ACCEL 0.4
+#define SPIN_MAX_ACCEL 0.7  
 #define ALLOWABLE_ERROR_TRANSLATION 0.03
 #define ALLOWABLE_ERROR_ROTATION 0.05
 

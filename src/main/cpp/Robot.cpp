@@ -35,6 +35,8 @@ double lastFwd = 0;
 double lastStrafe = 0;
 double lastTurn = 0;
 
+double lastNetworkTableGrab = 0;
+
 void Robot::RobotInit()
 {
   //Autonomous Choosing
@@ -184,8 +186,6 @@ void Robot::TeleopPeriodic()
     pigeon_angle = 0;
   pigeon_angle *= M_PI / 180;
 
-  SmartDashboard::PutNumber("Old Angle", pigeon_angle);
-
   double FWD_Drive_Speed = joy_lStick_Y * MAX_DRIVE_SPEED;
   double STRAFE_Drive_Speed = joy_lStick_X * MAX_DRIVE_SPEED;
   double Turn_Speed = joy_rStick_X * MAX_SPIN_SPEED;
@@ -209,7 +209,7 @@ void Robot::TeleopPeriodic()
   Turn_Speed = lastTurn;
   lastTime = time;
 
-  if (existsEntry.Get())
+  if (existsEntry.Get() && thetaEntry.Get() != 0)
   {
     swerveDrive->SetPoseVision(Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()})));
     swerveDrive->ResetOdometry(Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()})));
@@ -220,10 +220,13 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("Turn Drive Speed", Turn_Speed);
 
   SmartDashboard::PutNumber("Network Table X", xEntry.Get());
+  SmartDashboard::PutBoolean("Network Table X Last Time", (bool) xEntry.ReadQueue().size());
   SmartDashboard::PutNumber("Network Table Y", yEntry.Get());
-  SmartDashboard::PutNumber("Network Table Theta", thetaEntry.Get());
+  SmartDashboard::PutNumber("Network Table Theta", thetaEntry.Get() * 180 / M_PI);
   SmartDashboard::PutString("Network Table Sanity", sanityEntry.Get());
   SmartDashboard::PutBoolean("Network Table Tag Exists", existsEntry.Get());
+
+  lastNetworkTableGrab = xEntry.GetAtomic().time;
 
   frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
   frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
@@ -233,24 +236,25 @@ void Robot::TeleopPeriodic()
 
   // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen, 
   // max drive and spin speeds
+  swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
+  
   if (xbox_Drive->GetXButton())
   {
-    swerveDrive->TurnToPointWhileDriving(STRAFE_Drive_Speed, FWD_Drive_Speed, Translation2d(0_m, 1_m), elapsedTime);
-  }
-  else
-  {
-    swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
+    swerveDrive->DriveToPoseVision(Pose2d(-0.5_m, -2_m, Rotation2d(0_rad)), elapsedTime);
   }
 
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed())
   {
-    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
+    swerveDrive->DriveToPoseVision(Pose2d(0.5_m, -2_m, Rotation2d(0_rad)), elapsedTime);
   }
   else if (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton())
   {
-    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);  
+    swerveDrive->DriveToPoseVision(Pose2d(0.5_m, -2_m, Rotation2d(0_rad)), elapsedTime);  
   }
   
+  if((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButtonPressed()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetAButtonPressed()))
+    swerveDrive->BeginPIDLoop();
+
   if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetAButton()))
   {
     if (existsEntry.Get())

@@ -213,6 +213,10 @@ private:
   double lastY = 0;
   double lastSpin = 0 ;
 
+  double runningIntegralX = 0;
+  double runningIntegralY = 0;
+  double runningIntegralSpin = 0;
+
 public:
   SwerveModule *FLModule, *FRModule, *BRModule, *BLModule;
   double pigeon_initial;
@@ -400,21 +404,39 @@ public:
     DriveSwervePercent(STRAFE_Drive_Speed / SWERVE_DRIVE_MAX_MPS, FWD_Drive_Speed / SWERVE_DRIVE_MAX_MPS, Turn_Speed / MAX_RADIAN_PER_SECOND);
   }
 
+  void BeginPIDLoop()
+  {
+    runningIntegralX = 0;
+  }
+
   void DriveToPose(Pose2d current, Pose2d target, double elapsedTime)
   {
+    //TODO make drive to pose take all the kp and stuff as arguments instead of as constants, so we can have multiple sets
+
     double intendedVelocity;
+    double intendedI;
 
     double xDistance = target.X().value() - current.X().value();
     if (fabs(xDistance) < ALLOWABLE_ERROR_TRANSLATION)
+    {
       xDistance = 0;
-    intendedVelocity = std::clamp(TRANSLATION_KP * xDistance, -1 * TRANSLATION_MAX_SPEED, TRANSLATION_MAX_SPEED);
+      runningIntegralX = 0;
+    }
+    intendedI = std::clamp(TRANSLATION_KI * runningIntegralX, -1 * TRANSLATION_KI_MAX, TRANSLATION_KI_MAX);
+    intendedVelocity = std::clamp(TRANSLATION_KP * xDistance + intendedI, -1 * TRANSLATION_MAX_SPEED, TRANSLATION_MAX_SPEED);
     lastX += std::clamp(intendedVelocity - lastX, -1 * TRANSLATION_MAX_ACCEL * elapsedTime,
                    TRANSLATION_MAX_ACCEL * elapsedTime);
+    SmartDashboard::PutNumber("X Integral", runningIntegralX);
+    SmartDashboard::PutNumber("X Integral Output", intendedI);
 
     double yDistance = target.Y().value() - current.Y().value();
     if (fabs(yDistance) < ALLOWABLE_ERROR_TRANSLATION)
+    {
       yDistance = 0;
-    intendedVelocity = std::clamp(TRANSLATION_KP * yDistance, -1 * TRANSLATION_MAX_SPEED, TRANSLATION_MAX_SPEED);
+      runningIntegralY = 0;
+    }
+    intendedI = std::clamp(TRANSLATION_KI * runningIntegralY, -1 * TRANSLATION_KI_MAX, TRANSLATION_KI_MAX);
+    intendedVelocity = std::clamp(TRANSLATION_KP * yDistance + intendedI, -1 * TRANSLATION_MAX_SPEED, TRANSLATION_MAX_SPEED);
     lastY += std::clamp(intendedVelocity - lastY, -1 * TRANSLATION_MAX_ACCEL * elapsedTime,
                    TRANSLATION_MAX_ACCEL * elapsedTime);
 
@@ -422,10 +444,18 @@ public:
     if (thetaDistance > 180)
       thetaDistance = thetaDistance - 360;
     if (fabs(thetaDistance) < ALLOWABLE_ERROR_ROTATION)
+    {
       thetaDistance = 0;
-    intendedVelocity = std::clamp(SPIN_KP * thetaDistance, -1 * SPIN_MAX_SPEED, SPIN_MAX_SPEED);
+      runningIntegralSpin = 0;
+    }
+    intendedI = std::clamp(SPIN_KI * runningIntegralSpin, -1 * SPIN_KI_MAX, SPIN_KI_MAX);
+    intendedVelocity = std::clamp(SPIN_KP * thetaDistance + intendedI, -1 * SPIN_MAX_SPEED, SPIN_MAX_SPEED);
     lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * SPIN_MAX_ACCEL * elapsedTime,
                    SPIN_MAX_ACCEL * elapsedTime);
+
+    runningIntegralX += xDistance;
+    runningIntegralY += yDistance;
+    runningIntegralSpin += thetaDistance;
 
     SmartDashboard::PutNumber("XDistance", xDistance);
     SmartDashboard::PutNumber("YDistance", yDistance);
