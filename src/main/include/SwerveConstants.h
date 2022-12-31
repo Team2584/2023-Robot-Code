@@ -20,23 +20,17 @@
 #define WHEEL_SPIN_KP 0.6
 
 //PID VALUES FOR DRIVE TO POSE
-#define X_KP 4
-#define X_KD 0
-#define Y_KP 4
-#define Y_KD 0
-#define THETA_KP 2
-#define THETA_KD 0
+#define TRANSLATION_KP 1.4
+#define TRANSLATION_MAX_SPEED 0.2
+#define TRANSLATION_MAX_ACCEL 0.5
+#define SPIN_KP 0.7
+#define SPIN_MAX_SPEED 0.2
+#define SPIN_MAX_ACCEL 0.7
+#define ALLOWABLE_ERROR_TRANSLATION 0.03
+#define ALLOWABLE_ERROR_ROTATION 0.05
 
 //Conbined Pose Estimation Values
 #define ODOMETRY_REFRESH_TIME 1 //seconds
 
-
-
-
-//RAMP UP VALUES
-#define AUTO_MAX_MPS 3_mps
-#define AUTO_MAX_MPS_SQ 3_mps_sq
-#define AUTO_MAX_RADPS 0.5_mps
-#define AUTO_MAX_RADPS_SQ 1_mps_sq
 
 

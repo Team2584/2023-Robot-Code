@@ -241,11 +241,11 @@ void Robot::TeleopPeriodic()
 
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed())
   {
-    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));
+    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
   }
   else if (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton())
   {
-    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));  
+    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);  
   }
   
   if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetAButton()))
@@ -254,7 +254,7 @@ void Robot::TeleopPeriodic()
     double y = yEntry.Get() - 2;
 
     if (existsEntry.Get())
-      swerveDrive->DriveToPoseVision(Pose2d(units::centimeter_t{y * 100}, units::centimeter_t{x * 100}, Rotation2d(0_rad)));
+      swerveDrive->DriveToPoseVision(Pose2d(units::centimeter_t{y * 100}, units::centimeter_t{x * 100}, Rotation2d(0_rad)), elapsedTime);
   }
 
   //Reset Pigion Heading*

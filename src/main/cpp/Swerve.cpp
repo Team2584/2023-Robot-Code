@@ -205,13 +205,12 @@ private:
   SwerveDriveKinematics<4> kinematics;
   SwerveDriveOdometry<4> *odometry;
   Trajectory currentTrajectory;
-  frc::ProfiledPIDController<units::meters> xPidContoller;
-  frc::ProfiledPIDController<units::meters> yPidContoller;
-  frc::ProfiledPIDController<units::centimeter> thetaPidController;
-
-  units::second_t lastOdometryRefresh = Timer::GetFPGATimestamp();
 
   Pose2d visionPose;
+
+  double lastX;
+  double lastY;
+  double lastSpin;
 
 public:
   SwerveModule *FLModule, *FRModule, *BRModule, *BLModule;
@@ -232,13 +231,7 @@ public:
     m_frontRight{0.29845_m, -0.2953_m},
     m_backLeft{-0.29845_m, 0.2953_m},
     m_backRight{-0.29845_m, -0.2953_m},
-    kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight},
-    xPidContoller{X_KP, 0, X_KD,
-      frc::TrapezoidProfile<units::meters>::Constraints{AUTO_MAX_MPS, AUTO_MAX_MPS_SQ}},
-    yPidContoller{Y_KP, 0, Y_KD,
-      frc::TrapezoidProfile<units::meters>::Constraints{AUTO_MAX_MPS, AUTO_MAX_MPS_SQ}},
-    thetaPidController{THETA_KP, 0, THETA_KD,
-      frc::TrapezoidProfile<units::centimeter>::Constraints{AUTO_MAX_RADPS, AUTO_MAX_RADPS_SQ}}
+    kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight}
   {
     FLModule = new SwerveModule(_FLDriveMotor, _FLSpinMotor, _FLMagEncoder, _FLEncoderOffset);
     FRModule = new SwerveModule(_FRDriveMotor, _FRSpinMotor, _FRMagEncoder, _FREncoderOffset);
@@ -246,8 +239,6 @@ public:
     BRModule = new SwerveModule(_BRDriveMotor, _BRSpinMotor, _BRMagEncoder, _BREncoderOffset);
     
     pigeonIMU = _pigeonIMU;
-
-    thetaPidController.EnableContinuousInput(units::centimeter_t{-1 * M_PI}, units::centimeter_t{M_PI});
 
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
       FRModule->GetSwerveModulePosition(),
@@ -410,43 +401,60 @@ public:
     DriveSwervePercent(FWD_Drive_Speed / SWERVE_DRIVE_MAX_MPS, STRAFE_Drive_Speed / SWERVE_DRIVE_MAX_MPS, Turn_Speed / MAX_RADIAN_PER_SECOND);
   }
 
-  void DriveToPose(Pose2d current, Pose2d target)
+  void DriveToPose(Pose2d current, Pose2d target, double elapsedTime)
   {
-    double x = xPidContoller.Calculate(current.X(), target.X());
-    double y = yPidContoller.Calculate(current.Y(), target.Y());
-    double theta = thetaPidController.Calculate(units::centimeter_t{current.Rotation().Radians().value()}, units::centimeter_t{target.Rotation().Radians().value()});
-
-    DriveSwerveMetersAndRadiansFieldOriented(x, y, theta);
+    double intendedVelocity;
+    double xDistance = target.X().value() - current.X().value();
+    if (fabs(xDistance) < ALLOWABLE_ERROR_TRANSLATION)
+      xDistance = 0;
+    intendedVelocity = std::clamp(TRANSLATION_KP * xDistance, -1 * TRANSLATION_MAX_SPEED, TRANSLATION_MAX_SPEED);
+    lastX += std::clamp(intendedVelocity - lastX, -1 * TRANSLATION_MAX_ACCEL * elapsedTime,
+                   TRANSLATION_MAX_ACCEL * elapsedTime);
+    double yDistance = target.Y().value() - current.Y().value();
+    if (fabs(yDistance) < ALLOWABLE_ERROR_TRANSLATION)
+      yDistance = 0;
+    intendedVelocity = std::clamp(TRANSLATION_KP * yDistance, -1 * TRANSLATION_MAX_SPEED, TRANSLATION_MAX_SPEED);
+    lastY += std::clamp(intendedVelocity - lastY, -1 * TRANSLATION_MAX_ACCEL * elapsedTime,
+                   TRANSLATION_MAX_ACCEL * elapsedTime);
+    double thetaDistance = target.RelativeTo(current).Rotation().Radians().value();
+    if (thetaDistance > 180)
+      thetaDistance = thetaDistance - 360;
+    if (fabs(thetaDistance) < ALLOWABLE_ERROR_ROTATION)
+      thetaDistance = 0;
+    intendedVelocity = std::clamp(SPIN_KP * thetaDistance, -1 * SPIN_MAX_SPEED, SPIN_MAX_SPEED);
+    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * SPIN_MAX_ACCEL * elapsedTime,
+                   SPIN_MAX_ACCEL * elapsedTime);
+    SmartDashboard::PutNumber("ThetaDistance", thetaDistance);
+    DriveSwervePercent(lastX, lastY, lastSpin);
   }
 
-  void DriveToPoseOdometry(Pose2d target)
+  void DriveToPoseOdometry(Pose2d target, double elapsedTime)
   {
-    DriveToPose(odometry->GetPose(), target);
+    DriveToPose(GetPoseOdometry(), target, elapsedTime);
   }
 
-  void DriveToPoseVision(Pose2d target)
+  void DriveToPoseVision(Pose2d target, double elapsedTime)
   {
-    DriveToPose(visionPose, target);
+    DriveToPose(visionPose, target, elapsedTime);
   }
 
-  void DriveToPoseCombo(Pose2d target)
+  void DriveToPoseCombo(Pose2d target, double elapsedTime)
   {
     //This code is weird because it assumes the feducial is at 0m, 0m (x, y)
-    if (ODOMETRY_REFRESH_TIME < (Timer::GetFPGATimestamp() - lastOdometryRefresh).value())
+    if (ODOMETRY_REFRESH_TIME < elapsedTime)
     {
       ResetOdometry(visionPose);
-      lastOdometryRefresh = Timer::GetFPGATimestamp();
     }
 
-    DriveToPoseOdometry(target);
+    DriveToPoseOdometry(target, elapsedTime);
   }
 
   void TurnToPointWhileDriving(double fwdSpeed, double strafeSpeed, Translation2d point)
   {
     Translation2d diff = point - GetPose().Translation();
     double targetAngle = atan2(diff.Y().value(), diff.X().value());
-    double theta = thetaPidController.Calculate(units::centimeter_t{GetPose().Rotation().Radians().value()}, units::centimeter_t{targetAngle});
-    DriveSwervePercent(fwdSpeed, strafeSpeed, theta / MAX_RADIAN_PER_SECOND);
+   // double theta = thetaPidController.Calculate(units::centimeter_t{GetPose().Rotation().Radians().value()}, units::centimeter_t{targetAngle});
+   // DriveSwervePercent(fwdSpeed, strafeSpeed, theta / MAX_RADIAN_PER_SECOND);
   }
 
   void GenerateTrajecotory(vector<Translation2d> waypoints, Pose2d goal)
