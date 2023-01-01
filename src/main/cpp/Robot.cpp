@@ -238,7 +238,7 @@ void Robot::TeleopPeriodic()
 
   if (xbox_Drive->GetXButton())
   {
-    Turn_Speed = swerveDrive->TurnToPointDesiredSpin(Transform2d(0_m, 1_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
+    Turn_Speed = swerveDrive->TurnToPointDesiredSpin(Translation2d(0_m, 1_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
   }
 
   swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
