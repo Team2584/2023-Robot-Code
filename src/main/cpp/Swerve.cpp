@@ -204,6 +204,7 @@ private:
   Translation2d m_backRight;
   SwerveDriveKinematics<4> kinematics;
   SwerveDriveOdometry<4> *odometry;
+  SwerveDriveOdometry<4> *visionOdometry;
   Trajectory currentTrajectory;
 
   Pose2d visionPose;
@@ -255,6 +256,11 @@ public:
     Rotation2d(units::radian_t{GetIMURadians()}), 
     positions, 
     frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
+
+    visionOdometry = new SwerveDriveOdometry<4>(kinematics, 
+    Rotation2d(units::radian_t{GetIMURadians()}), 
+    positions, 
+    frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
   }
 
   double GetIMURadians()
@@ -292,6 +298,10 @@ public:
     Rotation2d(units::radian_t{GetIMURadians()}), 
     positions, 
     frc::Pose2d(Pose2d(position.Y(), position.X(), position.Rotation())));
+    visionOdometry->ResetPosition( 
+    Rotation2d(units::radian_t{GetIMURadians()}), 
+    positions, 
+    frc::Pose2d(Pose2d(position.Y(), position.X(), position.Rotation())));
   }
 
   void UpdateOdometry()
@@ -302,6 +312,7 @@ public:
       BLModule->GetSwerveModulePosition(),
       BRModule->GetSwerveModulePosition()};
     odometry->Update(units::radian_t{GetIMURadians()}, positions);
+    visionOdometry->Update(units::radian_t{GetIMURadians()}, positions);
   }
 
   Pose2d GetPose()
@@ -315,9 +326,25 @@ public:
     return Pose2d(pose.Y(), pose.X(), pose.Rotation()); 
   }
 
+  Pose2d GetPoseVisionOdometry()
+  {
+    Pose2d pose = visionOdometry->GetPose();
+    return Pose2d(pose.Y(), pose.X(), pose.Rotation()); 
+  }
+
   void SetPoseVision(Pose2d pose)
   {
     visionPose = pose;
+
+    wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
+      FRModule->GetSwerveModulePosition(),
+      BLModule->GetSwerveModulePosition(),
+      BRModule->GetSwerveModulePosition()};
+
+    visionOdometry->ResetPosition( 
+    Rotation2d(units::radian_t{GetIMURadians()}), 
+    positions, 
+    frc::Pose2d(Pose2d(pose.Y(), pose.X(), pose.Rotation())));
   }
 
   Pose2d GetPoseVision()
@@ -409,49 +436,51 @@ public:
     runningIntegralX = 0;
   }
 
-  void DriveToPose(Pose2d current, Pose2d target, double elapsedTime)
+  void DriveToPose(Pose2d current, Pose2d target, double elapsedTime,
+                   double translationMaxSpeed, double translationMaxAccel, double allowableErrorTranslation,
+                   double translationP, double translationI, double translationIMaxEffect,
+                   double rotationMaxSpeed, double rotationMaxAccel, double allowableErrorRotation,
+                   double rotationP, double rotationI, double rotationIMaxEffect)
   {
-    //TODO make drive to pose take all the kp and stuff as arguments instead of as constants, so we can have multiple sets
-
     double intendedVelocity;
     double intendedI;
 
     double xDistance = target.X().value() - current.X().value();
-    if (fabs(xDistance) < ALLOWABLE_ERROR_TRANSLATION)
+    if (fabs(xDistance) < allowableErrorTranslation)
     {
       xDistance = 0;
       runningIntegralX = 0;
     }
-    intendedI = std::clamp(TRANSLATION_KI * runningIntegralX, -1 * TRANSLATION_KI_MAX, TRANSLATION_KI_MAX);
-    intendedVelocity = std::clamp(TRANSLATION_KP * xDistance + intendedI, -1 * TRANSLATION_MAX_SPEED, TRANSLATION_MAX_SPEED);
-    lastX += std::clamp(intendedVelocity - lastX, -1 * TRANSLATION_MAX_ACCEL * elapsedTime,
-                   TRANSLATION_MAX_ACCEL * elapsedTime);
+    intendedI = std::clamp(translationI * runningIntegralX, -1 * translationIMaxEffect, translationIMaxEffect);
+    intendedVelocity = std::clamp(translationP * xDistance + intendedI, -1 * translationMaxSpeed, translationMaxSpeed);
+    lastX += std::clamp(intendedVelocity - lastX, -1 * translationMaxAccel * elapsedTime,
+                   translationMaxAccel * elapsedTime);
     SmartDashboard::PutNumber("X Integral", runningIntegralX);
     SmartDashboard::PutNumber("X Integral Output", intendedI);
 
     double yDistance = target.Y().value() - current.Y().value();
-    if (fabs(yDistance) < ALLOWABLE_ERROR_TRANSLATION)
+    if (fabs(yDistance) < allowableErrorTranslation)
     {
       yDistance = 0;
       runningIntegralY = 0;
     }
-    intendedI = std::clamp(TRANSLATION_KI * runningIntegralY, -1 * TRANSLATION_KI_MAX, TRANSLATION_KI_MAX);
-    intendedVelocity = std::clamp(TRANSLATION_KP * yDistance + intendedI, -1 * TRANSLATION_MAX_SPEED, TRANSLATION_MAX_SPEED);
-    lastY += std::clamp(intendedVelocity - lastY, -1 * TRANSLATION_MAX_ACCEL * elapsedTime,
-                   TRANSLATION_MAX_ACCEL * elapsedTime);
+    intendedI = std::clamp(translationI * runningIntegralY, -1 * translationIMaxEffect, translationIMaxEffect);
+    intendedVelocity = std::clamp(translationP * yDistance + intendedI, -1 * translationMaxSpeed, translationMaxSpeed);
+    lastY += std::clamp(intendedVelocity - lastY, -1 * translationMaxAccel * elapsedTime,
+                   translationMaxAccel * elapsedTime);
 
     double thetaDistance = target.RelativeTo(current).Rotation().Radians().value();
     if (thetaDistance > 180)
       thetaDistance = thetaDistance - 360;
-    if (fabs(thetaDistance) < ALLOWABLE_ERROR_ROTATION)
+    if (fabs(thetaDistance) < allowableErrorRotation)
     {
       thetaDistance = 0;
       runningIntegralSpin = 0;
     }
-    intendedI = std::clamp(SPIN_KI * runningIntegralSpin, -1 * SPIN_KI_MAX, SPIN_KI_MAX);
-    intendedVelocity = std::clamp(SPIN_KP * thetaDistance + intendedI, -1 * SPIN_MAX_SPEED, SPIN_MAX_SPEED);
-    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * SPIN_MAX_ACCEL * elapsedTime,
-                   SPIN_MAX_ACCEL * elapsedTime);
+    intendedI = std::clamp(rotationI * runningIntegralSpin, -1 * rotationIMaxEffect, rotationIMaxEffect);
+    intendedVelocity = std::clamp(rotationP * thetaDistance + intendedI, -1 * rotationMaxSpeed, rotationMaxSpeed);
+    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * rotationMaxAccel * elapsedTime,
+                   rotationMaxAccel * elapsedTime);
 
     runningIntegralX += xDistance;
     runningIntegralY += yDistance;
@@ -470,14 +499,25 @@ public:
 
   void DriveToPoseOdometry(Pose2d target, double elapsedTime)
   {
-    DriveToPose(GetPoseOdometry(), target, elapsedTime);
+    DriveToPose(GetPoseOdometry(), target, elapsedTime, O_TRANSLATION_MAX_SPEED, O_TRANSLATION_MAX_ACCEL, O_ALLOWABLE_ERROR_TRANSLATION, 
+                O_TRANSLATION_KP, O_TRANSLATION_KI, O_TRANSLATION_KI_MAX, O_SPIN_MAX_SPEED, O_SPIN_MAX_ACCEL, O_ALLOWABLE_ERROR_ROTATION,
+                O_SPIN_KP, O_SPIN_KI, O_SPIN_KI_MAX);
   }
 
   void DriveToPoseVision(Pose2d target, double elapsedTime)
   {
-    DriveToPose(visionPose, target, elapsedTime);
+    DriveToPose(visionPose, target, elapsedTime, V_TRANSLATION_MAX_SPEED, V_TRANSLATION_MAX_ACCEL, V_ALLOWABLE_ERROR_TRANSLATION, 
+                V_TRANSLATION_KP, V_TRANSLATION_KI, V_TRANSLATION_KI_MAX, V_SPIN_MAX_SPEED, V_SPIN_MAX_ACCEL, V_ALLOWABLE_ERROR_ROTATION,
+                V_SPIN_KP, V_SPIN_KI, V_SPIN_KI_MAX);  
   }
 
+  void DriveToPoseVisionOdometry(Pose2d target, double elapsedTime)
+  {
+    DriveToPose(GetPoseVisionOdometry(), target, elapsedTime, V_TRANSLATION_MAX_SPEED, V_TRANSLATION_MAX_ACCEL, V_ALLOWABLE_ERROR_TRANSLATION, 
+                V_TRANSLATION_KP, V_TRANSLATION_KI, V_TRANSLATION_KI_MAX, V_SPIN_MAX_SPEED, V_SPIN_MAX_ACCEL, V_ALLOWABLE_ERROR_ROTATION,
+                V_SPIN_KP, V_SPIN_KI, V_SPIN_KI_MAX);  
+  }
+/*
   void DriveToPoseCombo(Pose2d target, double elapsedTime)
   {
     timeSinceOdometryRefresh += elapsedTime;
@@ -489,20 +529,21 @@ public:
 
     DriveToPoseOdometry(target, elapsedTime);
   }
+*/
 
-  void TurnToPointWhileDriving(double strafeSpeed, double fwdSpeed, Translation2d point, double elapsedTime)
+  double TurnToPointDesiredSpin(Translation2d point, double elapsedTime, double allowableErrorRotation, double spinMaxSpeed, double spinMaxAccel, double spinP, double spinI)
   {
     Translation2d diff = point - GetPose().Translation();
     Rotation2d targetAngle = Rotation2d(units::radian_t{atan2(diff.X().value(), diff.Y().value())});
     double thetaDistance = (targetAngle - GetPose().Rotation()).Radians().value();
     if (thetaDistance > 180)
       thetaDistance = thetaDistance - 360;
-    if (fabs(thetaDistance) < ALLOWABLE_ERROR_ROTATION)
+    if (fabs(thetaDistance) < allowableErrorRotation)
       thetaDistance = 0;
-    double intendedVelocity = std::clamp(SPIN_KP * thetaDistance, -1 * SPIN_MAX_SPEED, SPIN_MAX_SPEED);
-    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * SPIN_MAX_ACCEL * elapsedTime,
-                   SPIN_MAX_ACCEL * elapsedTime);
-    DriveSwervePercent(strafeSpeed, fwdSpeed, lastSpin);
+    double intendedVelocity = std::clamp(spinP * thetaDistance, -1 * spinMaxSpeed, spinMaxSpeed);
+    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * spinMaxAccel * elapsedTime,
+                   spinMaxAccel * elapsedTime);
+    return lastSpin;
   }
 
   void FollowTrajectory(vector<Translation2d> waypoints, Pose2d goal)

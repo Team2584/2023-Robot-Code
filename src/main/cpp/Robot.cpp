@@ -31,11 +31,14 @@ nt::BooleanEntry existsEntry;
 // To track time for slew rate and accleration control
 frc::Timer timer;
 double lastTime = 0;
-double lastFwd = 0;
-double lastStrafe = 0;
-double lastTurn = 0;
 
-double lastNetworkTableGrab = 0;
+//To Calibrate Odometry to april tag
+bool isCalibrated = false;
+double calibrationTime = 0;
+double calibrationAmount = 0;
+double caliX = 0;
+double caliY = 0;
+double caliTheta = 0;
 
 void Robot::RobotInit()
 {
@@ -132,10 +135,13 @@ void Robot::TeleopInit()
   timer.Reset();
   timer.Start();
   lastTime = 0;
-  lastFwd = 0;
-  lastTurn = 0;
-  lastStrafe = 0;
 
+  isCalibrated = false;
+  calibrationTime = 0;
+  calibrationAmount = 0;
+  caliX = 0;
+  caliY = 0;
+  caliTheta = 0;
   /*
     orchestra.LoadMusic("CHIRP");
     orchestra.AddInstrument(swerveBL);  
@@ -176,57 +182,50 @@ void Robot::TeleopPeriodic()
     joy_rStick_X = 0;
   }
 
-  // Find Pigeon IMU input and convert it to an angle
-  double pigeon_angle = fmod(_pigeon.GetYaw(), 360);
-  pigeon_angle -= pigeon_initial;
-  if (pigeon_angle < 0)
-    pigeon_angle += 360;
-  pigeon_angle = 360 - pigeon_angle;
-  if (pigeon_angle == 360)
-    pigeon_angle = 0;
-  pigeon_angle *= M_PI / 180;
-
   double FWD_Drive_Speed = joy_lStick_Y * MAX_DRIVE_SPEED;
   double STRAFE_Drive_Speed = joy_lStick_X * MAX_DRIVE_SPEED;
   double Turn_Speed = joy_rStick_X * MAX_SPIN_SPEED;
 
-  swerveDrive->UpdateOdometry();
-  swerveDrive->SetPoseVision(Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()})));
-
-  Pose2d pose = swerveDrive->GetPose();
-
-  //Slew Rate Control
   double time = timer.Get().value();
   double elapsedTime = time - lastTime;
-  lastFwd += std::clamp(FWD_Drive_Speed - lastFwd, -1 * MAX_DRIVE_ACCELERATION * elapsedTime,
-                   MAX_DRIVE_ACCELERATION * elapsedTime);
-  FWD_Drive_Speed = lastFwd;
-  lastStrafe += std::clamp(STRAFE_Drive_Speed - lastStrafe, -1 * MAX_DRIVE_ACCELERATION * elapsedTime,
-                   MAX_DRIVE_ACCELERATION * elapsedTime);
-  STRAFE_Drive_Speed = lastStrafe;
-  lastTurn += std::clamp(Turn_Speed - lastTurn, -1 * MAX_SPIN_ACCELERATION * elapsedTime,
-                   MAX_SPIN_ACCELERATION * elapsedTime);
-  Turn_Speed = lastTurn;
   lastTime = time;
 
+  swerveDrive->UpdateOdometry();
+  Pose2d visionPose = Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()}));
+
+
   if (existsEntry.Get() && thetaEntry.Get() != 0)
+    swerveDrive->SetPoseVision(visionPose);
+
+
+  if (existsEntry.Get() && !isCalibrated && calibrationTime < 0.25)
   {
-    swerveDrive->SetPoseVision(Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()})));
-    swerveDrive->ResetOdometry(Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()})));
+    calibrationAmount += 1;
+    caliX += visionPose.X().value();
+    caliY += visionPose.Y().value();
+    caliTheta += visionPose.Rotation().Radians().value();
   }
+  else if (existsEntry.Get() && !isCalibrated)
+  {
+    isCalibrated = true;
+    caliX /= calibrationAmount;
+    caliY /= calibrationAmount;
+    caliTheta /= calibrationAmount;
+    swerveDrive->ResetOdometry(Pose2d(units::meter_t{caliX}, units::meter_t{caliY}, Rotation2d(units::radian_t{caliTheta})));
+  }
+
+  Pose2d pose = swerveDrive->GetPose();
 
   frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed);
   frc::SmartDashboard::PutNumber("Strafe Drive Speed", STRAFE_Drive_Speed);
   frc::SmartDashboard::PutNumber("Turn Drive Speed", Turn_Speed);
 
   SmartDashboard::PutNumber("Network Table X", xEntry.Get());
-  SmartDashboard::PutBoolean("Network Table X Last Time", (bool) xEntry.ReadQueue().size());
+  SmartDashboard::PutBoolean("Network Table X New Value", (bool) xEntry.ReadQueue().size());
   SmartDashboard::PutNumber("Network Table Y", yEntry.Get());
   SmartDashboard::PutNumber("Network Table Theta", thetaEntry.Get() * 180 / M_PI);
   SmartDashboard::PutString("Network Table Sanity", sanityEntry.Get());
   SmartDashboard::PutBoolean("Network Table Tag Exists", existsEntry.Get());
-
-  lastNetworkTableGrab = xEntry.GetAtomic().time;
 
   frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
   frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
@@ -236,34 +235,33 @@ void Robot::TeleopPeriodic()
 
   // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen, 
   // max drive and spin speeds
-  swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
-  
+
   if (xbox_Drive->GetXButton())
   {
-    swerveDrive->DriveToPoseVision(Pose2d(-0.5_m, -2_m, Rotation2d(0_rad)), elapsedTime);
+    Turn_Speed = swerveDrive->TurnToPointDesiredSpin(Transform2d(0_m, 1_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
   }
+
+  swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
+  
 
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed())
   {
-    swerveDrive->DriveToPoseVision(Pose2d(0.5_m, -2_m, Rotation2d(0_rad)), elapsedTime);
+    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 1_m, Rotation2d(3.14_rad)), elapsedTime);
   }
   else if (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton())
   {
-    swerveDrive->DriveToPoseVision(Pose2d(0.5_m, -2_m, Rotation2d(0_rad)), elapsedTime);  
+    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 1_m, Rotation2d(3.14_rad)), elapsedTime);  
   }
   
-  if((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButtonPressed()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetAButtonPressed()))
-    swerveDrive->BeginPIDLoop();
-
   if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetAButton()))
   {
     if (existsEntry.Get())
     {
-      swerveDrive->DriveToPoseVision(Pose2d(0_m, -1_m, Rotation2d(0_rad)), elapsedTime);
+      swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
     }
     else 
     {
-      swerveDrive->DriveToPoseOdometry(Pose2d(0_m, -1_m, Rotation2d(0_rad)), elapsedTime);
+      swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
     }
   }
 
