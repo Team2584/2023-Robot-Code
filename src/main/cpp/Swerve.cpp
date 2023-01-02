@@ -500,6 +500,59 @@ public:
     DriveSwervePercent(lastX, lastY, lastSpin);
   }
 
+  double TurnToPointDesiredSpin(Pose2d current, Translation2d point, double elapsedTime, double allowableErrorRotation, double spinMaxSpeed, double spinMaxAccel, double spinP, double spinI)
+  {
+    Translation2d diff = point - current.Translation();
+    Rotation2d targetAngle = Rotation2d(units::radian_t{atan2(diff.X().value(), diff.Y().value())});
+    double thetaDistance = (targetAngle - current.Rotation()).Radians().value();
+    if (thetaDistance > 180)
+      thetaDistance = thetaDistance - 360;
+    if (fabs(thetaDistance) < allowableErrorRotation)
+      thetaDistance = 0;
+    double intendedVelocity = std::clamp(spinP * thetaDistance, -1 * spinMaxSpeed, spinMaxSpeed);
+    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * spinMaxAccel * elapsedTime,
+                   spinMaxAccel * elapsedTime);
+    return lastSpin;
+  }
+
+  void DriveToPoseWhileFacingTag(Pose2d current, Pose2d target, Pose2d tag, double elapsedTime,
+                   double translationMaxSpeed, double translationMaxAccel, double allowableErrorTranslation,
+                   double translationP, double translationI, double translationIMaxEffect,
+                   double rotationMaxSpeed, double rotationMaxAccel, double allowableErrorRotation,
+                   double rotationP, double rotationI, double rotationIMaxEffect)
+  {
+    double intendedVelocity;
+    double intendedI;
+
+    double xDistance = target.X().value() - current.X().value();
+    if (fabs(xDistance) < allowableErrorTranslation)
+    {
+      xDistance = 0;
+      runningIntegralX = 0;
+    }
+    intendedI = std::clamp(translationI * runningIntegralX, -1 * translationIMaxEffect, translationIMaxEffect);
+    intendedVelocity = std::clamp(translationP * xDistance + intendedI, -1 * translationMaxSpeed, translationMaxSpeed);
+    lastX += std::clamp(intendedVelocity - lastX, -1 * translationMaxAccel * elapsedTime,
+                   translationMaxAccel * elapsedTime);
+    SmartDashboard::PutNumber("X Integral", runningIntegralX);
+    SmartDashboard::PutNumber("X Integral Output", intendedI);
+
+    double yDistance = target.Y().value() - current.Y().value();
+    if (fabs(yDistance) < allowableErrorTranslation)
+    {
+      yDistance = 0;
+      runningIntegralY = 0;
+    }
+    intendedI = std::clamp(translationI * runningIntegralY, -1 * translationIMaxEffect, translationIMaxEffect);
+    intendedVelocity = std::clamp(translationP * yDistance + intendedI, -1 * translationMaxSpeed, translationMaxSpeed);
+    lastY += std::clamp(intendedVelocity - lastY, -1 * translationMaxAccel * elapsedTime,
+                   translationMaxAccel * elapsedTime);
+    
+    double spin = TurnToPointDesiredSpin(current, tag.Translation(), elapsedTime, allowableErrorRotation, rotationMaxSpeed, rotationMaxAccel, rotationP, rotationI);
+
+    DriveSwervePercent(lastX, lastY, spin);
+  }
+
   void DriveToPoseOdometry(Pose2d target, double elapsedTime)
   {
     DriveToPose(GetPoseOdometry(), target, elapsedTime, O_TRANSLATION_MAX_SPEED, O_TRANSLATION_MAX_ACCEL, O_ALLOWABLE_ERROR_TRANSLATION, 
@@ -520,6 +573,14 @@ public:
                 V_TRANSLATION_KP, V_TRANSLATION_KI, V_TRANSLATION_KI_MAX, V_SPIN_MAX_SPEED, V_SPIN_MAX_ACCEL, V_ALLOWABLE_ERROR_ROTATION,
                 V_SPIN_KP, V_SPIN_KI, V_SPIN_KI_MAX);  
   }
+
+  void DriveToPoseWhileFacingTagVision(Pose2d target, Pose2d tag, double elapsedTime)
+  {
+    DriveToPoseWhileFacingTag(visionPose, target, tag, elapsedTime, V_TRANSLATION_MAX_SPEED, V_TRANSLATION_MAX_ACCEL, V_ALLOWABLE_ERROR_TRANSLATION, 
+                V_TRANSLATION_KP, V_TRANSLATION_KI, V_TRANSLATION_KI_MAX, V_SPIN_MAX_SPEED, V_SPIN_MAX_ACCEL, V_ALLOWABLE_ERROR_ROTATION,
+                V_SPIN_KP, V_SPIN_KI, V_SPIN_KI_MAX);
+  }
+
 /*
   void DriveToPoseCombo(Pose2d target, double elapsedTime)
   {
@@ -533,21 +594,6 @@ public:
     DriveToPoseOdometry(target, elapsedTime);
   }
 */
-
-  double TurnToPointDesiredSpin(Translation2d point, double elapsedTime, double allowableErrorRotation, double spinMaxSpeed, double spinMaxAccel, double spinP, double spinI)
-  {
-    Translation2d diff = point - GetPose().Translation();
-    Rotation2d targetAngle = Rotation2d(units::radian_t{atan2(diff.X().value(), diff.Y().value())});
-    double thetaDistance = (targetAngle - GetPose().Rotation()).Radians().value();
-    if (thetaDistance > 180)
-      thetaDistance = thetaDistance - 360;
-    if (fabs(thetaDistance) < allowableErrorRotation)
-      thetaDistance = 0;
-    double intendedVelocity = std::clamp(spinP * thetaDistance, -1 * spinMaxSpeed, spinMaxSpeed);
-    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * spinMaxAccel * elapsedTime,
-                   spinMaxAccel * elapsedTime);
-    return lastSpin;
-  }
 
   void FollowTrajectory(vector<Translation2d> waypoints, Pose2d goal)
   {
