@@ -237,33 +237,21 @@ void Robot::TeleopPeriodic()
   // max drive and spin speeds
 
   if (xbox_Drive->GetXButton())
-  {
     Turn_Speed = swerveDrive->TurnToPointDesiredSpin(Translation2d(0_m, 1_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
-  }
 
   swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
   
 
-  if (CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed())
-  {
+  if (xbox_Drive->GetBButtonPressed())
+    swerveDrive->BeginPIDLoop();
+  if ((CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton()))
     swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 1_m, Rotation2d(3.14_rad)), elapsedTime);
-  }
-  else if (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton())
-  {
-    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 1_m, Rotation2d(3.14_rad)), elapsedTime);  
-  }
-  
+
+
+  if (xbox_Drive->GetAButtonPressed())
+    swerveDrive->BeginPIDLoop();
   if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetAButton()))
-  {
-    if (existsEntry.Get())
-    {
-      swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
-    }
-    else 
-    {
-      swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
-    }
-  }
+    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
 
   //Reset Pigion Heading*
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())

@@ -433,6 +433,9 @@ public:
 
   void BeginPIDLoop()
   {
+    lastX = 0;
+    lastY = 0;
+    lastSpin = 0;
     runningIntegralX = 0;
   }
 
