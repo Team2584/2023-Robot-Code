@@ -56,9 +56,9 @@ void Robot::RobotInit()
   thetaTopic = table->GetDoubleTopic("theta");
   sanityTopic = table->GetStringTopic("sanitycheck");
   existsTopic = table->GetBooleanTopic("robot_pos_good");
-  xEntry = xTopic.GetEntry(0);
-  yEntry = yTopic.GetEntry(0);
-  thetaEntry = thetaTopic.GetEntry(0);
+  xEntry = xTopic.GetEntry(100000);
+  yEntry = yTopic.GetEntry(10000);
+  thetaEntry = thetaTopic.GetEntry(10000);
   sanityEntry = sanityTopic.GetEntry("didn't work");
   existsEntry = existsTopic.GetEntry(false);
 
@@ -193,10 +193,15 @@ void Robot::TeleopPeriodic()
   swerveDrive->UpdateOdometry();
   Pose2d visionPose = Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()}));
 
+  swerveDrive->SetPoseVision(visionPose, existsEntry.Get());
 
-  if (existsEntry.Get() && thetaEntry.Get() != 0)
-    swerveDrive->SetPoseVision(visionPose);
+  if (!isCalibrated && existsEntry.Get())
+  {
+    isCalibrated = true;
+    swerveDrive->ResetOdometry(visionPose);
+  }
 
+/*
 
   if (existsEntry.Get() && !isCalibrated && calibrationTime < 0.25)
   {
@@ -212,9 +217,13 @@ void Robot::TeleopPeriodic()
     caliY /= calibrationAmount;
     caliTheta /= calibrationAmount;
     swerveDrive->ResetOdometry(Pose2d(units::meter_t{caliX}, units::meter_t{caliY}, Rotation2d(units::radian_t{caliTheta})));
-  }
+  }*/
 
   Pose2d pose = swerveDrive->GetPose();
+  Pose2d visionOdometry = swerveDrive->GetPoseVisionOdometry();
+
+
+  frc::SmartDashboard::PutBoolean("Was 0", thetaEntry.Get() < 0.05 && thetaEntry.Get() > -0.05 && thetaEntry.Get() != 0.0);
 
   frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed);
   frc::SmartDashboard::PutNumber("Strafe Drive Speed", STRAFE_Drive_Speed);
@@ -231,13 +240,17 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
   frc::SmartDashboard::PutNumber("Odometry Theta", pose.Rotation().Degrees().value());
 
+  frc::SmartDashboard::PutNumber("Vision Odometry X", visionOdometry.X().value());
+  frc::SmartDashboard::PutNumber("Vision Odometry Y", visionOdometry.Y().value());
+  frc::SmartDashboard::PutNumber("Vision Odometry Theta", visionOdometry.Rotation().Degrees().value());
+
   frc::SmartDashboard::PutNumber("TIMER", timer.Get().value());
 
   // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen, 
   // max drive and spin speeds
 
-  if (xbox_Drive->GetXButton())
-    Turn_Speed = swerveDrive->TurnToPointDesiredSpin(pose, Translation2d(0_m, 1_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
+  if (xbox_Drive->GetLeftBumper())
+    Turn_Speed = swerveDrive->TurnToPointDesiredSpin(pose, Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
 
   swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
   
@@ -245,16 +258,27 @@ void Robot::TeleopPeriodic()
   if (xbox_Drive->GetBButtonPressed())
     swerveDrive->BeginPIDLoop();
   if ((CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton()))
-    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 1_m, Rotation2d(3.14_rad)), elapsedTime);
+    swerveDrive->DriveToPoseVisionOdometry(Pose2d(0_m, -1_m, Rotation2d(0_rad)), elapsedTime);
 
 
   if (xbox_Drive->GetAButtonPressed())
     swerveDrive->BeginPIDLoop();
   if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetAButton()))
-    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
+    swerveDrive->DriveToPoseVisionOdometry(Pose2d(0_m, -2_m, Rotation2d(0_rad)), elapsedTime);
+
+  if (xbox_Drive->GetXButtonPressed())
+    swerveDrive->BeginPIDLoop();
+  if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetXButton()))
+    swerveDrive->DriveToPoseVisionOdometry(Pose2d(-0.5_m, -3_m, Rotation2d(0.5_rad)), elapsedTime);
+
+  if (xbox_Drive->GetRightBumperPressed())
+    swerveDrive->BeginPIDLoop();
+  if (xbox_Drive->GetRightBumper())
+    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, -2_m, Rotation2d(0_rad)), elapsedTime);
+    
 
   //Reset Pigion Heading*
-  if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())
+  if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())  
   {
     pigeon_initial = fmod(_pigeon.GetYaw(), 360);
     swerveDrive->pigeon_initial = pigeon_initial;

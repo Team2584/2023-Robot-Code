@@ -209,6 +209,7 @@ private:
 
   Pose2d visionPose;
   double timeSinceOdometryRefresh;
+  bool seeTag = false;
 
   double lastX = 0;
   double lastY = 0;
@@ -329,11 +330,20 @@ public:
   Pose2d GetPoseVisionOdometry()
   {
     Pose2d pose = visionOdometry->GetPose();
-    return Pose2d(pose.Y(), pose.X(), pose.Rotation()); 
+    if (seeTag)
+      return Pose2d(pose.Y(), pose.X(), pose.Rotation());
+    else
+      return GetPoseOdometry(); 
   }
 
-  void SetPoseVision(Pose2d pose)
+  void SetPoseVision(Pose2d pose, bool SeeTag)
   {
+    seeTag = SeeTag;
+
+    if (!SeeTag)
+      return;
+    
+
     visionPose = pose;
 
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
@@ -443,11 +453,12 @@ public:
                    double translationMaxSpeed, double translationMaxAccel, double allowableErrorTranslation,
                    double translationP, double translationI, double translationIMaxEffect,
                    double rotationMaxSpeed, double rotationMaxAccel, double allowableErrorRotation,
-                   double rotationP, double rotationI, double rotationIMaxEffect)
+                   double rotationP, double rotationI, double rotationIMaxEffect, double useWeirdMinSpeedThing)
   {
     double intendedVelocity;
     double intendedI;
 
+    double xSpeed;
     double xDistance = target.X().value() - current.X().value();
     if (fabs(xDistance) < allowableErrorTranslation)
     {
@@ -458,9 +469,13 @@ public:
     intendedVelocity = std::clamp(translationP * xDistance + intendedI, -1 * translationMaxSpeed, translationMaxSpeed);
     lastX += std::clamp(intendedVelocity - lastX, -1 * translationMaxAccel * elapsedTime,
                    translationMaxAccel * elapsedTime);
-    SmartDashboard::PutNumber("X Integral", runningIntegralX);
-    SmartDashboard::PutNumber("X Integral Output", intendedI);
+    xSpeed = lastX;
+    if (lastX > 0 && lastX < 0.06 && useWeirdMinSpeedThing)
+      xSpeed = 0.06;
+    else if (lastX < 0 && lastX > -0.06 && useWeirdMinSpeedThing)
+      xSpeed = -0.06;
 
+    double ySpeed;
     double yDistance = target.Y().value() - current.Y().value();
     if (fabs(yDistance) < allowableErrorTranslation)
     {
@@ -471,7 +486,13 @@ public:
     intendedVelocity = std::clamp(translationP * yDistance + intendedI, -1 * translationMaxSpeed, translationMaxSpeed);
     lastY += std::clamp(intendedVelocity - lastY, -1 * translationMaxAccel * elapsedTime,
                    translationMaxAccel * elapsedTime);
+    ySpeed = lastY;
+    if (lastY > 0 && lastY < 0.06 && useWeirdMinSpeedThing)
+      ySpeed = 0.06;
+    else if (lastY < 0 && lastY > -0.06 && useWeirdMinSpeedThing)
+      ySpeed = -0.06;
 
+    double spinSpeed;
     double thetaDistance = target.RelativeTo(current).Rotation().Radians().value();
     if (thetaDistance > 180)
       thetaDistance = thetaDistance - 360;
@@ -484,6 +505,12 @@ public:
     intendedVelocity = std::clamp(rotationP * thetaDistance + intendedI, -1 * rotationMaxSpeed, rotationMaxSpeed);
     lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * rotationMaxAccel * elapsedTime,
                    rotationMaxAccel * elapsedTime);
+    spinSpeed = lastSpin;
+    if (lastSpin > 0 && lastSpin < 0.06 && useWeirdMinSpeedThing)
+      spinSpeed = 0.06;
+    else if (lastSpin < 0 && lastSpin > -0.06 && useWeirdMinSpeedThing)
+      spinSpeed = -0.06;
+
 
     runningIntegralX += xDistance;
     runningIntegralY += yDistance;
@@ -497,7 +524,7 @@ public:
     SmartDashboard::PutNumber("Drive Y", lastY);
     SmartDashboard::PutNumber("Drive Spin", lastSpin);
 
-    DriveSwervePercent(lastX, lastY, lastSpin);
+    DriveSwervePercent(xSpeed, ySpeed, spinSpeed);
   }
 
   double TurnToPointDesiredSpin(Pose2d current, Translation2d point, double elapsedTime, double allowableErrorRotation, double spinMaxSpeed, double spinMaxAccel, double spinP, double spinI)
@@ -557,21 +584,21 @@ public:
   {
     DriveToPose(GetPoseOdometry(), target, elapsedTime, O_TRANSLATION_MAX_SPEED, O_TRANSLATION_MAX_ACCEL, O_ALLOWABLE_ERROR_TRANSLATION, 
                 O_TRANSLATION_KP, O_TRANSLATION_KI, O_TRANSLATION_KI_MAX, O_SPIN_MAX_SPEED, O_SPIN_MAX_ACCEL, O_ALLOWABLE_ERROR_ROTATION,
-                O_SPIN_KP, O_SPIN_KI, O_SPIN_KI_MAX);
+                O_SPIN_KP, O_SPIN_KI, O_SPIN_KI_MAX, false);
   }
 
   void DriveToPoseVision(Pose2d target, double elapsedTime)
   {
     DriveToPose(visionPose, target, elapsedTime, V_TRANSLATION_MAX_SPEED, V_TRANSLATION_MAX_ACCEL, V_ALLOWABLE_ERROR_TRANSLATION, 
                 V_TRANSLATION_KP, V_TRANSLATION_KI, V_TRANSLATION_KI_MAX, V_SPIN_MAX_SPEED, V_SPIN_MAX_ACCEL, V_ALLOWABLE_ERROR_ROTATION,
-                V_SPIN_KP, V_SPIN_KI, V_SPIN_KI_MAX);  
+                V_SPIN_KP, V_SPIN_KI, V_SPIN_KI_MAX, true);  
   }
 
   void DriveToPoseVisionOdometry(Pose2d target, double elapsedTime)
   {
     DriveToPose(GetPoseVisionOdometry(), target, elapsedTime, V_TRANSLATION_MAX_SPEED, V_TRANSLATION_MAX_ACCEL, V_ALLOWABLE_ERROR_TRANSLATION, 
                 V_TRANSLATION_KP, V_TRANSLATION_KI, V_TRANSLATION_KI_MAX, V_SPIN_MAX_SPEED, V_SPIN_MAX_ACCEL, V_ALLOWABLE_ERROR_ROTATION,
-                V_SPIN_KP, V_SPIN_KI, V_SPIN_KI_MAX);  
+                V_SPIN_KP, V_SPIN_KI, V_SPIN_KI_MAX, true);  
   }
 
   void DriveToPoseWhileFacingTagVision(Pose2d target, Pose2d tag, double elapsedTime)
