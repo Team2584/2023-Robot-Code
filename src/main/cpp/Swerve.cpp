@@ -511,7 +511,6 @@ public:
     else if (lastSpin < 0 && lastSpin > -0.06 && useWeirdMinSpeedThing)
       spinSpeed = -0.06;
 
-
     runningIntegralX += xDistance;
     runningIntegralY += yDistance;
     runningIntegralSpin += thetaDistance;

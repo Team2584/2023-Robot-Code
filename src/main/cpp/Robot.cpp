@@ -274,7 +274,7 @@ void Robot::TeleopPeriodic()
   if (xbox_Drive->GetRightBumperPressed())
     swerveDrive->BeginPIDLoop();
   if (xbox_Drive->GetRightBumper())
-    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, -2_m, Rotation2d(0_rad)), elapsedTime);
+    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
     
 
   //Reset Pigion Heading*
