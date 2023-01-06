@@ -42,6 +42,7 @@
 #include "networktables/DoubleTopic.h"
 #include "networktables/StringTopic.h"
 #include "networktables/BooleanTopic.h"
+#include "networktables/IntegerTopic.h"
 #include "networktables/NetworkTableInstance.h"
 #include <frc/DutyCycleEncoder.h>
 #include <frc/PWM.h>

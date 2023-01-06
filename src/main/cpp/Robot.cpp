@@ -20,12 +20,12 @@ shared_ptr<nt::NetworkTable> table;
 nt::DoubleTopic xTopic;
 nt::DoubleTopic yTopic;
 nt::DoubleTopic thetaTopic;
-nt::StringTopic sanityTopic;
+nt::IntegerTopic sanityTopic;
 nt::BooleanTopic existsTopic;
 nt::DoubleEntry xEntry;
 nt::DoubleEntry yEntry;
 nt::DoubleEntry thetaEntry;
-nt::StringEntry sanityEntry;
+nt::IntegerEntry sanityEntry;
 nt::BooleanEntry existsEntry;
 
 // To track time for slew rate and accleration control
@@ -54,12 +54,12 @@ void Robot::RobotInit()
   xTopic = table->GetDoubleTopic("x");
   yTopic = table->GetDoubleTopic("y");
   thetaTopic = table->GetDoubleTopic("theta");
-  sanityTopic = table->GetStringTopic("sanitycheck");
+  sanityTopic = table->GetIntegerTopic("sanitycheck");
   existsTopic = table->GetBooleanTopic("robot_pos_good");
   xEntry = xTopic.GetEntry(100000);
   yEntry = yTopic.GetEntry(10000);
   thetaEntry = thetaTopic.GetEntry(10000);
-  sanityEntry = sanityTopic.GetEntry("didn't work");
+  sanityEntry = sanityTopic.GetEntry(10000);
   existsEntry = existsTopic.GetEntry(false);
 
   //Initializing things
@@ -122,6 +122,26 @@ void Robot::AutonomousPeriodic()
     // Default Auto goes here
   }
 }
+/*
+void Robot::TeleopInit() {
+  inst = nt::NetworkTableInstance::GetDefault();
+  inst.StartServer();
+  table = inst.GetTable("vision/localization");
+  xTopic = table->GetDoubleTopic("x");
+  xEntry = xTopic.GetEntry(100000);
+}
+
+int hi = 0;
+
+void Robot::TeleopPeriodic() {
+  frc::SmartDashboard::PutNumber("x I'm getting", xEntry.Get());
+  frc::SmartDashboard::PutNumber("hi", hi);
+  wpi::outs() << "yo"; 
+  frc::SmartDashboard::PutNumber("aj counter", sanityEntry.Get());
+  hi += 1;
+  inst.Flush();
+}
+*/
 
 void Robot::TeleopInit()
 {
@@ -129,8 +149,6 @@ void Robot::TeleopInit()
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
   swerveDrive->ResetOdometry();
-
-  sanityEntry.Set("ha");
 
   timer.Reset();
   timer.Start();
@@ -233,7 +251,7 @@ void Robot::TeleopPeriodic()
   SmartDashboard::PutBoolean("Network Table X New Value", (bool) xEntry.ReadQueue().size());
   SmartDashboard::PutNumber("Network Table Y", yEntry.Get());
   SmartDashboard::PutNumber("Network Table Theta", thetaEntry.Get() * 180 / M_PI);
-  SmartDashboard::PutString("Network Table Sanity", sanityEntry.Get());
+  SmartDashboard::PutNumber("Network Table Sanity", sanityEntry.Get());
   SmartDashboard::PutBoolean("Network Table Tag Exists", existsEntry.Get());
 
   frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
