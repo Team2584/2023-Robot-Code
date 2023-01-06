@@ -205,7 +205,13 @@ private:
   SwerveDriveKinematics<4> kinematics;
   SwerveDriveOdometry<4> *odometry;
   SwerveDriveOdometry<4> *visionOdometry;
-  Trajectory currentTrajectory;
+  Trajectory trajectory;
+
+  frc2::PIDController xController;
+  frc2::PIDController yController;
+  TrapezoidProfile<units::radians>::Constraints thetaConstraints;
+  ProfiledPIDController<units::radians> thetaController;
+  HolonomicDriveController driveController;
 
   Pose2d visionPose;
   double timeSinceOdometryRefresh;
@@ -238,7 +244,12 @@ public:
     m_frontRight{0.29845_m, -0.2953_m},
     m_backLeft{-0.29845_m, 0.2953_m},
     m_backRight{-0.29845_m, -0.2953_m},
-    kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight}
+    kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight},
+    xController{S_TRANSLATION_KP, S_TRANSLATION_KI, S_TRANSLATION_KD},
+    yController{S_TRANSLATION_KP, S_TRANSLATION_KI, S_TRANSLATION_KD},
+    thetaConstraints{S_SPIN_MAX_SPEED, S_SPIN_MAX_ACCEL},
+    thetaController{S_SPIN_KP, S_SPIN_KI, S_SPIN_KD, thetaConstraints},
+    driveController{xController, yController, thetaController}
   {
     FLModule = new SwerveModule(_FLDriveMotor, _FLSpinMotor, _FLMagEncoder, _FLEncoderOffset);
     FRModule = new SwerveModule(_FRDriveMotor, _FRSpinMotor, _FRMagEncoder, _FREncoderOffset);
@@ -621,19 +632,18 @@ public:
   }
 */
 
-  void FollowTrajectory(vector<Translation2d> waypoints, Pose2d goal)
+  void InitializeTrajectory()
   {
-    //unfinished
-    TrajectoryConfig trajectoryConfig{units::meters_per_second_t{SWERVE_DRIVE_MAX_MPS}, units::meters_per_second_squared_t{SWERVE_DRIVE_MAX_ACCELERATION}};
-    trajectoryConfig.SetKinematics(kinematics);
-    TrajectoryGenerator trajectoryGenerator{};
+   fs::path deployDirectory = frc::filesystem::GetDeployDirectory();
+   // TODO
+   deployDirectory = deployDirectory / "paths" / "YourPath.wpilib.json";
+   trajectory = frc::TrajectoryUtil::FromPathweaverJson(deployDirectory.string()); 
+  }
 
-    //May delete itself and break everything
-    currentTrajectory = trajectoryGenerator.GenerateTrajectory(
-      this->GetPose(),
-      waypoints,
-      goal,
-      trajectoryConfig
-    );
+  void FollowTrajectory(units::second_t time)
+  {
+    Trajectory::State state = trajectory.Sample(time);
+    ChassisSpeeds speed = driveController.Calculate(GetPose(), state, state.pose.Rotation());
+    DriveSwerveMetersAndRadians(speed.vx.value(), speed.vy.value(), speed.omega.value());
   }
 };

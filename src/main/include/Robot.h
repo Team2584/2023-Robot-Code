@@ -27,7 +27,11 @@
 #include <frc/kinematics/SwerveDriveKinematics.h>
 #include <frc/kinematics/SwerveModuleState.h>
 #include <frc/kinematics/SwerveDriveOdometry.h>
+#include <frc/controller/HolonomicDriveController.h>
 #include <frc/filter/SlewRateLimiter.h>
+#include <frc/Filesystem.h>
+#include <wpi/fs.h>
+#include <frc/trajectory/TrajectoryUtil.h>
 #include <frc/trajectory/TrajectoryConfig.h>
 #include <frc/trajectory/TrajectoryGenerator.h>
 #include <frc/motorcontrol/PWMSparkMax.h>
