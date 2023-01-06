@@ -31,6 +31,7 @@ nt::BooleanEntry existsEntry;
 // To track time for slew rate and accleration control
 frc::Timer timer;
 double lastTime = 0;
+bool startedTimer = false;
 
 //To Calibrate Odometry to april tag
 bool isCalibrated = false;
@@ -69,6 +70,9 @@ void Robot::RobotInit()
   swerveDrive = new SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, FL_WHEEL_OFFSET, &driveFR, &swerveFR, &FRMagEnc,
                                         FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
                                         &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, STARTING_DRIVE_HEADING);
+
+  //Initializing Autonomous Trajectory (For Splines)
+  swerveDrive->InitializeTrajectory();
 }
 
 /**
@@ -96,9 +100,10 @@ void Robot::RobotPeriodic()
  */
 void Robot::AutonomousInit()
 {
+  /*
   m_autoSelected = m_chooser.GetSelected();
-  // m_autoSelected = SmartDashboard::GetString("Auto Selector",
-  //     kAutoNameDefault);
+  m_autoSelected = SmartDashboard::GetString("Auto Selector",
+       kAutoNameDefault);
   fmt::print("Auto selected: {}\n", m_autoSelected);
 
   if (m_autoSelected == kAutoNameCustom)
@@ -109,10 +114,15 @@ void Robot::AutonomousInit()
   {
     // Default Auto goes here
   }
+  */
+
+  startedTimer = false;
+  timer.Reset();
 }
 
 void Robot::AutonomousPeriodic()
 {
+  /*
   if (m_autoSelected == kAutoNameCustom)
   {
     // Custom Auto goes here
@@ -121,6 +131,14 @@ void Robot::AutonomousPeriodic()
   {
     // Default Auto goes here
   }
+  */
+  if (!startedTimer)
+  {
+    timer.Start();
+    startedTimer = false;
+  }
+
+  swerveDrive->FollowTrajectory(timer.Get());
 }
 
 void Robot::TeleopInit()
