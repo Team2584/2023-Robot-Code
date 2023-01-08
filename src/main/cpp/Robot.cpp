@@ -122,6 +122,8 @@ void Robot::AutonomousInit()
   }
   */
 
+
+  //Start our match timer and reset our odometry to the robot's starting position
   startedTimer = false;
   lastTime = 0;
   timer.Reset();
@@ -141,12 +143,16 @@ void Robot::AutonomousPeriodic()
     // Default Auto goes here
   }
   */
+
+  //If we haven't started the timer yet, start the timer
   if (!startedTimer)
   {
     timer.Start();
     startedTimer = false;
   }
 
+
+  //Follow the trajectory of the swerve drive
   swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);
   lastTime = timer.Get().value();
 }
@@ -214,6 +220,7 @@ void Robot::TeleopPeriodic()
     joy_rStick_X = xbox_Drive->GetRightX();
     joy_lStick_Y *= -1;
   }
+
   // Remove ghost movement by making sure joystick is moved a certain amount
   double joy_lStick_distance = sqrt(pow(joy_lStick_X, 2.0) + pow(joy_lStick_Y, 2.0));
 
@@ -228,19 +235,24 @@ void Robot::TeleopPeriodic()
     joy_rStick_X = 0;
   }
 
+  //Scale our joystick inputs to our intended max drive speeds
   double FWD_Drive_Speed = joy_lStick_Y * MAX_DRIVE_SPEED;
   double STRAFE_Drive_Speed = joy_lStick_X * MAX_DRIVE_SPEED;
   double Turn_Speed = joy_rStick_X * MAX_SPIN_SPEED;
 
+  //update our timer
   double time = timer.Get().value();
   double elapsedTime = time - lastTime;
   lastTime = time;
 
+  //Update our odometry 
   swerveDrive->UpdateOdometry();
-  Pose2d visionPose = Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()}));
 
+  //Update our vision pose from the network table (calculated by a coprocessor, ask Avrick / AJ for details)
+  Pose2d visionPose = Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()}));
   swerveDrive->SetPoseVision(visionPose, existsEntry.Get());
 
+  // WIP not important
   if (!isCalibrated && existsEntry.Get())
   {
     isCalibrated = true;
@@ -265,6 +277,8 @@ void Robot::TeleopPeriodic()
       swerveDrive->ResetOdometry(Pose2d(units::meter_t{caliX}, units::meter_t{caliY}, Rotation2d(units::radian_t{caliTheta})));
     }*/
 
+
+  // DEBUG INFO
   Pose2d pose = swerveDrive->GetPose();
   Pose2d visionOdometry = swerveDrive->GetPoseVisionOdometry();
 
@@ -291,9 +305,8 @@ void Robot::TeleopPeriodic()
 
   frc::SmartDashboard::PutNumber("TIMER", timer.Get().value());
 
-  // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen,
-  // max drive and spin speeds
-
+  
+  //Here is our Test Drive Control Code that runs different functions when different buttons are pressed
   if (xbox_Drive->GetLeftBumper())
     Turn_Speed = swerveDrive->TurnToPointDesiredSpin(pose, Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
 
@@ -319,7 +332,7 @@ void Robot::TeleopPeriodic()
   if (xbox_Drive->GetRightBumper())
     swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
 
-  // Reset Pigion Heading*
+  // Reset Pigion Heading
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())
   {
     pigeon_initial = fmod(_pigeon.GetYaw(), 360);

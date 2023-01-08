@@ -449,17 +449,16 @@ public:
     BLModule->DriveSwerveModuleMeters(states[3].speed.value(), states[3].angle.Degrees().value());
   }
 
-
   /**
    * Drives the swerve drive, field oriented (in relation to the driver's pov) with an x y and spin.
-   * 
+   *
    * @param STRAFE_Drive_Speed The speed the robot should move left and right, positive being right, in percentage (0 - 1.0)
    * @param FWD_Drive_Speed The speed the robot should move forward and back, positive being forward, in percentage (0 - 1.0)
    * @param Turn_Speed The speed the robot should turn left and right, positive being clockwise, in percentage (0 - 1.0)
    */
   void DriveSwervePercent(double STRAFE_Drive_Speed, double FWD_Drive_Speed, double Turn_Speed)
   {
-    //Converts our field oriented speeds to robot oriented, by using trig with the current robot angle.
+    // Converts our field oriented speeds to robot oriented, by using trig with the current robot angle.
     double angle = GetPose().Rotation().Radians().value();
     double oldFwd = FWD_Drive_Speed;
     FWD_Drive_Speed = FWD_Drive_Speed * cos(angle) + STRAFE_Drive_Speed * sin(angle);
@@ -526,7 +525,7 @@ public:
 
   /**
    * Drives the swerve drive, field oriented (in relation to the driver's pov) with an x y and spin.
-   * 
+   *
    * @param STRAFE_Drive_Speed The speed the robot should move left and right, positive being right, in meters per second
    * @param FWD_Drive_Speed The speed the robot should move forward and back, positive being forward, in meters per second
    * @param Turn_Speed The speed the robot should turn left and right, positive being clockwise, in radians per second
@@ -549,7 +548,7 @@ public:
 
   /**
    * Drives the robot to a pose using a feedback PID loop
-   * 
+   *
    * @param current the robot's current Pose
    * @param target the target Pose
    * @param elapsedTime the time since our last iteration of the pid loop
@@ -564,7 +563,7 @@ public:
    * @param allowableErrorRotation the acceptable error for rotation in radians (we stop the function once the robot is within this range)
    * @param rotationP the P constant for spin PID
    * @param rotationI the I constant for spin PID
-   * @param rotationIMaxEffect the maximum effect our I constant can have on the system to prevent overshooting   
+   * @param rotationIMaxEffect the maximum effect our I constant can have on the system to prevent overshooting
    */
   void DriveToPose(Pose2d current, Pose2d target, double elapsedTime,
                    double translationMaxSpeed, double translationMaxAccel, double allowableErrorTranslation,
@@ -576,35 +575,34 @@ public:
     double intendedI;
 
     double xSpeed;
-    //Our current error in the x direction
+    // Our current error in the x direction
     double xDistance = target.X().value() - current.X().value();
 
-    //If we are within our allowable error, stop moving in the x direction
+    // If we are within our allowable error, stop moving in the x direction
     if (fabs(xDistance) < allowableErrorTranslation)
     {
       xDistance = 0;
       runningIntegralX = 0;
     }
 
-    //calculate our I in PID and clamp it between our maximum I effects
+    // calculate our I in PID and clamp it between our maximum I effects
     intendedI = std::clamp(translationI * runningIntegralX, -1 * translationIMaxEffect, translationIMaxEffect);
 
-    //Clamp our intended velocity to our maximum and minimum velocity to prevent the robot from going too fast
+    // Clamp our intended velocity to our maximum and minimum velocity to prevent the robot from going too fast
     intendedVelocity = std::clamp(translationP * xDistance + intendedI, -1 * translationMaxSpeed, translationMaxSpeed);
 
-    //Make sure our change in velocity from the last loop is not going above our maximum acceleration
+    // Make sure our change in velocity from the last loop is not going above our maximum acceleration
     lastX += std::clamp(intendedVelocity - lastX, -1 * translationMaxAccel * elapsedTime,
                         translationMaxAccel * elapsedTime);
     xSpeed = lastX;
 
-    //This is a WIP that shouldn't be needed for the final robot with well tuned PID
+    // This is a WIP that shouldn't be needed for the final robot with well tuned PID
     if (lastX > 0 && lastX < 0.06 && useWeirdMinSpeedThing)
       xSpeed = 0.06;
     else if (lastX < 0 && lastX > -0.06 && useWeirdMinSpeedThing)
       xSpeed = -0.06;
 
-
-    //Repeat with the Y direction
+    // Repeat with the Y direction
     double ySpeed;
     double yDistance = target.Y().value() - current.Y().value();
     if (fabs(yDistance) < allowableErrorTranslation)
@@ -622,7 +620,7 @@ public:
     else if (lastY < 0 && lastY > -0.06 && useWeirdMinSpeedThing)
       ySpeed = -0.06;
 
-    //Repeat for spinning
+    // Repeat for spinning
     double spinSpeed;
     double thetaDistance = target.RelativeTo(current).Rotation().Radians().value();
     if (thetaDistance > 180)
@@ -642,12 +640,12 @@ public:
     else if (lastSpin < 0 && lastSpin > -0.06 && useWeirdMinSpeedThing)
       spinSpeed = -0.06;
 
-    //Add to our running integral error count
+    // Add to our running integral error count
     runningIntegralX += xDistance;
     runningIntegralY += yDistance;
     runningIntegralSpin += thetaDistance;
 
-    //Debugging info
+    // Debugging info
     SmartDashboard::PutNumber("XDistance", xDistance);
     SmartDashboard::PutNumber("YDistance", yDistance);
     SmartDashboard::PutNumber("ThetaDistance", thetaDistance);
@@ -656,7 +654,7 @@ public:
     SmartDashboard::PutNumber("Drive Y", lastY);
     SmartDashboard::PutNumber("Drive Spin", lastSpin);
 
-    //Drive swerve at desired speeds
+    // Drive swerve at desired speeds
     DriveSwervePercent(xSpeed, ySpeed, spinSpeed);
   }
 
@@ -666,11 +664,11 @@ public:
    */
   double TurnToPointDesiredSpin(Pose2d current, Translation2d point, double elapsedTime, double allowableErrorRotation, double spinMaxSpeed, double spinMaxAccel, double spinP, double spinI)
   {
-    //Determine what our target angle is
+    // Determine what our target angle is
     Translation2d diff = point - current.Translation();
     Rotation2d targetAngle = Rotation2d(units::radian_t{atan2(diff.X().value(), diff.Y().value())});
 
-    //Use PID similar to the above function to determine our desired spin speed
+    // Use PID similar to the above function to determine our desired spin speed
     double thetaDistance = (targetAngle - current.Rotation()).Radians().value();
     if (thetaDistance > 180)
       thetaDistance = thetaDistance - 360;
@@ -725,8 +723,7 @@ public:
     DriveSwervePercent(lastX, lastY, spin);
   }
 
-
-  //Functions below use DriveToPose() with different inputs and PID constants for testing
+  // Functions below use DriveToPose() with different inputs and PID constants for testing
 
   void DriveToPoseOdometry(Pose2d target, double elapsedTime)
   {
@@ -770,7 +767,6 @@ public:
     }
   */
 
-
   /**
    * Initializes a trajectory to be run during autonomous by loading it into memory.
    * A trajectory is a curve that we tell the robot to move through. AKA a spline.
@@ -778,7 +774,7 @@ public:
    */
   void InitializeTrajectory()
   {
-    //Loads file into memory and parses it from json
+    // Loads file into memory and parses it from json
     fs::path deployDirectory = frc::filesystem::GetDeployDirectory();
     deployDirectory = deployDirectory / "LeftCurve.wpilib.json";
     trajectory = frc::TrajectoryUtil::FromPathweaverJson(deployDirectory.string());
@@ -792,7 +788,7 @@ public:
   {
     UpdateOdometry();
 
-    //Determine current desired speeds in an "ideal world"
+    // Determine current desired speeds in an "ideal world"
     Trajectory::State state = trajectory.Sample(time);
     auto xFF = state.velocity * state.pose.Rotation().Cos() * 1.2;
     auto yFF = state.velocity * state.pose.Rotation().Sin() * 1.2;
@@ -803,7 +799,7 @@ public:
     SmartDashboard::PutNumber("X Mps", xFF.value());
     SmartDashboard::PutNumber("Y Mps", yFF.value());
 
-    //Run simple PID to correct our robots course
+    // Run simple PID to correct our robots course
     Translation2d pose = GetPose().Translation();
     Translation2d goal = state.pose.Translation();
     double xDistance = (goal.X() - pose.X()).value();
@@ -811,6 +807,7 @@ public:
     double xPid = std::clamp(S_TRANSLATION_KP * xDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
     double yPid = std::clamp(S_TRANSLATION_KP * yDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
 
+    // Debugging Info
     SmartDashboard::PutNumber("X Odom", pose.X().value());
     SmartDashboard::PutNumber("Y Odom", pose.Y().value());
 
@@ -820,6 +817,8 @@ public:
     SmartDashboard::PutNumber("x Pid", xPid);
     SmartDashboard::PutNumber("y Pid", yPid);
 
+    // Spin PID similar to drive to pose
+    // TODO change so it can actually spin rather than just stay facing a direction
     double thetaDistance = Pose2d(0_m, 0_m, Rotation2d(0_rad)).RelativeTo(GetPose()).Rotation().Radians().value();
     if (thetaDistance > 180)
       thetaDistance = thetaDistance - 360;
@@ -836,14 +835,14 @@ public:
     SmartDashboard::PutNumber("Theta Distance", thetaDistance);
     SmartDashboard::PutNumber("spin Speed", lastSpin);
 
-
-    //If we have finished the spline, just stop
+    // If we have finished the spline, just stop
     if (trajectory.TotalTime() < time && xDistance < S_ALLOWABLE_ERROR_TRANSLATION && yDistance < S_ALLOWABLE_ERROR_TRANSLATION && lastSpin == 0)
     {
       DriveSwervePercent(0, 0, 0);
       return;
     }
 
+    // Drive the swerve drive
     DriveSwerveMetersAndRadians(xFF.value() + xPid, yFF.value() + yPid, lastSpin);
   }
 };
