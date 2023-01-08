@@ -1,9 +1,9 @@
 {
   "lengthUnit": "Meter",
   "exportUnit": "Always Meters",
-  "maxVelocity": 3.0,
-  "maxAcceleration": 2.0,
+  "maxVelocity": 1.0,
+  "maxAcceleration": 2.5,
   "trackWidth": 0.5906,
   "gameName": "Rapid React",
-  "outputDir": "../../PathWeaver"
+  "outputDir": "output"
 }

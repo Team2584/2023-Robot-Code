@@ -54,7 +54,7 @@ public:
   double GetDriveEncoderMeters()
   {
     return (driveMotor->GetSelectedSensorPosition() - driveEncoderInitial) / 2048 / DRIVE_MOTOR_GEAR_RATIO * DRIVE_MOTOR_CIRCUMFERENCE;
-  } 
+  }
 
   // Finds Drive Motor Velocity in Meters per Second
   double GetDriveVelocity()
@@ -62,22 +62,22 @@ public:
     return driveMotor->GetSelectedSensorVelocity() / 2048 / 6.54 * 0.10322 * M_PI * 10;
   }
 
-  //Finds Spin Encoder Rotation in Radians
+  // Finds Spin Encoder Rotation in Radians
   double GetSpinEncoderRadians()
   {
-    //TODO
+    // TODO
     double rotation = ((-1 * spinMotor->GetSelectedSensorPosition() - spinEncoderInitialValue) / 2048 / SPIN_MOTOR_GEAR_RATIO * 2 * M_PI) - spinEncoderInitialHeading;
     return fmod(rotation, 2 * M_PI);
   }
 
-  //Stops all motor velocity in swerve module
+  // Stops all motor velocity in swerve module
   void StopSwerveModule()
   {
     spinMotor->Set(ControlMode::PercentOutput, 0);
     driveMotor->Set(ControlMode::PercentOutput, 0);
   }
 
-  //Returns the swerve module's state
+  // Returns the swerve module's state
   SwerveModuleState GetSwerveModuleState()
   {
     SwerveModuleState state = SwerveModuleState();
@@ -86,7 +86,7 @@ public:
     return state;
   }
 
-  //Returns the swerve module's position
+  // Returns the swerve module's position
   SwerveModulePosition GetSwerveModulePosition()
   {
     SwerveModulePosition state = SwerveModulePosition();
@@ -95,7 +95,7 @@ public:
     return state;
   }
 
-  // Spin swerve module motors to reach the drive speed and spin angle 
+  // Spin swerve module motors to reach the drive speed and spin angle
   void DriveSwerveModulePercent(double driveSpeed, double targetAngle)
   {
     // current encoder reading as an angle
@@ -187,7 +187,7 @@ public:
     driveMotor->Set(ControlMode::PercentOutput, driveSpeed * driveDirection);
   }
 
-  // Spin swerve module motors to reach the drive speed and spin angle 
+  // Spin swerve module motors to reach the drive speed and spin angle
   void DriveSwerveModuleMeters(double driveSpeed, double targetRadian)
   {
     DriveSwerveModulePercent(driveSpeed / SWERVE_DRIVE_MAX_MPS, targetRadian);
@@ -207,19 +207,13 @@ private:
   SwerveDriveOdometry<4> *visionOdometry;
   Trajectory trajectory;
 
-  frc2::PIDController xController;
-  frc2::PIDController yController;
-  TrapezoidProfile<units::radians>::Constraints thetaConstraints;
-  ProfiledPIDController<units::radians> thetaController;
-  HolonomicDriveController driveController;
-
   Pose2d visionPose;
   double timeSinceOdometryRefresh;
   bool seeTag = false;
 
   double lastX = 0;
   double lastY = 0;
-  double lastSpin = 0 ;
+  double lastSpin = 0;
 
   double runningIntegralX = 0;
   double runningIntegralY = 0;
@@ -239,40 +233,34 @@ public:
               double _BREncoderOffset, ctre::phoenix::motorcontrol::can::TalonFX *_BLDriveMotor,
               ctre::phoenix::motorcontrol::can::TalonFX *_BLSpinMotor, frc::DutyCycleEncoder *_BLMagEncoder,
               double _BLEncoderOffset, Pigeon2 *_pigeonIMU, double robotStartingRadian)
-  //TODO CLEAN based off of drive width / length
-  : m_frontLeft{0.29845_m, 0.2953_m},
-    m_frontRight{0.29845_m, -0.2953_m},
-    m_backLeft{-0.29845_m, 0.2953_m},
-    m_backRight{-0.29845_m, -0.2953_m},
-    kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight},
-    xController{S_TRANSLATION_KP, S_TRANSLATION_KI, S_TRANSLATION_KD},
-    yController{S_TRANSLATION_KP, S_TRANSLATION_KI, S_TRANSLATION_KD},
-    thetaConstraints{S_SPIN_MAX_SPEED, S_SPIN_MAX_ACCEL},
-    thetaController{S_SPIN_KP, S_SPIN_KI, S_SPIN_KD, thetaConstraints},
-    driveController{xController, yController, thetaController}
+      // TODO CLEAN based off of drive width / length
+      : m_frontLeft{0.29845_m, 0.2953_m},
+        m_frontRight{0.29845_m, -0.2953_m},
+        m_backLeft{-0.29845_m, 0.2953_m},
+        m_backRight{-0.29845_m, -0.2953_m},
+        kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight}
   {
     FLModule = new SwerveModule(_FLDriveMotor, _FLSpinMotor, _FLMagEncoder, _FLEncoderOffset);
     FRModule = new SwerveModule(_FRDriveMotor, _FRSpinMotor, _FRMagEncoder, _FREncoderOffset);
     BLModule = new SwerveModule(_BLDriveMotor, _BLSpinMotor, _BLMagEncoder, _BLEncoderOffset);
     BRModule = new SwerveModule(_BRDriveMotor, _BRSpinMotor, _BRMagEncoder, _BREncoderOffset);
-    
+
     pigeonIMU = _pigeonIMU;
 
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
-      FRModule->GetSwerveModulePosition(),
-      BLModule->GetSwerveModulePosition(),
-      BRModule->GetSwerveModulePosition()};
+                                                     FRModule->GetSwerveModulePosition(),
+                                                     BLModule->GetSwerveModulePosition(),
+                                                     BRModule->GetSwerveModulePosition()};
 
-    //will screw up when robot doesn't start at 0 degrees
-    odometry = new SwerveDriveOdometry<4>(kinematics, 
-    Rotation2d(units::radian_t{GetIMURadians()}), 
-    positions, 
-    frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
+    odometry = new SwerveDriveOdometry<4>(kinematics,
+                                          Rotation2d(units::radian_t{GetIMURadians()}),
+                                          positions,
+                                          frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
 
-    visionOdometry = new SwerveDriveOdometry<4>(kinematics, 
-    Rotation2d(units::radian_t{GetIMURadians()}), 
-    positions, 
-    frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
+    visionOdometry = new SwerveDriveOdometry<4>(kinematics,
+                                                Rotation2d(units::radian_t{GetIMURadians()}),
+                                                positions,
+                                                frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
   }
 
   double GetIMURadians()
@@ -293,7 +281,7 @@ public:
     ResetOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));
   }
 
-  //Resets Odometry
+  // Resets Odometry
   void ResetOdometry(Pose2d position)
   {
     FLModule->ResetEncoders();
@@ -302,27 +290,27 @@ public:
     BRModule->ResetEncoders();
 
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
-      FRModule->GetSwerveModulePosition(),
-      BLModule->GetSwerveModulePosition(),
-      BRModule->GetSwerveModulePosition()};
+                                                     FRModule->GetSwerveModulePosition(),
+                                                     BLModule->GetSwerveModulePosition(),
+                                                     BRModule->GetSwerveModulePosition()};
 
-    odometry->ResetPosition( 
-    Rotation2d(units::radian_t{GetIMURadians()}), 
-    positions, 
-    frc::Pose2d(Pose2d(position.Y(), position.X(), position.Rotation())));
-    visionOdometry->ResetPosition( 
-    Rotation2d(units::radian_t{GetIMURadians()}), 
-    positions, 
-    frc::Pose2d(Pose2d(position.Y(), position.X(), position.Rotation())));
+    odometry->ResetPosition(
+        Rotation2d(units::radian_t{GetIMURadians()}),
+        positions,
+        frc::Pose2d(Pose2d(position.Y(), position.X(), position.Rotation())));
+    visionOdometry->ResetPosition(
+        Rotation2d(units::radian_t{GetIMURadians()}),
+        positions,
+        frc::Pose2d(Pose2d(position.Y(), position.X(), position.Rotation())));
   }
 
   void UpdateOdometry()
   {
     SmartDashboard::PutNumber("ROBOT ANGLE", GetIMURadians());
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
-      FRModule->GetSwerveModulePosition(),
-      BLModule->GetSwerveModulePosition(),
-      BRModule->GetSwerveModulePosition()};
+                                                     FRModule->GetSwerveModulePosition(),
+                                                     BLModule->GetSwerveModulePosition(),
+                                                     BRModule->GetSwerveModulePosition()};
     odometry->Update(units::radian_t{GetIMURadians()}, positions);
     visionOdometry->Update(units::radian_t{GetIMURadians()}, positions);
   }
@@ -335,7 +323,7 @@ public:
   Pose2d GetPoseOdometry()
   {
     Pose2d pose = odometry->GetPose();
-    return Pose2d(pose.Y(), pose.X(), pose.Rotation()); 
+    return Pose2d(pose.Y(), pose.X(), pose.Rotation());
   }
 
   Pose2d GetPoseVisionOdometry()
@@ -344,7 +332,7 @@ public:
     if (seeTag)
       return Pose2d(pose.Y(), pose.X(), pose.Rotation());
     else
-      return GetPoseOdometry(); 
+      return GetPoseOdometry();
   }
 
   void SetPoseVision(Pose2d pose, bool SeeTag)
@@ -353,19 +341,18 @@ public:
 
     if (!SeeTag)
       return;
-    
 
     visionPose = pose;
 
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
-      FRModule->GetSwerveModulePosition(),
-      BLModule->GetSwerveModulePosition(),
-      BRModule->GetSwerveModulePosition()};
+                                                     FRModule->GetSwerveModulePosition(),
+                                                     BLModule->GetSwerveModulePosition(),
+                                                     BRModule->GetSwerveModulePosition()};
 
-    visionOdometry->ResetPosition( 
-    Rotation2d(units::radian_t{GetIMURadians()}), 
-    positions, 
-    frc::Pose2d(Pose2d(pose.Y(), pose.X(), pose.Rotation())));
+    visionOdometry->ResetPosition(
+        Rotation2d(units::radian_t{GetIMURadians()}),
+        positions,
+        frc::Pose2d(Pose2d(pose.Y(), pose.X(), pose.Rotation())));
   }
 
   Pose2d GetPoseVision()
@@ -374,7 +361,7 @@ public:
   }
 
   void SetModuleStates(std::array<SwerveModuleState, 4> states)
-  { 
+  {
     FRModule->DriveSwerveModuleMeters(states[0].speed.value(), states[0].angle.Degrees().value());
     FLModule->DriveSwerveModuleMeters(states[1].speed.value(), states[1].angle.Degrees().value());
     BRModule->DriveSwerveModuleMeters(states[2].speed.value(), states[2].angle.Degrees().value());
@@ -479,7 +466,7 @@ public:
     intendedI = std::clamp(translationI * runningIntegralX, -1 * translationIMaxEffect, translationIMaxEffect);
     intendedVelocity = std::clamp(translationP * xDistance + intendedI, -1 * translationMaxSpeed, translationMaxSpeed);
     lastX += std::clamp(intendedVelocity - lastX, -1 * translationMaxAccel * elapsedTime,
-                   translationMaxAccel * elapsedTime);
+                        translationMaxAccel * elapsedTime);
     xSpeed = lastX;
     if (lastX > 0 && lastX < 0.06 && useWeirdMinSpeedThing)
       xSpeed = 0.06;
@@ -496,7 +483,7 @@ public:
     intendedI = std::clamp(translationI * runningIntegralY, -1 * translationIMaxEffect, translationIMaxEffect);
     intendedVelocity = std::clamp(translationP * yDistance + intendedI, -1 * translationMaxSpeed, translationMaxSpeed);
     lastY += std::clamp(intendedVelocity - lastY, -1 * translationMaxAccel * elapsedTime,
-                   translationMaxAccel * elapsedTime);
+                        translationMaxAccel * elapsedTime);
     ySpeed = lastY;
     if (lastY > 0 && lastY < 0.06 && useWeirdMinSpeedThing)
       ySpeed = 0.06;
@@ -515,7 +502,7 @@ public:
     intendedI = std::clamp(rotationI * runningIntegralSpin, -1 * rotationIMaxEffect, rotationIMaxEffect);
     intendedVelocity = std::clamp(rotationP * thetaDistance + intendedI, -1 * rotationMaxSpeed, rotationMaxSpeed);
     lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * rotationMaxAccel * elapsedTime,
-                   rotationMaxAccel * elapsedTime);
+                           rotationMaxAccel * elapsedTime);
     spinSpeed = lastSpin;
     if (lastSpin > 0 && lastSpin < 0.06 && useWeirdMinSpeedThing)
       spinSpeed = 0.06;
@@ -548,15 +535,15 @@ public:
       thetaDistance = 0;
     double intendedVelocity = std::clamp(spinP * thetaDistance, -1 * spinMaxSpeed, spinMaxSpeed);
     lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * spinMaxAccel * elapsedTime,
-                   spinMaxAccel * elapsedTime);
+                           spinMaxAccel * elapsedTime);
     return lastSpin;
   }
 
   void DriveToPoseWhileFacingTag(Pose2d current, Pose2d target, Pose2d tag, double elapsedTime,
-                   double translationMaxSpeed, double translationMaxAccel, double allowableErrorTranslation,
-                   double translationP, double translationI, double translationIMaxEffect,
-                   double rotationMaxSpeed, double rotationMaxAccel, double allowableErrorRotation,
-                   double rotationP, double rotationI, double rotationIMaxEffect)
+                                 double translationMaxSpeed, double translationMaxAccel, double allowableErrorTranslation,
+                                 double translationP, double translationI, double translationIMaxEffect,
+                                 double rotationMaxSpeed, double rotationMaxAccel, double allowableErrorRotation,
+                                 double rotationP, double rotationI, double rotationIMaxEffect)
   {
     double intendedVelocity;
     double intendedI;
@@ -570,7 +557,7 @@ public:
     intendedI = std::clamp(translationI * runningIntegralX, -1 * translationIMaxEffect, translationIMaxEffect);
     intendedVelocity = std::clamp(translationP * xDistance + intendedI, -1 * translationMaxSpeed, translationMaxSpeed);
     lastX += std::clamp(intendedVelocity - lastX, -1 * translationMaxAccel * elapsedTime,
-                   translationMaxAccel * elapsedTime);
+                        translationMaxAccel * elapsedTime);
     SmartDashboard::PutNumber("X Integral", runningIntegralX);
     SmartDashboard::PutNumber("X Integral Output", intendedI);
 
@@ -583,8 +570,8 @@ public:
     intendedI = std::clamp(translationI * runningIntegralY, -1 * translationIMaxEffect, translationIMaxEffect);
     intendedVelocity = std::clamp(translationP * yDistance + intendedI, -1 * translationMaxSpeed, translationMaxSpeed);
     lastY += std::clamp(intendedVelocity - lastY, -1 * translationMaxAccel * elapsedTime,
-                   translationMaxAccel * elapsedTime);
-    
+                        translationMaxAccel * elapsedTime);
+
     double spin = TurnToPointDesiredSpin(current, tag.Translation(), elapsedTime, allowableErrorRotation, rotationMaxSpeed, rotationMaxAccel, rotationP, rotationI);
 
     DriveSwervePercent(lastX, lastY, spin);
@@ -592,58 +579,103 @@ public:
 
   void DriveToPoseOdometry(Pose2d target, double elapsedTime)
   {
-    DriveToPose(GetPoseOdometry(), target, elapsedTime, O_TRANSLATION_MAX_SPEED, O_TRANSLATION_MAX_ACCEL, O_ALLOWABLE_ERROR_TRANSLATION, 
+    DriveToPose(GetPoseOdometry(), target, elapsedTime, O_TRANSLATION_MAX_SPEED, O_TRANSLATION_MAX_ACCEL, O_ALLOWABLE_ERROR_TRANSLATION,
                 O_TRANSLATION_KP, O_TRANSLATION_KI, O_TRANSLATION_KI_MAX, O_SPIN_MAX_SPEED, O_SPIN_MAX_ACCEL, O_ALLOWABLE_ERROR_ROTATION,
                 O_SPIN_KP, O_SPIN_KI, O_SPIN_KI_MAX, false);
   }
 
   void DriveToPoseVision(Pose2d target, double elapsedTime)
   {
-    DriveToPose(visionPose, target, elapsedTime, V_TRANSLATION_MAX_SPEED, V_TRANSLATION_MAX_ACCEL, V_ALLOWABLE_ERROR_TRANSLATION, 
+    DriveToPose(visionPose, target, elapsedTime, V_TRANSLATION_MAX_SPEED, V_TRANSLATION_MAX_ACCEL, V_ALLOWABLE_ERROR_TRANSLATION,
                 V_TRANSLATION_KP, V_TRANSLATION_KI, V_TRANSLATION_KI_MAX, V_SPIN_MAX_SPEED, V_SPIN_MAX_ACCEL, V_ALLOWABLE_ERROR_ROTATION,
-                V_SPIN_KP, V_SPIN_KI, V_SPIN_KI_MAX, true);  
+                V_SPIN_KP, V_SPIN_KI, V_SPIN_KI_MAX, true);
   }
 
   void DriveToPoseVisionOdometry(Pose2d target, double elapsedTime)
   {
-    DriveToPose(GetPoseVisionOdometry(), target, elapsedTime, V_TRANSLATION_MAX_SPEED, V_TRANSLATION_MAX_ACCEL, V_ALLOWABLE_ERROR_TRANSLATION, 
+    DriveToPose(GetPoseVisionOdometry(), target, elapsedTime, V_TRANSLATION_MAX_SPEED, V_TRANSLATION_MAX_ACCEL, V_ALLOWABLE_ERROR_TRANSLATION,
                 V_TRANSLATION_KP, V_TRANSLATION_KI, V_TRANSLATION_KI_MAX, V_SPIN_MAX_SPEED, V_SPIN_MAX_ACCEL, V_ALLOWABLE_ERROR_ROTATION,
-                V_SPIN_KP, V_SPIN_KI, V_SPIN_KI_MAX, true);  
+                V_SPIN_KP, V_SPIN_KI, V_SPIN_KI_MAX, true);
   }
 
   void DriveToPoseWhileFacingTagVision(Pose2d target, Pose2d tag, double elapsedTime)
   {
-    DriveToPoseWhileFacingTag(visionPose, target, tag, elapsedTime, V_TRANSLATION_MAX_SPEED, V_TRANSLATION_MAX_ACCEL, V_ALLOWABLE_ERROR_TRANSLATION, 
-                V_TRANSLATION_KP, V_TRANSLATION_KI, V_TRANSLATION_KI_MAX, V_SPIN_MAX_SPEED, V_SPIN_MAX_ACCEL, V_ALLOWABLE_ERROR_ROTATION,
-                V_SPIN_KP, V_SPIN_KI, V_SPIN_KI_MAX);
+    DriveToPoseWhileFacingTag(visionPose, target, tag, elapsedTime, V_TRANSLATION_MAX_SPEED, V_TRANSLATION_MAX_ACCEL, V_ALLOWABLE_ERROR_TRANSLATION,
+                              V_TRANSLATION_KP, V_TRANSLATION_KI, V_TRANSLATION_KI_MAX, V_SPIN_MAX_SPEED, V_SPIN_MAX_ACCEL, V_ALLOWABLE_ERROR_ROTATION,
+                              V_SPIN_KP, V_SPIN_KI, V_SPIN_KI_MAX);
   }
 
-/*
-  void DriveToPoseCombo(Pose2d target, double elapsedTime)
-  {
-    timeSinceOdometryRefresh += elapsedTime;
-    if (ODOMETRY_REFRESH_TIME < timeSinceOdometryRefresh)
+  /*
+    void DriveToPoseCombo(Pose2d target, double elapsedTime)
     {
-      timeSinceOdometryRefresh = 0;
-      ResetOdometry(visionPose);
-    }
+      timeSinceOdometryRefresh += elapsedTime;
+      if (ODOMETRY_REFRESH_TIME < timeSinceOdometryRefresh)
+      {
+        timeSinceOdometryRefresh = 0;
+        ResetOdometry(visionPose);
+      }
 
-    DriveToPoseOdometry(target, elapsedTime);
-  }
-*/
+      DriveToPoseOdometry(target, elapsedTime);
+    }
+  */
 
   void InitializeTrajectory()
   {
-   fs::path deployDirectory = frc::filesystem::GetDeployDirectory();
-   // TODO
-   deployDirectory = deployDirectory / "paths" / "YourPath.wpilib.json";
-   trajectory = frc::TrajectoryUtil::FromPathweaverJson(deployDirectory.string()); 
+    fs::path deployDirectory = frc::filesystem::GetDeployDirectory();
+    // TODO
+    deployDirectory = deployDirectory / "LeftCurve.wpilib.json";
+    trajectory = frc::TrajectoryUtil::FromPathweaverJson(deployDirectory.string());
   }
 
-  void FollowTrajectory(units::second_t time)
+  void FollowTrajectory(units::second_t time, double elapsedTime)
   {
+    UpdateOdometry();
     Trajectory::State state = trajectory.Sample(time);
-    ChassisSpeeds speed = driveController.Calculate(GetPose(), state, state.pose.Rotation());
-    DriveSwerveMetersAndRadians(speed.vx.value(), speed.vy.value(), speed.omega.value());
+    auto xFF = state.velocity * state.pose.Rotation().Cos() * 1.2;
+    auto yFF = state.velocity * state.pose.Rotation().Sin() * 1.2;
+    // ChassisSpeeds speed = driveController.Calculate(GetPose(), state, Rotation2d(0_rad));
+    SmartDashboard::PutNumber("Program Time", time.value());
+    SmartDashboard::PutNumber("trajectory total time", trajectory.TotalTime().value());
+    if (trajectory.TotalTime() < time)
+    {
+      DriveSwervePercent(0, 0, 0);
+      return;
+    }
+    SmartDashboard::PutNumber("X Mps", xFF.value());
+    SmartDashboard::PutNumber("Y Mps", yFF.value());
+    // SmartDashboard::PutNumber("Spin Mps", speed.omega.value());
+
+    Translation2d pose = GetPose().Translation();
+    Translation2d goal = state.pose.Translation();
+    double xDistance = (goal.X() - pose.X()).value();
+    double yDistance = (goal.Y() - pose.Y()).value();
+    double xPid = std::clamp(S_TRANSLATION_KP * xDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
+    double yPid = std::clamp(S_TRANSLATION_KP * yDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
+
+    SmartDashboard::PutNumber("X Odom", pose.X().value());
+    SmartDashboard::PutNumber("Y Odom", pose.Y().value());
+
+    SmartDashboard::PutNumber("x Dist", xDistance);
+    SmartDashboard::PutNumber("y Dist", yDistance);
+
+    SmartDashboard::PutNumber("x Pid", xPid);
+    SmartDashboard::PutNumber("y Pid", yPid);
+
+    double spinSpeed;
+    double thetaDistance = Pose2d(0_m, 0_m, Rotation2d(0_rad)).RelativeTo(GetPose()).Rotation().Radians().value();
+    if (thetaDistance > 180)
+      thetaDistance = thetaDistance - 360;
+    if (fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
+    {
+      thetaDistance = 0;
+      runningIntegralSpin = 0;
+    }
+    double intendedI = std::clamp(S_SPIN_KI * runningIntegralSpin, -1 * S_SPIN_KI_MAX, S_SPIN_KI_MAX);
+    double intendedVelocity = std::clamp(S_SPIN_KP * thetaDistance + intendedI, -1 * S_SPIN_MAX_SPEED, S_SPIN_MAX_SPEED);
+    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * S_SPIN_MAX_ACCEL * elapsedTime,
+                           S_SPIN_MAX_ACCEL * elapsedTime);
+    spinSpeed = lastSpin;
+
+    DriveSwerveMetersAndRadians(xFF.value() + xPid, yFF.value() + yPid, lastSpin);
   }
 };

@@ -48,6 +48,12 @@ void Robot::RobotInit()
   m_chooser.AddOption(kAutoNameCustom, kAutoNameCustom);
   frc::SmartDashboard::PutData("Auto Modes", &m_chooser);
 
+  //Setting motor breaktypes
+  driveFL.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
+  driveBL.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
+  driveFR.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
+  driveBR.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
+
   //Finding values from network tables
   inst = nt::NetworkTableInstance::GetDefault();
   inst.StartServer();
@@ -117,7 +123,10 @@ void Robot::AutonomousInit()
   */
 
   startedTimer = false;
+  lastTime = 0;
   timer.Reset();
+  swerveDrive->ResetOdometry(Pose2d(2_m, 0_m, Rotation2d(0_rad)));
+  swerveDrive->BeginPIDLoop();
 }
 
 void Robot::AutonomousPeriodic()
@@ -125,7 +134,7 @@ void Robot::AutonomousPeriodic()
   /*
   if (m_autoSelected == kAutoNameCustom)
   {
-    // Custom Auto goes here
+    // Custom Auto goes here  
   }
   else
   {
@@ -138,10 +147,12 @@ void Robot::AutonomousPeriodic()
     startedTimer = false;
   }
 
-  swerveDrive->FollowTrajectory(timer.Get());
+  
+  swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);
+  lastTime = timer.Get().value();
 }
 /*
-void Robot::TeleopInit() {
+void Robot::TeleopInit() {  
   inst = nt::NetworkTableInstance::GetDefault();
   inst.StartServer();
   table = inst.GetTable("vision/localization");
@@ -210,7 +221,7 @@ void Robot::TeleopPeriodic()
   if (joy_lStick_distance < CONTROLLER_DEADBAND)
   {
     joy_lStick_X = 0;
-    joy_lStick_Y = 0;
+      joy_lStick_Y = 0;
   }
 
   if (abs(joy_rStick_X) < CONTROLLER_DEADBAND)
