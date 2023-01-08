@@ -5,7 +5,7 @@
 #include "Setup.h"
 
 #include "Swerve.cpp"
-  
+
 #include <fmt/core.h>
 
 #include <frc/smartdashboard/SmartDashboard.h>
@@ -33,7 +33,7 @@ frc::Timer timer;
 double lastTime = 0;
 bool startedTimer = false;
 
-//To Calibrate Odometry to april tag
+// To Calibrate Odometry to april tag
 bool isCalibrated = false;
 double calibrationTime = 0;
 double calibrationAmount = 0;
@@ -43,18 +43,18 @@ double caliTheta = 0;
 
 void Robot::RobotInit()
 {
-  //Autonomous Choosing
+  // Autonomous Choosing
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
   m_chooser.AddOption(kAutoNameCustom, kAutoNameCustom);
   frc::SmartDashboard::PutData("Auto Modes", &m_chooser);
 
-  //Setting motor breaktypes
+  // Setting motor breaktypes
   driveFL.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
   driveBL.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
   driveFR.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
   driveBR.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
 
-  //Finding values from network tables
+  // Finding values from network tables
   inst = nt::NetworkTableInstance::GetDefault();
   inst.StartServer();
   table = inst.GetTable("vision/localization");
@@ -69,15 +69,15 @@ void Robot::RobotInit()
   sanityEntry = sanityTopic.GetEntry(10000);
   existsEntry = existsTopic.GetEntry(false);
 
-  //Initializing things
+  // Initializing things
   timer = Timer();
 
-  //Initializing Subsystems
+  // Initializing Subsystems
   swerveDrive = new SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, FL_WHEEL_OFFSET, &driveFR, &swerveFR, &FRMagEnc,
-                                        FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
-                                        &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, STARTING_DRIVE_HEADING);
+                                FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
+                                &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, STARTING_DRIVE_HEADING);
 
-  //Initializing Autonomous Trajectory (For Splines)
+  // Initializing Autonomous Trajectory (For Splines)
   swerveDrive->InitializeTrajectory();
 }
 
@@ -97,7 +97,7 @@ void Robot::RobotPeriodic()
  * This autonomous (along with the chooser code above) shows how to select
  * between different autonomous modes using the dashboard. The sendable chooser
  * code works with the Java SmartDashboard. If you prefer the LabVIEW Dashboard,
- * remove all of the chooser code and uncomment the GetString line to get the 
+ * remove all of the chooser code and uncomment the GetString line to get the
  * auto name from the text box below the Gyro.
  *
  * You can add additional auto modes by adding additional comparisons to the
@@ -134,7 +134,7 @@ void Robot::AutonomousPeriodic()
   /*
   if (m_autoSelected == kAutoNameCustom)
   {
-    // Custom Auto goes here  
+    // Custom Auto goes here
   }
   else
   {
@@ -147,12 +147,11 @@ void Robot::AutonomousPeriodic()
     startedTimer = false;
   }
 
-  
   swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);
   lastTime = timer.Get().value();
 }
 /*
-void Robot::TeleopInit() {  
+void Robot::TeleopInit() {
   inst = nt::NetworkTableInstance::GetDefault();
   inst.StartServer();
   table = inst.GetTable("vision/localization");
@@ -165,7 +164,7 @@ int hi = 0;
 void Robot::TeleopPeriodic() {
   frc::SmartDashboard::PutNumber("x I'm getting", xEntry.Get());
   frc::SmartDashboard::PutNumber("hi", hi);
-  wpi::outs() << "yo"; 
+  wpi::outs() << "yo";
   frc::SmartDashboard::PutNumber("aj counter", sanityEntry.Get());
   hi += 1;
   inst.Flush();
@@ -174,7 +173,7 @@ void Robot::TeleopPeriodic() {
 
 void Robot::TeleopInit()
 {
-  //Prepare swerve drive odometry
+  // Prepare swerve drive odometry
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
   swerveDrive->ResetOdometry();
@@ -191,7 +190,7 @@ void Robot::TeleopInit()
   caliTheta = 0;
   /*
     orchestra.LoadMusic("CHIRP");
-    orchestra.AddInstrument(swerveBL);  
+    orchestra.AddInstrument(swerveBL);
     orchestra.AddInstrument(driveBL);
     orchestra.Play();
   */
@@ -221,7 +220,7 @@ void Robot::TeleopPeriodic()
   if (joy_lStick_distance < CONTROLLER_DEADBAND)
   {
     joy_lStick_X = 0;
-      joy_lStick_Y = 0;
+    joy_lStick_Y = 0;
   }
 
   if (abs(joy_rStick_X) < CONTROLLER_DEADBAND)
@@ -248,27 +247,26 @@ void Robot::TeleopPeriodic()
     swerveDrive->ResetOdometry(visionPose);
   }
 
-/*
+  /*
 
-  if (existsEntry.Get() && !isCalibrated && calibrationTime < 0.25)
-  {
-    calibrationAmount += 1;
-    caliX += visionPose.X().value();
-    caliY += visionPose.Y().value();
-    caliTheta += visionPose.Rotation().Radians().value();
-  }
-  else if (existsEntry.Get() && !isCalibrated)
-  {
-    isCalibrated = true;
-    caliX /= calibrationAmount;
-    caliY /= calibrationAmount;
-    caliTheta /= calibrationAmount;
-    swerveDrive->ResetOdometry(Pose2d(units::meter_t{caliX}, units::meter_t{caliY}, Rotation2d(units::radian_t{caliTheta})));
-  }*/
+    if (existsEntry.Get() && !isCalibrated && calibrationTime < 0.25)
+    {
+      calibrationAmount += 1;
+      caliX += visionPose.X().value();
+      caliY += visionPose.Y().value();
+      caliTheta += visionPose.Rotation().Radians().value();
+    }
+    else if (existsEntry.Get() && !isCalibrated)
+    {
+      isCalibrated = true;
+      caliX /= calibrationAmount;
+      caliY /= calibrationAmount;
+      caliTheta /= calibrationAmount;
+      swerveDrive->ResetOdometry(Pose2d(units::meter_t{caliX}, units::meter_t{caliY}, Rotation2d(units::radian_t{caliTheta})));
+    }*/
 
   Pose2d pose = swerveDrive->GetPose();
   Pose2d visionOdometry = swerveDrive->GetPoseVisionOdometry();
-
 
   frc::SmartDashboard::PutBoolean("Was 0", thetaEntry.Get() < 0.05 && thetaEntry.Get() > -0.05 && thetaEntry.Get() != 0.0);
 
@@ -277,7 +275,7 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("Turn Drive Speed", Turn_Speed);
 
   SmartDashboard::PutNumber("Network Table X", xEntry.Get());
-  SmartDashboard::PutBoolean("Network Table X New Value", (bool) xEntry.ReadQueue().size());
+  SmartDashboard::PutBoolean("Network Table X New Value", (bool)xEntry.ReadQueue().size());
   SmartDashboard::PutNumber("Network Table Y", yEntry.Get());
   SmartDashboard::PutNumber("Network Table Theta", thetaEntry.Get() * 180 / M_PI);
   SmartDashboard::PutNumber("Network Table Sanity", sanityEntry.Get());
@@ -293,20 +291,18 @@ void Robot::TeleopPeriodic()
 
   frc::SmartDashboard::PutNumber("TIMER", timer.Get().value());
 
-  // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen, 
+  // Moves the swerve drive in the intended direction, with the speed scaled down by our pre-chosen,
   // max drive and spin speeds
 
   if (xbox_Drive->GetLeftBumper())
     Turn_Speed = swerveDrive->TurnToPointDesiredSpin(pose, Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
 
   swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
-  
 
   if (xbox_Drive->GetBButtonPressed())
     swerveDrive->BeginPIDLoop();
   if ((CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton()))
     swerveDrive->DriveToPoseVisionOdometry(Pose2d(0_m, -1_m, Rotation2d(0_rad)), elapsedTime);
-
 
   if (xbox_Drive->GetAButtonPressed())
     swerveDrive->BeginPIDLoop();
@@ -322,10 +318,9 @@ void Robot::TeleopPeriodic()
     swerveDrive->BeginPIDLoop();
   if (xbox_Drive->GetRightBumper())
     swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
-    
 
-  //Reset Pigion Heading*
-  if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())  
+  // Reset Pigion Heading*
+  if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())
   {
     pigeon_initial = fmod(_pigeon.GetYaw(), 360);
     swerveDrive->pigeon_initial = pigeon_initial;
