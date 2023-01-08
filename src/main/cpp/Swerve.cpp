@@ -676,6 +676,9 @@ public:
                            S_SPIN_MAX_ACCEL * elapsedTime);
     spinSpeed = lastSpin;
 
+    SmartDashboard::PutNumber("Theta Distance", thetaDistance);
+    SmartDashboard::PutNumber("spin Speed", lastSpin);
+
     DriveSwerveMetersAndRadians(xFF.value() + xPid, yFF.value() + yPid, lastSpin);
   }
 };
