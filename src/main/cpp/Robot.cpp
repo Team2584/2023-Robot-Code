@@ -2,36 +2,83 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-#include "Robot.h"
 #include "Setup.h"
+
+#include "Swerve.cpp"
 
 #include <fmt/core.h>
 
 #include <frc/smartdashboard/SmartDashboard.h>
 
-// Start with target = 0
 double pigeon_initial;
-double FLtarget_pos = 0;
-double FRtarget_pos = 0;
-double target_pos = 0;
+// Instantiates a SwerveDrive object with all the correct references to motors and offset values
+SwerveDrive *swerveDrive;
 
-double FR_Target_Angle = 0;
-double FL_Target_Angle = 0;
-double BL_Target_Angle = 0;
-double BR_Target_Angle = 0;
+// To find values from cameras
+nt::NetworkTableInstance inst;
+shared_ptr<nt::NetworkTable> table;
+nt::DoubleTopic xTopic;
+nt::DoubleTopic yTopic;
+nt::DoubleTopic thetaTopic;
+nt::IntegerTopic sanityTopic;
+nt::BooleanTopic existsTopic;
+nt::DoubleEntry xEntry;
+nt::DoubleEntry yEntry;
+nt::DoubleEntry thetaEntry;
+nt::IntegerEntry sanityEntry;
+nt::BooleanEntry existsEntry;
+
+// To track time for slew rate and accleration control
+frc::Timer timer;
+double lastTime = 0;
+bool startedTimer = false;
+
+// To Calibrate Odometry to april tag
+bool isCalibrated = false;
+double calibrationTime = 0;
+double calibrationAmount = 0;
+double caliX = 0;
+double caliY = 0;
+double caliTheta = 0;
 
 void Robot::RobotInit()
 {
+  // Autonomous Choosing
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
   m_chooser.AddOption(kAutoNameCustom, kAutoNameCustom);
   frc::SmartDashboard::PutData("Auto Modes", &m_chooser);
-  // FLMagEnc.SetDutyCycleRange(0, 4095/4096);
-  // FLMagEnc.Reset();
-  // FRMagEnc.Reset();
-  // BLMagEnc.Reset();
-  // BRMagEnc.Reset();
 
-  FLMagEnc.SetConnectedFrequencyThreshold(10);
+  // Setting motor breaktypes
+  driveFL.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
+  driveBL.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
+  driveFR.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
+  driveBR.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
+
+  // Finding values from network tables
+  inst = nt::NetworkTableInstance::GetDefault();
+  inst.StartServer();
+  table = inst.GetTable("vision/localization");
+  xTopic = table->GetDoubleTopic("x");
+  yTopic = table->GetDoubleTopic("y");
+  thetaTopic = table->GetDoubleTopic("theta");
+  sanityTopic = table->GetIntegerTopic("sanitycheck");
+  existsTopic = table->GetBooleanTopic("robot_pos_good");
+  xEntry = xTopic.GetEntry(100000);
+  yEntry = yTopic.GetEntry(10000);
+  thetaEntry = thetaTopic.GetEntry(10000);
+  sanityEntry = sanityTopic.GetEntry(10000);
+  existsEntry = existsTopic.GetEntry(false);
+
+  // Initializing things
+  timer = Timer();
+
+  // Initializing Subsystems
+  swerveDrive = new SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, FL_WHEEL_OFFSET, &driveFR, &swerveFR, &FRMagEnc,
+                                FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
+                                &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, STARTING_DRIVE_HEADING);
+
+  // Initializing Autonomous Trajectory (For Splines)
+  swerveDrive->InitializeTrajectory();
 }
 
 /**
@@ -59,9 +106,10 @@ void Robot::RobotPeriodic()
  */
 void Robot::AutonomousInit()
 {
+  /*
   m_autoSelected = m_chooser.GetSelected();
-  // m_autoSelected = SmartDashboard::GetString("Auto Selector",
-  //     kAutoNameDefault);
+  m_autoSelected = SmartDashboard::GetString("Auto Selector",
+       kAutoNameDefault);
   fmt::print("Auto selected: {}\n", m_autoSelected);
 
   if (m_autoSelected == kAutoNameCustom)
@@ -72,10 +120,20 @@ void Robot::AutonomousInit()
   {
     // Default Auto goes here
   }
+  */
+
+
+  //Start our match timer and reset our odometry to the robot's starting position
+  startedTimer = false;
+  lastTime = 0;
+  timer.Reset();
+  swerveDrive->ResetOdometry(Pose2d(2_m, 0_m, Rotation2d(0_rad)));
+  swerveDrive->BeginPIDLoop();
 }
 
 void Robot::AutonomousPeriodic()
 {
+  /*
   if (m_autoSelected == kAutoNameCustom)
   {
     // Custom Auto goes here
@@ -84,322 +142,207 @@ void Robot::AutonomousPeriodic()
   {
     // Default Auto goes here
   }
+  */
+
+  //If we haven't started the timer yet, start the timer
+  if (!startedTimer)
+  {
+    timer.Start();
+    startedTimer = false;
+  }
+
+
+  //Follow the trajectory of the swerve drive
+  swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);
+  lastTime = timer.Get().value();
 }
+/*
+void Robot::TeleopInit() {
+  inst = nt::NetworkTableInstance::GetDefault();
+  inst.StartServer();
+  table = inst.GetTable("vision/localization");
+  xTopic = table->GetDoubleTopic("x");
+  xEntry = xTopic.GetEntry(100000);
+}
+
+int hi = 0;
+
+void Robot::TeleopPeriodic() {
+  frc::SmartDashboard::PutNumber("x I'm getting", xEntry.Get());
+  frc::SmartDashboard::PutNumber("hi", hi);
+  wpi::outs() << "yo";
+  frc::SmartDashboard::PutNumber("aj counter", sanityEntry.Get());
+  hi += 1;
+  inst.Flush();
+}
+*/
 
 void Robot::TeleopInit()
 {
-  // REMOVE THIS BEFORE COMPETITION
-  pigeon_initial = _pigeon.GetYaw();
-  thetaInit = FLMagEnc.GetAbsolutePosition() * 360;
-  frc::SmartDashboard::PutNumber("Target", 0);
-}
+  // Prepare swerve drive odometry
+  pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
+  swerveDrive->pigeon_initial = pigeon_initial;
+  swerveDrive->ResetOdometry();
 
-int sgn(double x)
-{
-  if (x > 0)
-  {
-    return 1;
-  }
-  if (x < 0)
-  {
-    return -1;
-  }
-  return 0;
-}
+  timer.Reset();
+  timer.Start();
+  lastTime = 0;
 
-double EncoderReadingToAngle(double reading, double offset)
-{
-  // subtract the encoder offset to make 0 degrees forward
-  reading -= offset;
-  if (reading < 0)
-    reading += 1;
-  // Flip the degrees to make clockwise positive
-  reading = 1 - reading;
-  // Convert from 0-1 to degrees
-  reading *= 360;
-  return reading;
-}
-
-double ControllerAxisToAngle(double xAxis, double yAxis)
-{
-  double controllerAngle = atan2(yAxis, xAxis);
-
-  if (xAxis > 0 && yAxis > 0)
-  {
-    controllerAngle = (M_PI / 2) - atan2(yAxis, xAxis);
-  }
-  else if (xAxis > 0 && yAxis < 0)
-  {
-    controllerAngle = M_PI / 2 - atan2(yAxis, xAxis);
-  }
-  else if (xAxis < 0 && yAxis < 0)
-  {
-    controllerAngle = M_PI / 2 - atan2(yAxis, xAxis);
-  }
-  else if (xAxis < 0 && yAxis > 0)
-  {
-    controllerAngle = 5 * M_PI / 2 - atan2(yAxis, xAxis);
-  }
-  else if (xAxis == 0 && yAxis < 0)
-  {
-    return 180;
-  }
-  else if (xAxis == 0 && yAxis > 0)
-  {
-    return 0;
-  }
-  else if (yAxis == 0 && xAxis < 0)
-  {
-    return 270;
-  }
-  else if (yAxis == 0 && xAxis > 0)
-  {
-    return 90;
-  }
-  else
-  {
-    printf("Error\n");
-  }
-
-  // Convert angle to degrees
-  controllerAngle *= 180 / M_PI;
-
-  return controllerAngle;
-}
-
-// Input a distance to target and a direction, updates arr with rotation speed of wheel using PID
-// arr[0] = wheel rotation speed, arr[1] = wheel rotation direction, arr[2] = wheel spin direction
-void swervePID(double distanceToTarget, int direction, double arr[])
-{
-  double kP = MAX_SPIN_SPEED;
-  // output = kp * distance / maxDistance
-  double output = kP * (distanceToTarget / 90);
-  arr[1] = direction;
-  arr[0] = output;
-}
-
-// Input a current position and a target, updates arr with optimal wheel speeds and rotation
-// arr[0] = wheel rotation speed, arr[1] = wheel rotation direction, arr[2] = wheel spin direction
-void swerveWheel(double wheel_position, double wheel_target, double arr[])
-{
-  double driveDirection = 1;
-
-  if (wheel_target < 0)
-  {
-    wheel_target += 360;
-  }
-
-  // Ask me about the logic if you want to understand it.
-  // Basically this has 8 seperate scanrios,
-  // Either your wheel position is less than or greater than your target
-  // And for each of those 2 scenarios, there are 4 possible rotation directions
-  if (wheel_position < wheel_target)
-  {
-    if (wheel_target - wheel_position <= 180)
-    {
-      if (wheel_target - wheel_position <= 90)
-      {
-        swervePID(wheel_target - wheel_position, 1, arr);
-      }
-      else
-      {
-        swervePID(180 - (wheel_target - wheel_position), -1, arr);
-        driveDirection = -1;
-      }
-    }
-    else
-    {
-      if (wheel_target - wheel_position <= 270)
-      {
-        swervePID((wheel_target - wheel_position) - 180, 1, arr);
-        driveDirection = -1;
-      }
-      else
-      {
-        swervePID(360 - (wheel_target - wheel_position), -1, arr);
-      }
-    }
-  }
-  else if (wheel_position > wheel_target)
-  {
-    if (wheel_position - wheel_target <= 180)
-    {
-      if (wheel_position - wheel_target <= 90)
-      {
-        swervePID(wheel_position - wheel_target, -1, arr);
-      }
-      else
-      {
-        swervePID(180 - (wheel_position - wheel_target), 1, arr);
-        driveDirection = -1;
-      }
-    }
-    else
-    {
-      if (wheel_position - wheel_target <= 270)
-      {
-        swervePID((wheel_position - wheel_target) - 180, -1, arr);
-        driveDirection = -1;
-      }
-      else
-      {
-        swervePID(360 - (wheel_position - wheel_target), 1, arr);
-      }
-    }
-  }
-  else
-  {
-    swerveFL.Set(ControlMode::PercentOutput, 0);
-  }
-
-  arr[2] = driveDirection;
+  isCalibrated = false;
+  calibrationTime = 0;
+  calibrationAmount = 0;
+  caliX = 0;
+  caliY = 0;
+  caliTheta = 0;
+  /*
+    orchestra.LoadMusic("CHIRP");
+    orchestra.AddInstrument(swerveBL);
+    orchestra.AddInstrument(driveBL);
+    orchestra.Play();
+  */
 }
 
 void Robot::TeleopPeriodic()
 {
-
-  // Find current position of wheel in degrees, 0 is forward and degrees increase clockwise
-  double FL_current_pos = EncoderReadingToAngle(FLMagEnc.GetAbsolutePosition(), FL_WHEEL_OFFSET);
-  double FR_current_pos = EncoderReadingToAngle(FRMagEnc.GetAbsolutePosition(), FR_WHEEL_OFFSET);
-  double BR_current_pos = EncoderReadingToAngle(BRMagEnc.GetAbsolutePosition(), BR_WHEEL_OFFSET);
-  double BL_current_pos = EncoderReadingToAngle(BLMagEnc.GetAbsolutePosition(), BL_WHEEL_OFFSET);
-
-  // Print for debugging purposes
-  SmartDashboard::PutNumber("FL Pos:", FLMagEnc.GetAbsolutePosition());
-  SmartDashboard::PutNumber("FR Pos:", FRMagEnc.GetAbsolutePosition());
-  SmartDashboard::PutNumber("BR Pos:", BRMagEnc.GetAbsolutePosition());
-  SmartDashboard::PutNumber("BL Pos:", BLMagEnc.GetAbsolutePosition());
-
+  double joy_lStick_Y, joy_lStick_X, joy_rStick_X;
   // Find controller input
-  double joy_lStick_Y = cont_Driver->GetLeftY(), joy_lStick_X = cont_Driver->GetLeftX(),
-         joy_rStick_X = cont_Driver->GetRightX();
-  joy_lStick_Y *= -1;
+  if (CONTROLLER_TYPE == 0)
+  {
+    joy_lStick_Y = cont_Driver->GetLeftY();
+    joy_lStick_X = cont_Driver->GetLeftX();
+    joy_rStick_X = cont_Driver->GetRightX();
+    joy_lStick_Y *= -1;
+  }
+  else if (CONTROLLER_TYPE == 1)
+  {
+    joy_lStick_Y = xbox_Drive->GetLeftY();
+    joy_lStick_X = xbox_Drive->GetLeftX();
+    joy_rStick_X = xbox_Drive->GetRightX();
+    joy_lStick_Y *= -1;
+  }
 
   // Remove ghost movement by making sure joystick is moved a certain amount
   double joy_lStick_distance = sqrt(pow(joy_lStick_X, 2.0) + pow(joy_lStick_Y, 2.0));
-  double joystick_deadband = 0.1;
 
-  if (joy_lStick_distance < joystick_deadband)
+  if (joy_lStick_distance < CONTROLLER_DEADBAND)
   {
     joy_lStick_X = 0;
     joy_lStick_Y = 0;
   }
 
-  if (abs(joy_rStick_X) < joystick_deadband)
+  if (abs(joy_rStick_X) < CONTROLLER_DEADBAND)
   {
     joy_rStick_X = 0;
   }
 
-  // Find Pigeon IMU Angle TODO
-  double pigeon_angle = fmod(_pigeon.GetYaw(), 360);
-  pigeon_angle -= pigeon_initial;
-  if (pigeon_angle < 0)
-    pigeon_angle += 360;
-  pigeon_angle = 360 - pigeon_angle;
-  if (pigeon_angle == 360)
-    pigeon_angle = 0;
-  pigeon_angle *= M_PI / 180;
+  //Scale our joystick inputs to our intended max drive speeds
+  double FWD_Drive_Speed = joy_lStick_Y * MAX_DRIVE_SPEED;
+  double STRAFE_Drive_Speed = joy_lStick_X * MAX_DRIVE_SPEED;
+  double Turn_Speed = joy_rStick_X * MAX_SPIN_SPEED;
 
-  SmartDashboard::PutNumber("Pigeon Angle:", pigeon_angle);
+  //update our timer
+  double time = timer.Get().value();
+  double elapsedTime = time - lastTime;
+  lastTime = time;
 
-  SmartDashboard::PutNumber("Y Joystick:", joy_lStick_Y);
-  SmartDashboard::PutNumber("X Joystick:", joy_lStick_X);
+  //Update our odometry 
+  swerveDrive->UpdateOdometry();
 
-  // Use pigion_angle to determine what our target movement vector is in relation to the robot
-  double FWD_Drive_Speed = joy_lStick_Y * cos(pigeon_angle) + joy_lStick_X * sin(pigeon_angle);
-  double STRAFE_Drive_Speed = -1 * joy_lStick_Y * sin(pigeon_angle) + joy_lStick_X * cos(pigeon_angle);
-  double Turn_Speed = joy_rStick_X * 1.2;
+  //Update our vision pose from the network table (calculated by a coprocessor, ask Avrick / AJ for details)
+  Pose2d visionPose = Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()}));
+  swerveDrive->SetPoseVision(visionPose, existsEntry.Get());
 
-  SmartDashboard::PutNumber("FWD_Drive_Speed:", FWD_Drive_Speed);
-  SmartDashboard::PutNumber("STRAFE_Drive_Speed:", STRAFE_Drive_Speed);
-  SmartDashboard::PutNumber("Turn_Speed:", Turn_Speed);
-
-  // Determine wheel speeds / wheel target positions
-  // Equations explained at:
-  // https://www.chiefdelphi.com/t/paper-4-wheel-independent-drive-independent-steering-swerve/107383
-  // After clicking above link press the top download to see how the equations work
-  double DRIVE_RADIUS = sqrt(pow(DRIVE_LENGTH, 2) + pow(DRIVE_WIDTH, 2));
-
-  double A = STRAFE_Drive_Speed - Turn_Speed * (DRIVE_LENGTH / DRIVE_RADIUS);
-  double B = STRAFE_Drive_Speed + Turn_Speed * (DRIVE_LENGTH / DRIVE_RADIUS);
-  double C = FWD_Drive_Speed - Turn_Speed * (DRIVE_LENGTH / DRIVE_RADIUS);
-  double D = FWD_Drive_Speed + Turn_Speed * (DRIVE_LENGTH / DRIVE_RADIUS);
-
-  if (!(joy_lStick_X == 0 && joy_lStick_Y == 0 && joy_rStick_X == 0))
+  // WIP not important
+  if (!isCalibrated && existsEntry.Get())
   {
-    FR_Target_Angle = atan2(B, C) * 180 / M_PI;
-    FL_Target_Angle = atan2(B, D) * 180 / M_PI;
-    BL_Target_Angle = atan2(A, D) * 180 / M_PI;
-    BR_Target_Angle = atan2(A, C) * 180 / M_PI;
+    isCalibrated = true;
+    swerveDrive->ResetOdometry(visionPose);
   }
 
-  SmartDashboard::PutNumber("FR_ANGLE:", FR_Target_Angle);
-  SmartDashboard::PutNumber("FL_ANGLE:", FL_Target_Angle);
-  SmartDashboard::PutNumber("BL_ANGLE:", BL_Target_Angle);
-  SmartDashboard::PutNumber("BR_ANGLE:", BR_Target_Angle);
+  /*
 
-  // Do not change target angle if joystick values are 0
-  double FR_Drive_Speed = sqrt(pow(B, 2) + pow(C, 2));
-  double FL_Drive_Speed = sqrt(pow(B, 2) + pow(D, 2));
-  double BL_Drive_Speed = sqrt(pow(A, 2) + pow(D, 2));
-  double BR_Drive_Speed = sqrt(pow(A, 2) + pow(C, 2));
+    if (existsEntry.Get() && !isCalibrated && calibrationTime < 0.25)
+    {
+      calibrationAmount += 1;
+      caliX += visionPose.X().value();
+      caliY += visionPose.Y().value();
+      caliTheta += visionPose.Rotation().Radians().value();
+    }
+    else if (existsEntry.Get() && !isCalibrated)
+    {
+      isCalibrated = true;
+      caliX /= calibrationAmount;
+      caliY /= calibrationAmount;
+      caliTheta /= calibrationAmount;
+      swerveDrive->ResetOdometry(Pose2d(units::meter_t{caliX}, units::meter_t{caliY}, Rotation2d(units::radian_t{caliTheta})));
+    }*/
 
-  // Above function makes wheel speeds correct in relation to one another, but not at the right values
-  // Below we are scaling the wheel speeds down to have a max of 1
 
-  double max = FR_Drive_Speed;
-  if (FL_Drive_Speed > max)
-    max = FL_Drive_Speed;
-  if (BL_Drive_Speed > max)
-    max = BL_Drive_Speed;
-  if (BR_Drive_Speed > max)
-    max = BR_Drive_Speed;
+  // DEBUG INFO
+  Pose2d pose = swerveDrive->GetPose();
+  Pose2d visionOdometry = swerveDrive->GetPoseVisionOdometry();
 
-  FL_Drive_Speed *= MAX_DRIVE_SPEED;
-  BL_Drive_Speed *= MAX_DRIVE_SPEED;
-  FR_Drive_Speed *= MAX_DRIVE_SPEED;
-  BR_Drive_Speed *= MAX_DRIVE_SPEED;
+  frc::SmartDashboard::PutBoolean("Was 0", thetaEntry.Get() < 0.05 && thetaEntry.Get() > -0.05 && thetaEntry.Get() != 0.0);
 
-  if (max > (1 / MAX_DRIVE_SPEED))
+  frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed);
+  frc::SmartDashboard::PutNumber("Strafe Drive Speed", STRAFE_Drive_Speed);
+  frc::SmartDashboard::PutNumber("Turn Drive Speed", Turn_Speed);
+
+  SmartDashboard::PutNumber("Network Table X", xEntry.Get());
+  SmartDashboard::PutBoolean("Network Table X New Value", (bool)xEntry.ReadQueue().size());
+  SmartDashboard::PutNumber("Network Table Y", yEntry.Get());
+  SmartDashboard::PutNumber("Network Table Theta", thetaEntry.Get() * 180 / M_PI);
+  SmartDashboard::PutNumber("Network Table Sanity", sanityEntry.Get());
+  SmartDashboard::PutBoolean("Network Table Tag Exists", existsEntry.Get());
+
+  frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
+  frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
+  frc::SmartDashboard::PutNumber("Odometry Theta", pose.Rotation().Degrees().value());
+
+  frc::SmartDashboard::PutNumber("Vision Odometry X", visionOdometry.X().value());
+  frc::SmartDashboard::PutNumber("Vision Odometry Y", visionOdometry.Y().value());
+  frc::SmartDashboard::PutNumber("Vision Odometry Theta", visionOdometry.Rotation().Degrees().value());
+
+  frc::SmartDashboard::PutNumber("TIMER", timer.Get().value());
+
+  
+  //Here is our Test Drive Control Code that runs different functions when different buttons are pressed
+  if (xbox_Drive->GetLeftBumper())
+    Turn_Speed = swerveDrive->TurnToPointDesiredSpin(pose, Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
+
+  swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
+
+  if (xbox_Drive->GetBButtonPressed())
+    swerveDrive->BeginPIDLoop();
+  if ((CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton()))
+    swerveDrive->DriveToPoseVisionOdometry(Pose2d(0_m, -1_m, Rotation2d(0_rad)), elapsedTime);
+
+  if (xbox_Drive->GetAButtonPressed())
+    swerveDrive->BeginPIDLoop();
+  if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetAButton()))
+    swerveDrive->DriveToPoseVisionOdometry(Pose2d(0_m, -2_m, Rotation2d(0_rad)), elapsedTime);
+
+  if (xbox_Drive->GetXButtonPressed())
+    swerveDrive->BeginPIDLoop();
+  if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetXButton()))
+    swerveDrive->DriveToPoseVisionOdometry(Pose2d(-0.5_m, -3_m, Rotation2d(0.5_rad)), elapsedTime);
+
+  if (xbox_Drive->GetRightBumperPressed())
+    swerveDrive->BeginPIDLoop();
+  if (xbox_Drive->GetRightBumper())
+    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
+
+  // Reset Pigion Heading
+  if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())
   {
-    FL_Drive_Speed /= (max * MAX_DRIVE_SPEED);
-    FR_Drive_Speed /= (max * MAX_DRIVE_SPEED);
-    BL_Drive_Speed /= (max * MAX_DRIVE_SPEED);
-    BR_Drive_Speed /= (max * MAX_DRIVE_SPEED);
+    pigeon_initial = fmod(_pigeon.GetYaw(), 360);
+    swerveDrive->pigeon_initial = pigeon_initial;
   }
-
-  SmartDashboard::PutNumber("Is Max Peaking?:", max);
-
-  // Rotate and Spin Wheels to desired target at desired speed
-  // arr[0] = wheel rotation speed, arr[1] = wheel rotation direction, arr[2] = wheel spin direction
-  // An array is my way for a function to return multiple values, sorry
-  double FLarr[3];
-  // Set the values in the array
-  swerveWheel(FL_current_pos, FL_Target_Angle, FLarr);
-  // Set the drive speeds based on the returned values
-  swerveFL.Set(ControlMode::PercentOutput, FLarr[0] * FLarr[1]);
-  driveFL.Set(ControlMode::PercentOutput, FL_Drive_Speed * FLarr[2] * MAX_DRIVE_SPEED);
-
-  double FRarr[3];
-  swerveWheel(FR_current_pos, FR_Target_Angle, FRarr);
-  swerveFR.Set(ControlMode::PercentOutput, FRarr[0] * FRarr[1]);
-  driveFR.Set(ControlMode::PercentOutput, FR_Drive_Speed * FRarr[2] * MAX_DRIVE_SPEED);
-
-  double BLarr[3];
-  swerveWheel(BL_current_pos, BL_Target_Angle, BLarr);
-  swerveBL.Set(ControlMode::PercentOutput, BLarr[0] * BLarr[1]);
-  driveBL.Set(ControlMode::PercentOutput, BL_Drive_Speed * BLarr[2] * MAX_DRIVE_SPEED);
-
-  double BRarr[2];
-  swerveWheel(BR_current_pos, BR_Target_Angle, BRarr);
-  swerveBR.Set(ControlMode::PercentOutput, BRarr[0] * BRarr[1]);
-  driveBR.Set(ControlMode::PercentOutput, BR_Drive_Speed * BRarr[2] * MAX_DRIVE_SPEED);
-
-  SmartDashboard::PutNumber("FR Drive Position:", FR_current_pos);
-  SmartDashboard::PutNumber("FL Drive Position:", FL_current_pos);
-  SmartDashboard::PutNumber("BR Drive Position:", BR_current_pos);
-  SmartDashboard::PutNumber("BL Drive Position:", BL_current_pos);
-
+  else if (CONTROLLER_TYPE == 1 && xbox_Drive->GetYButtonPressed())
+  {
+    pigeon_initial = fmod(_pigeon.GetYaw(), 360);
+    swerveDrive->pigeon_initial = pigeon_initial;
+  }
 }
 
 void Robot::DisabledInit()

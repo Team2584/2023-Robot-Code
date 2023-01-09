@@ -6,9 +6,10 @@ using namespace std;
 using namespace frc;
 using namespace frc2;
 
-int fl, fr, bl, br;
+Orchestra orchestra;
 
 PS4Controller *cont_Driver = new PS4Controller(0);
+XboxController *xbox_Drive = new XboxController(0);
 
 TalonFX swerveFL{11};
 TalonFX driveFL{01};
@@ -24,25 +25,26 @@ DutyCycleEncoder FRMagEnc(2);
 DutyCycleEncoder BLMagEnc(1);
 DutyCycleEncoder BRMagEnc(0);
 
-Translation2d m_frontLeft{0.5388_m, 0.5388_m};
-Translation2d m_frontRight{0.5388_m, -0.5388_m};
-Translation2d m_backLeft{-0.5388_m, 0.5388_m};
-Translation2d m_backRight{-0.5388_m, -0.5388_m};
-
-SwerveDriveKinematics<4> m_kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight};
-
-ChassisSpeeds speeds{1_mps, 3_mps, 1.5_rad_per_s};
-
 //Change the number value to the port
 Pigeon2 _pigeon(6);
 
 double thetaInit;
-#define FL_WHEEL_OFFSET 0.952   
-#define FR_WHEEL_OFFSET 0.395
-#define BR_WHEEL_OFFSET 0.057
-#define BL_WHEEL_OFFSET 0.429
-#define DRIVE_LENGTH 24
-#define DRIVE_WIDTH 24
-#define MAX_SPIN_SPEED 0.5
-#define MAX_DRIVE_SPEED 0.5
-// auto [fl,fr,bl,br] = m_kinematics.ToSwerveModuleStates(speeds);
+
+//Customization Variabes (all in percent power so the driver's weak brain don't get confused)
+#define CONTROLLER_DEADBAND 0.15
+#define MAX_SPIN_SPEED 0.25
+#define MAX_DRIVE_SPEED 0.4
+#define MAX_DRIVE_ACCELERATION 1.5 //max change in percent per second
+#define MAX_SPIN_ACCELERATION 1.5
+#define STARTING_DRIVE_HEADING 0
+#define CONTROLLER_TYPE 1
+
+//PID FOR WHILE DRIVING TURN TO POINT
+#define TURN_TO_POINT_ALLOWABLE_ERROR 0.05
+#define TURN_TO_POINT_MAX_SPIN 0.2
+#define TURN_TO_POINT_MAX_ACCEL 0.7
+#define TURN_TO_TO_POINT_P 0.575
+#define TURN_TO_TO_POINT_I 0
+#define TURN_TO_TO_POINT_I_MAX 0.1
+
+

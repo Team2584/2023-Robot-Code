@@ -7,7 +7,8 @@
 #include <frc/smartdashboard/SendableChooser.h>
 //#include "rev/CANEncoder.h"
 #include "ctre/phoenix/motorcontrol/can/WPI_TalonFX.h"
-#include "ctre/phoenix/sensors/PigeonIMU.h"
+#include "ctre/phoenix/sensors/Pigeon2.h"
+#include "ctre/phoenix/music/Orchestra.h"
 
 #include <fmt/core.h>
 
@@ -20,22 +21,32 @@
 
 #include <frc/DigitalInput.h>
 #include <frc/controller/PIDController.h>
+#include <frc/controller/ProfiledPIDController.h>
 #include <frc/controller/SimpleMotorFeedforward.h>
-#include <frc/drive/DifferentialDrive.h>
 #include <frc/encoder.h>
-#include <frc/kinematics/ChassisSpeeds.h>
-#include <frc/kinematics/DifferentialDriveKinematics.h>
-#include <frc/kinematics/DifferentialDriveOdometry.h>
-#include <frc/kinematics/DifferentialDriveWheelSpeeds.h>
 #include <frc/kinematics/SwerveDriveKinematics.h>
 #include <frc/kinematics/SwerveModuleState.h>
+#include <frc/kinematics/SwerveDriveOdometry.h>
+#include <frc/controller/HolonomicDriveController.h>
+#include <frc/filter/SlewRateLimiter.h>
+#include <frc/Filesystem.h>
+#include <wpi/fs.h>
+#include <frc/trajectory/TrajectoryUtil.h>
+#include <frc/trajectory/TrajectoryConfig.h>
+#include <frc/trajectory/TrajectoryGenerator.h>
 #include <frc/motorcontrol/PWMSparkMax.h>
+#include <frc/XboxController.h>
 
 #include <frc/Compressor.h>
 #include <frc/DoubleSolenoid.h>
 
 #include "cameraserver/CameraServer.h"
 #include "networktables/NetworkTable.h"
+#include "networktables/NetworkTableEntry.h"
+#include "networktables/DoubleTopic.h"
+#include "networktables/StringTopic.h"
+#include "networktables/BooleanTopic.h"
+#include "networktables/IntegerTopic.h"
 #include "networktables/NetworkTableInstance.h"
 #include <frc/DutyCycleEncoder.h>
 #include <frc/PWM.h>
@@ -43,12 +54,16 @@
 #include <wpi/future.h>
 #include <wpi/sendable/SendableRegistry.h>
 
+#include <frc2/command/InstantCommand.h>
+#include <frc2/command/SequentialCommandGroup.h>
+#include <frc2/command/SwerveControllerCommand.h>
+
+#include <frc/Timer.h>
+
 #include <cmath>
 #include <iostream>
 #include <math.h>
 #include <thread>
-
-#include "Setup.h"
 
 using namespace std;
 using namespace frc;
