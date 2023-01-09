@@ -308,6 +308,27 @@ public:
   }
 
   /**
+   * Converts a meters per second speed to a percent power argument for the falcon motors.
+   */
+  double VelocityToPercent(double velocity)
+  {
+    if (velocity > 0)
+      return std::max((velocity + 0.193) / 4.44, 0.0);
+    else 
+      return std::min((velocity + 0.193) / 4.44, 0.0);  }
+
+  /**
+   * Converts a percent power argument for the falcon motors to a meters per second speed.
+   */
+  double PercentToVelocity(double percent)
+  {
+    if (percent > 0)
+      return std::max(4.44 * percent - 0.193, 0.0);
+    else 
+      return std::min(4.44 * percent + 0.193, 0.0);
+  }
+
+  /**
    * Returns the absolute heading of the swerve drive according the the IMU (gyroscope).
    *
    * @return The Swerve Drive's heading in radians with 0.0 being the front of the robot increasing clockwise.
@@ -532,7 +553,7 @@ public:
    */
   void DriveSwerveMetersAndRadians(double STRAFE_Drive_Speed, double FWD_Drive_Speed, double Turn_Speed)
   {
-    DriveSwervePercent(STRAFE_Drive_Speed / SWERVE_DRIVE_MAX_MPS, FWD_Drive_Speed / SWERVE_DRIVE_MAX_MPS, Turn_Speed / MAX_RADIAN_PER_SECOND);
+    DriveSwervePercent(VelocityToPercent(STRAFE_Drive_Speed), VelocityToPercent(FWD_Drive_Speed), Turn_Speed / MAX_RADIAN_PER_SECOND);
   }
 
   /**
