@@ -40,6 +40,8 @@
 #include <frc/Compressor.h>
 #include <frc/DoubleSolenoid.h>
 
+#include <pathplanner/lib/PathPlanner.h>
+
 #include "cameraserver/CameraServer.h"
 #include "networktables/NetworkTable.h"
 #include "networktables/NetworkTableEntry.h"
