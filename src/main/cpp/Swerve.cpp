@@ -822,8 +822,8 @@ public:
     // Run simple PID to correct our robots course
     Translation2d pose = GetPose().Translation();
     Translation2d goal = state.pose.Translation();
-    double xDistance = (goal.X() - pose.X()).value();
-    double yDistance = (goal.Y() - pose.Y()).value();
+    double xDistance = (-1 * goal.Y() - pose.X()).value();
+    double yDistance = (goal.X() - pose.Y()).value();
     double xPid = std::clamp(S_TRANSLATION_KP * xDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
     double yPid = std::clamp(S_TRANSLATION_KP * yDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
 
