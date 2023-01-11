@@ -819,7 +819,7 @@ public:
   void InitializeTrajectory()
   {
   // This will load the file "Example Path.path" and generate it with a max velocity of 4 m/s and a max acceleration of 3 m/s^2
-    trajectory = pathplanner::PathPlanner::loadPath("Pathfinder Curve", pathplanner::PathConstraints(1_mps, 2_mps_sq));
+    trajectory = pathplanner::PathPlanner::loadPath("Circle", pathplanner::PathConstraints(2_mps, 3_mps_sq));
   }
 
   /**
@@ -834,7 +834,7 @@ public:
     pathplanner::PathPlannerTrajectory::PathPlannerState state = trajectory.sample(time);
     auto xFF = -1 * state.velocity * state.pose.Rotation().Sin();
     auto yFF = state.velocity * state.pose.Rotation().Cos();
-    double thetaFF = state.angularVelocity.value();
+    double thetaFF = -1 * state.angularVelocity.value();
 
 
     SmartDashboard::PutNumber("state velocity", state.velocity.value());
@@ -854,7 +854,8 @@ public:
     double yPid = std::clamp(S_TRANSLATION_KP * yDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
 
     // Spin PID similar to drive to pose
-    double thetaDistance = Pose2d(0_m, 0_m, Rotation2d(state.holonomicRotation)).RelativeTo(GetPose()).Rotation().Radians().value();
+    Pose2d thetaGoal = Pose2d(0_m, 0_m, Rotation2d(360_deg - state.holonomicRotation.Degrees()));
+    double thetaDistance = thetaGoal.RelativeTo(GetPose()).Rotation().Radians().value();
     if (fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
     {
       thetaDistance = 0;
