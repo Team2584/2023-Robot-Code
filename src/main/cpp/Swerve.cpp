@@ -315,7 +315,7 @@ public:
     if (velocity > 0)
       return std::max((velocity + 0.193) / 4.44, 0.0);
     else 
-      return std::min((velocity + 0.193) / 4.44, 0.0);  }
+      return std::min((velocity - 0.193) / 4.44, 0.0);  }
 
   /**
    * Converts a percent power argument for the falcon motors to a meters per second speed.
@@ -323,9 +323,32 @@ public:
   double PercentToVelocity(double percent)
   {
     if (percent > 0)
-      return std::max(4.44 * percent - 0.193, 0.0);
+      return std::max(4.44 * percent - 0.193, 0.0) * 2 * M_PI;
     else 
-      return std::min(4.44 * percent + 0.193, 0.0);
+      return std::min(4.44 * percent + 0.193, 0.0)  * 2 * M_PI;
+  }
+
+  /**
+   * Converts a meters per second speed to a percent power argument for the falcon motors.
+   */
+  double AngularVelocityToPercent(double velocity)
+  {
+    velocity = velocity / 2 / M_PI;
+    if (velocity > 0)
+      return std::max((velocity + 0.0749) / 1.44, 0.0);
+    else 
+      return std::min((velocity - 0.0749) / 1.44, 0.0);  
+  }
+
+  /**
+   * Converts a percent power argument for the falcon motors to a meters per second speed.
+   */
+  double AngularPercentToVelocity(double percent)
+  {
+    if (percent > 0)
+      return std::max(1.44 * percent - 0.0749, 0.0);
+    else 
+      return std::min(1.44 * percent + 0.0749, 0.0);
   }
 
   /**
@@ -553,7 +576,7 @@ public:
    */
   void DriveSwerveMetersAndRadians(double STRAFE_Drive_Speed, double FWD_Drive_Speed, double Turn_Speed)
   {
-    DriveSwervePercent(VelocityToPercent(STRAFE_Drive_Speed), VelocityToPercent(FWD_Drive_Speed), Turn_Speed / MAX_RADIAN_PER_SECOND);
+    DriveSwervePercent(VelocityToPercent(STRAFE_Drive_Speed), VelocityToPercent(FWD_Drive_Speed), AngularVelocityToPercent(Turn_Speed));
   }
 
   /**
@@ -796,7 +819,7 @@ public:
   void InitializeTrajectory()
   {
   // This will load the file "Example Path.path" and generate it with a max velocity of 4 m/s and a max acceleration of 3 m/s^2
-    trajectory = pathplanner::PathPlanner::loadPath("Pathfinder Curve", pathplanner::PathConstraints(4_mps, 3_mps_sq));
+    trajectory = pathplanner::PathPlanner::loadPath("Pathfinder Curve", pathplanner::PathConstraints(1_mps, 2_mps_sq));
   }
 
   /**
@@ -809,15 +832,18 @@ public:
 
     // Sample the state of the path at some seconds
     pathplanner::PathPlannerTrajectory::PathPlannerState state = trajectory.sample(time);
-    auto xFF = state.velocity * state.pose.Rotation().Cos() * 1.2;
-    auto yFF = state.velocity * state.pose.Rotation().Sin() * 1.2;
+    auto xFF = -1 * state.velocity * state.pose.Rotation().Sin();
+    auto yFF = state.velocity * state.pose.Rotation().Cos();
     double thetaFF = state.angularVelocity.value();
 
+
+    SmartDashboard::PutNumber("state velocity", state.velocity.value());
     SmartDashboard::PutNumber("Program Time", time.value());
     SmartDashboard::PutNumber("trajectory total time", trajectory.getTotalTime().value());
 
     SmartDashboard::PutNumber("X Mps", xFF.value());
     SmartDashboard::PutNumber("Y Mps", yFF.value());
+    SmartDashboard::PutNumber("theta Mps", thetaFF);
 
     // Run simple PID to correct our robots course
     Translation2d pose = GetPose().Translation();
@@ -840,6 +866,7 @@ public:
     // Debugging Info
     SmartDashboard::PutNumber("X Odom", pose.X().value());
     SmartDashboard::PutNumber("Y Odom", pose.Y().value());
+    SmartDashboard::PutNumber("Theta Odom", GetPose().Rotation().Degrees().value());
 
     SmartDashboard::PutNumber("x Dist", xDistance);
     SmartDashboard::PutNumber("y Dist", yDistance);
