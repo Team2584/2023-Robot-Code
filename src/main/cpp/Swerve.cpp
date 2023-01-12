@@ -242,7 +242,7 @@ private:
   SwerveDriveKinematics<4> kinematics;
   SwerveDriveOdometry<4> *odometry;
   SwerveDriveOdometry<4> *visionOdometry; /* WIP for testing, probably not neccesary */
-  Trajectory trajectory;
+  pathplanner::PathPlannerTrajectory trajectory; 
 
   // All Variables below are "WIP" for testing and will hopefully be refactored later
   Pose2d visionPose;
@@ -315,7 +315,7 @@ public:
     if (velocity > 0)
       return std::max((velocity + 0.193) / 4.44, 0.0);
     else 
-      return std::min((velocity + 0.193) / 4.44, 0.0);  }
+      return std::min((velocity - 0.193) / 4.44, 0.0);  }
 
   /**
    * Converts a percent power argument for the falcon motors to a meters per second speed.
@@ -323,9 +323,32 @@ public:
   double PercentToVelocity(double percent)
   {
     if (percent > 0)
-      return std::max(4.44 * percent - 0.193, 0.0);
+      return std::max(4.44 * percent - 0.193, 0.0) * 2 * M_PI;
     else 
-      return std::min(4.44 * percent + 0.193, 0.0);
+      return std::min(4.44 * percent + 0.193, 0.0)  * 2 * M_PI;
+  }
+
+  /**
+   * Converts a meters per second speed to a percent power argument for the falcon motors.
+   */
+  double AngularVelocityToPercent(double velocity)
+  {
+    velocity = velocity / 2 / M_PI;
+    if (velocity > 0)
+      return std::max((velocity + 0.0749) / 1.44, 0.0);
+    else 
+      return std::min((velocity - 0.0749) / 1.44, 0.0);  
+  }
+
+  /**
+   * Converts a percent power argument for the falcon motors to a meters per second speed.
+   */
+  double AngularPercentToVelocity(double percent)
+  {
+    if (percent > 0)
+      return std::max(1.44 * percent - 0.0749, 0.0);
+    else 
+      return std::min(1.44 * percent + 0.0749, 0.0);
   }
 
   /**
@@ -553,7 +576,7 @@ public:
    */
   void DriveSwerveMetersAndRadians(double STRAFE_Drive_Speed, double FWD_Drive_Speed, double Turn_Speed)
   {
-    DriveSwervePercent(VelocityToPercent(STRAFE_Drive_Speed), VelocityToPercent(FWD_Drive_Speed), Turn_Speed / MAX_RADIAN_PER_SECOND);
+    DriveSwervePercent(VelocityToPercent(STRAFE_Drive_Speed), VelocityToPercent(FWD_Drive_Speed), AngularVelocityToPercent(Turn_Speed));
   }
 
   /**
@@ -795,10 +818,8 @@ public:
    */
   void InitializeTrajectory()
   {
-    // Loads file into memory and parses it from json
-    fs::path deployDirectory = frc::filesystem::GetDeployDirectory();
-    deployDirectory = deployDirectory / "LeftCurve.wpilib.json";
-    trajectory = frc::TrajectoryUtil::FromPathweaverJson(deployDirectory.string());
+  // This will load the file "Example Path.path" and generate it with a max velocity of 4 m/s and a max acceleration of 3 m/s^2
+    trajectory = pathplanner::PathPlanner::loadPath("Circle", pathplanner::PathConstraints(1_mps, 3_mps_sq));
   }
 
   /**
@@ -809,28 +830,44 @@ public:
   {
     UpdateOdometry();
 
-    // Determine current desired speeds in an "ideal world"
-    Trajectory::State state = trajectory.Sample(time);
-    auto xFF = state.velocity * state.pose.Rotation().Cos() * 1.2;
-    auto yFF = state.velocity * state.pose.Rotation().Sin() * 1.2;
+    // Sample the state of the path at some seconds
+    pathplanner::PathPlannerTrajectory::PathPlannerState state = trajectory.sample(time);
+    auto xFF = -1 * state.velocity * state.pose.Rotation().Sin();
+    auto yFF = state.velocity * state.pose.Rotation().Cos();
+    double thetaFF = -1 * state.angularVelocity.value();
 
+
+    SmartDashboard::PutNumber("state velocity", state.velocity.value());
     SmartDashboard::PutNumber("Program Time", time.value());
-    SmartDashboard::PutNumber("trajectory total time", trajectory.TotalTime().value());
+    SmartDashboard::PutNumber("trajectory total time", trajectory.getTotalTime().value());
 
     SmartDashboard::PutNumber("X Mps", xFF.value());
     SmartDashboard::PutNumber("Y Mps", yFF.value());
+    SmartDashboard::PutNumber("theta Mps", thetaFF);
 
     // Run simple PID to correct our robots course
     Translation2d pose = GetPose().Translation();
     Translation2d goal = state.pose.Translation();
-    double xDistance = (goal.X() - pose.X()).value();
-    double yDistance = (goal.Y() - pose.Y()).value();
+    double xDistance = (-1 * goal.Y() - pose.X()).value();
+    double yDistance = (goal.X() - pose.Y()).value();
     double xPid = std::clamp(S_TRANSLATION_KP * xDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
     double yPid = std::clamp(S_TRANSLATION_KP * yDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
+
+    // Spin PID similar to drive to pose
+    Pose2d thetaGoal = Pose2d(0_m, 0_m, Rotation2d(360_deg - state.holonomicRotation.Degrees()));
+    double thetaDistance = thetaGoal.RelativeTo(GetPose()).Rotation().Radians().value();
+    if (fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
+    {
+      thetaDistance = 0;
+      runningIntegralSpin = 0;
+    }
+    double intendedI = std::clamp(S_SPIN_KI * runningIntegralSpin, -1 * S_SPIN_KI_MAX, S_SPIN_KI_MAX);
+    double spinPid = std::clamp(S_SPIN_KP * thetaDistance + intendedI, -1 * S_SPIN_MAX_SPEED, S_SPIN_MAX_SPEED);
 
     // Debugging Info
     SmartDashboard::PutNumber("X Odom", pose.X().value());
     SmartDashboard::PutNumber("Y Odom", pose.Y().value());
+    SmartDashboard::PutNumber("Theta Odom", GetPose().Rotation().Degrees().value());
 
     SmartDashboard::PutNumber("x Dist", xDistance);
     SmartDashboard::PutNumber("y Dist", yDistance);
@@ -838,32 +875,18 @@ public:
     SmartDashboard::PutNumber("x Pid", xPid);
     SmartDashboard::PutNumber("y Pid", yPid);
 
-    // Spin PID similar to drive to pose
-    // TODO change so it can actually spin rather than just stay facing a direction
-    double thetaDistance = Pose2d(0_m, 0_m, Rotation2d(0_rad)).RelativeTo(GetPose()).Rotation().Radians().value();
-    if (thetaDistance > 180)
-      thetaDistance = thetaDistance - 360;
-    if (fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
-    {
-      thetaDistance = 0;
-      runningIntegralSpin = 0;
-    }
-    double intendedI = std::clamp(S_SPIN_KI * runningIntegralSpin, -1 * S_SPIN_KI_MAX, S_SPIN_KI_MAX);
-    double intendedVelocity = std::clamp(S_SPIN_KP * thetaDistance + intendedI, -1 * S_SPIN_MAX_SPEED, S_SPIN_MAX_SPEED);
-    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * S_SPIN_MAX_ACCEL * elapsedTime,
-                           S_SPIN_MAX_ACCEL * elapsedTime);
-
     SmartDashboard::PutNumber("Theta Distance", thetaDistance);
-    SmartDashboard::PutNumber("spin Speed", lastSpin);
+    SmartDashboard::PutNumber("spin Pid", spinPid);
 
     // If we have finished the spline, just stop
-    if (trajectory.TotalTime() < time && xDistance < S_ALLOWABLE_ERROR_TRANSLATION && yDistance < S_ALLOWABLE_ERROR_TRANSLATION && lastSpin == 0)
+    if (trajectory.getTotalTime() < time && fabs(xDistance) < S_ALLOWABLE_ERROR_TRANSLATION && fabs(yDistance) < S_ALLOWABLE_ERROR_TRANSLATION
+        && fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
     {
       DriveSwervePercent(0, 0, 0);
       return;
     }
 
     // Drive the swerve drive
-    DriveSwerveMetersAndRadians(xFF.value() + xPid, yFF.value() + yPid, lastSpin);
+    DriveSwerveMetersAndRadians(xFF.value() + xPid, yFF.value() + yPid, thetaFF + spinPid);
   }
 };
