@@ -819,7 +819,7 @@ public:
   void InitializeTrajectory()
   {
   // This will load the file "Example Path.path" and generate it with a max velocity of 4 m/s and a max acceleration of 3 m/s^2
-    trajectory = pathplanner::PathPlanner::loadPath("Circle", pathplanner::PathConstraints(2_mps, 3_mps_sq));
+    trajectory = pathplanner::PathPlanner::loadPath("Circle", pathplanner::PathConstraints(1_mps, 3_mps_sq));
   }
 
   /**
@@ -879,7 +879,8 @@ public:
     SmartDashboard::PutNumber("spin Pid", spinPid);
 
     // If we have finished the spline, just stop
-    if (trajectory.getTotalTime() < time && xDistance < S_ALLOWABLE_ERROR_TRANSLATION && yDistance < S_ALLOWABLE_ERROR_TRANSLATION && lastSpin == 0)
+    if (trajectory.getTotalTime() < time && fabs(xDistance) < S_ALLOWABLE_ERROR_TRANSLATION && fabs(yDistance) < S_ALLOWABLE_ERROR_TRANSLATION
+        && fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
     {
       DriveSwervePercent(0, 0, 0);
       return;
