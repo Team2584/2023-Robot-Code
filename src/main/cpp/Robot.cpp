@@ -17,16 +17,14 @@ SwerveDrive *swerveDrive;
 // To find values from cameras
 nt::NetworkTableInstance inst;
 shared_ptr<nt::NetworkTable> table;
-nt::DoubleTopic xTopic;
-nt::DoubleTopic yTopic;
-nt::DoubleTopic thetaTopic;
+nt::DoubleArrayTopic xTopic;
+nt::DoubleArrayTopic yTopic;
+nt::DoubleArrayTopic thetaTopic;
 nt::IntegerTopic sanityTopic;
-nt::BooleanTopic existsTopic;
-nt::DoubleEntry xEntry;
-nt::DoubleEntry yEntry;
-nt::DoubleEntry thetaEntry;
+nt::DoubleArrayEntry xEntry;
+nt::DoubleArrayEntry yEntry;
+nt::DoubleArrayEntry thetaEntry;
 nt::IntegerEntry sanityEntry;
-nt::BooleanEntry existsEntry;
 
 // To track time for slew rate and accleration control
 frc::Timer timer;
@@ -58,16 +56,14 @@ void Robot::RobotInit()
   inst = nt::NetworkTableInstance::GetDefault();
   inst.StartServer();
   table = inst.GetTable("vision/localization");
-  xTopic = table->GetDoubleTopic("x");
-  yTopic = table->GetDoubleTopic("y");
-  thetaTopic = table->GetDoubleTopic("theta");
+  xTopic = table->GetDoubleArrayTopic("x");
+  yTopic = table->GetDoubleArrayTopic("y");
+  thetaTopic = table->GetDoubleArrayTopic("theta");
   sanityTopic = table->GetIntegerTopic("sanitycheck");
-  existsTopic = table->GetBooleanTopic("robot_pos_good");
-  xEntry = xTopic.GetEntry(100000);
-  yEntry = yTopic.GetEntry(10000);
-  thetaEntry = thetaTopic.GetEntry(10000);
+  xEntry = xTopic.GetEntry({});
+  yEntry = yTopic.GetEntry({});
+  thetaEntry = thetaTopic.GetEntry({});
   sanityEntry = sanityTopic.GetEntry(10000);
-  existsEntry = existsTopic.GetEntry(false);
 
   // Initializing things
   timer = Timer();
@@ -246,11 +242,16 @@ void Robot::TeleopPeriodic()
   lastTime = time;
 
   //Update our odometry 
-  swerveDrive->UpdateOdometry();
+  swerveDrive->UpdateOdometry(units::microsecond_t{RobotController::GetFPGATime()});
+
+  SmartDashboard::PutNumber("FPGA Time", RobotController::GetFPGATime());
 
   //Update our vision pose from the network table (calculated by a coprocessor, ask Avrick / AJ for details)
-  Pose2d visionPose = Pose2d(units::meter_t{xEntry.Get()}, units::meter_t{yEntry.Get()}, Rotation2d(units::radian_t{thetaEntry.Get()}));
-  swerveDrive->SetPoseVision(visionPose, existsEntry.Get());
+  for (int i = 0; i < xEntry.Get().size(); i++)
+  {
+
+  }
+
 
   // WIP not important
   if (!isCalibrated && existsEntry.Get())

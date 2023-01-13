@@ -240,8 +240,7 @@ private:
   Translation2d m_backLeft;
   Translation2d m_backRight;
   SwerveDriveKinematics<4> kinematics;
-  SwerveDriveOdometry<4> *odometry;
-  SwerveDriveOdometry<4> *visionOdometry; /* WIP for testing, probably not neccesary */
+  SwerveDrivePoseEstimator<4> *odometry;
   pathplanner::PathPlannerTrajectory trajectory; 
 
   // All Variables below are "WIP" for testing and will hopefully be refactored later
@@ -275,11 +274,10 @@ public:
               double _BREncoderOffset, ctre::phoenix::motorcontrol::can::TalonFX *_BLDriveMotor,
               ctre::phoenix::motorcontrol::can::TalonFX *_BLSpinMotor, frc::DutyCycleEncoder *_BLMagEncoder,
               double _BLEncoderOffset, Pigeon2 *_pigeonIMU, double robotStartingRadian)
-      // TODO CLEAN based off of drive width / length variables rather than hard coded
-      : m_frontLeft{0.29845_m, 0.2953_m},
-        m_frontRight{0.29845_m, -0.2953_m},
-        m_backLeft{-0.29845_m, 0.2953_m},
-        m_backRight{-0.29845_m, -0.2953_m},
+      : m_frontLeft{DRIVE_LENGTH / 2, DRIVE_WIDTH / 2},
+        m_frontRight{DRIVE_LENGTH / 2, -DRIVE_WIDTH / 2},
+        m_backLeft{-DRIVE_LENGTH / 2, DRIVE_WIDTH / 2},
+        m_backRight{-DRIVE_LENGTH / 2, DRIVE_WIDTH / 2},
         kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight}
   {
     FLModule = new SwerveModule(_FLDriveMotor, _FLSpinMotor, _FLMagEncoder, _FLEncoderOffset);
@@ -295,16 +293,10 @@ public:
                                                      BRModule->GetSwerveModulePosition()};
 
     // Instantiates WPI's swerve odometry class so they can do math for me
-    odometry = new SwerveDriveOdometry<4>(kinematics,
+    odometry = new SwerveDrivePoseEstimator<4>(kinematics,
                                           Rotation2d(units::radian_t{GetIMURadians()}),
                                           positions,
                                           frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
-
-    // WIP, not actually neccesary
-    visionOdometry = new SwerveDriveOdometry<4>(kinematics,
-                                                Rotation2d(units::radian_t{GetIMURadians()}),
-                                                positions,
-                                                frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
   }
 
   /**
@@ -396,91 +388,44 @@ public:
         Rotation2d(units::radian_t{GetIMURadians()}),
         positions,
         frc::Pose2d(Pose2d(position.Y(), position.X(), position.Rotation())));
-
-    // WIP, disregard
-    visionOdometry->ResetPosition(
-        Rotation2d(units::radian_t{GetIMURadians()}),
-        positions,
-        frc::Pose2d(Pose2d(position.Y(), position.X(), position.Rotation())));
   }
 
   /**
    * Updates the odometry reading based on change in each swerve module's positions.
    * Must be called every periodic loop for accuracy (once every 20ms or less)
+   * 
+   * @param currentTime The current FPGA time of the robot.
    */
-  void UpdateOdometry()
+  void UpdateOdometry(units::second_t currentTime)
   {
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
                                                      FRModule->GetSwerveModulePosition(),
                                                      BLModule->GetSwerveModulePosition(),
                                                      BRModule->GetSwerveModulePosition()};
-    odometry->Update(units::radian_t{GetIMURadians()}, positions);
-    visionOdometry->Update(units::radian_t{GetIMURadians()}, positions);
+    odometry->UpdateWithTime(currentTime, units::radian_t{GetIMURadians()}, positions);
   }
 
   /**
-   * Finds the Pose of the robot. Currently just uses odometry, but will incorporate vision in the future.
+   * Updates the Estimated Position of the robot with an estimate from non-odometry sensors, usually using vision and april-tags
+   * 
+   * @param poseEstimate The pose estimated by the sensor
+   * @param timeOfEstimate The FPGA time of the robot when this measuremente was recorded
+   */
+  void AddPositionEstimate(Pose2d poseEstimate, units::second_t timeOfEstimate)
+  {
+    odometry->AddVisionMeasurement(Pose2d(poseEstimate.Y(), poseEstimate.X(), poseEstimate.Rotation()), timeOfEstimate)
+  }
+
+  /**
+   * Finds the Pose of the robot using a kalman filter estimation of odometry and all cameras viewed by the april tag
+   * The math is complicated and WPI does it for me so I don't completely understand it, but if you have questions you can check their documentation or ask me
    */
   Pose2d GetPose()
   {
-    return GetPoseOdometry();
+    Pose2d pose = odometry->GetEstimatedPosition();
+    return Pose2d(pose.Y(), pose.X(), pose.Rotation());  
   }
 
-  /**
-   * Finds the Pose of the robot according to odometry.
-   */
-  Pose2d GetPoseOdometry()
-  {
-    Pose2d pose = odometry->GetPose();
-    return Pose2d(pose.Y(), pose.X(), pose.Rotation());
-  }
-
-  /**
-   * WIP Please Disregard
-   */
-  Pose2d GetPoseVisionOdometry()
-  {
-    Pose2d pose = visionOdometry->GetPose();
-
-    if (seeTag)
-      return Pose2d(pose.Y(), pose.X(), pose.Rotation());
-    else
-      return GetPoseOdometry();
-  }
-
-  /**
-   * Sets the pose of vision using jetson data. Must be done every update loop.
-   *
-   * @param pose current position of the robot as estimated by the jetson
-   * @param SeeTag can the cameras see any april tags, aka is our vision data up to date
-   */
-  void SetPoseVision(Pose2d pose, bool SeeTag)
-  {
-    seeTag = SeeTag;
-
-    if (!SeeTag)
-      return;
-
-    visionPose = pose;
-
-    wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
-                                                     FRModule->GetSwerveModulePosition(),
-                                                     BLModule->GetSwerveModulePosition(),
-                                                     BRModule->GetSwerveModulePosition()};
-
-    visionOdometry->ResetPosition(
-        Rotation2d(units::radian_t{GetIMURadians()}),
-        positions,
-        frc::Pose2d(Pose2d(pose.Y(), pose.X(), pose.Rotation())));
-  }
-
-  /**
-   * Finds the Pose of the robot. Currently just uses odometry, but will incorporate vision in the future.
-   */
-  Pose2d GetPoseVision()
-  {
-    return visionPose;
-  }
 
   /**
    * Sets the swerve module states to their respective values
