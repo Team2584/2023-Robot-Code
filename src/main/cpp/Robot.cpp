@@ -30,6 +30,7 @@ nt::RawTopic poseTopic;
 nt::IntegerTopic sanityTopic;
 nt::RawEntry poseEntry;
 nt::IntegerEntry sanityEntry;
+std::vector<complete_robot_pose> lastPoseVector;
 
 // To track time for slew rate and accleration control
 frc::Timer timer;
@@ -63,9 +64,7 @@ void Robot::RobotInit()
   table = inst.GetTable("vision/localization");
   poseTopic = table->GetRawTopic("poseArray");
   sanityTopic = table->GetIntegerTopic("sanitycheck");
-  complete_robot_pose defaultPose;
-  defaultPose.x = 1000;
-  //poseEntry<complete_robot_pose> = poseTopic.
+  poseEntry = poseTopic.GetEntry("complete_robot_pose", {});
   sanityEntry = sanityTopic.GetEntry(10000);
 
   // Initializing things
@@ -248,9 +247,19 @@ void Robot::TeleopPeriodic()
   //Update our odometry 
   swerveDrive->UpdateOdometry(units::microsecond_t{RobotController::GetFPGATime()});
 
-  SmartDashboard::PutNumber("FPGA Time", RobotController::GetFPGATime());
+  SmartDashboard::PutNumber("Robot Controller FPGA Time", RobotController::GetFPGATime());
+  SmartDashboard::PutNumber("Timer Class FPGA Time", Timer::GetFPGATimestamp().value());
 
   //Update our vision pose from the network table (calculated by a coprocessor, ask Avrick / AJ for details)
+  std::vector<complete_robot_pose> currentPoseVector;
+  for (int i = 0; i < 5; i++)
+  {
+    if (currentPoseVector[i].x == lastPoseVector[i].x && currentPoseVector[i].y == lastPoseVector[i].y && currentPoseVector[i].processing_time == lastPoseVector[i].processing_time)
+      continue;
+    Pose2d estimatedPose = Pose2d(units::meter_t{currentPoseVector[i].x}, units::meter_t{currentPoseVector[i].y}, Rotation2d(units::radian_t{currentPoseVector[i].theta}));
+    swerveDrive->AddPositionEstimate(estimatedPose, Timer::GetFPGATimestamp() + units::microsecond_t{currentPoseVector[i].processing_time});
+  }
+  lastPoseVector = currentPoseVector;
 
 
   // WIP not important
