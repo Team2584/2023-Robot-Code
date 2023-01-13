@@ -11,19 +11,24 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 
 double pigeon_initial;
-// Instantiates a SwerveDrive object with all the correct references to motors and offset values
+// Our future swerve drive object
 SwerveDrive *swerveDrive;
+
+// Our struct for network table communication with the jetson
+typedef struct complete_robot_pose
+{
+  double x;
+  double y;
+  double theta;
+  int processing_time; //in microseconds
+} complete_robot_pose;
 
 // To find values from cameras
 nt::NetworkTableInstance inst;
 shared_ptr<nt::NetworkTable> table;
-nt::DoubleArrayTopic xTopic;
-nt::DoubleArrayTopic yTopic;
-nt::DoubleArrayTopic thetaTopic;
+nt::RawTopic poseTopic;
 nt::IntegerTopic sanityTopic;
-nt::DoubleArrayEntry xEntry;
-nt::DoubleArrayEntry yEntry;
-nt::DoubleArrayEntry thetaEntry;
+nt::RawEntry poseEntry;
 nt::IntegerEntry sanityEntry;
 
 // To track time for slew rate and accleration control
@@ -56,13 +61,11 @@ void Robot::RobotInit()
   inst = nt::NetworkTableInstance::GetDefault();
   inst.StartServer();
   table = inst.GetTable("vision/localization");
-  xTopic = table->GetDoubleArrayTopic("x");
-  yTopic = table->GetDoubleArrayTopic("y");
-  thetaTopic = table->GetDoubleArrayTopic("theta");
+  poseTopic = table->GetRawTopic("poseArray");
   sanityTopic = table->GetIntegerTopic("sanitycheck");
-  xEntry = xTopic.GetEntry({});
-  yEntry = yTopic.GetEntry({});
-  thetaEntry = thetaTopic.GetEntry({});
+  complete_robot_pose defaultPose;
+  defaultPose.x = 1000;
+  //poseEntry<complete_robot_pose> = poseTopic.
   sanityEntry = sanityTopic.GetEntry(10000);
 
   // Initializing things
@@ -147,6 +150,7 @@ void Robot::AutonomousPeriodic()
     startedTimer = false;
   }
 
+  // TODO UPDATE ODOMETRY
 
   //Follow the trajectory of the swerve drive
   swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);
@@ -247,91 +251,58 @@ void Robot::TeleopPeriodic()
   SmartDashboard::PutNumber("FPGA Time", RobotController::GetFPGATime());
 
   //Update our vision pose from the network table (calculated by a coprocessor, ask Avrick / AJ for details)
-  for (int i = 0; i < xEntry.Get().size(); i++)
-  {
-
-  }
 
 
   // WIP not important
+  /*
   if (!isCalibrated && existsEntry.Get())
   {
     isCalibrated = true;
     swerveDrive->ResetOdometry(visionPose);
   }
-
-  /*
-
-    if (existsEntry.Get() && !isCalibrated && calibrationTime < 0.25)
-    {
-      calibrationAmount += 1;
-      caliX += visionPose.X().value();
-      caliY += visionPose.Y().value();
-      caliTheta += visionPose.Rotation().Radians().value();
-    }
-    else if (existsEntry.Get() && !isCalibrated)
-    {
-      isCalibrated = true;
-      caliX /= calibrationAmount;
-      caliY /= calibrationAmount;
-      caliTheta /= calibrationAmount;
-      swerveDrive->ResetOdometry(Pose2d(units::meter_t{caliX}, units::meter_t{caliY}, Rotation2d(units::radian_t{caliTheta})));
-    }*/
-
+  */
 
   // DEBUG INFO
   Pose2d pose = swerveDrive->GetPose();
-  Pose2d visionOdometry = swerveDrive->GetPoseVisionOdometry();
-
-  frc::SmartDashboard::PutBoolean("Was 0", thetaEntry.Get() < 0.05 && thetaEntry.Get() > -0.05 && thetaEntry.Get() != 0.0);
 
   frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed);
   frc::SmartDashboard::PutNumber("Strafe Drive Speed", STRAFE_Drive_Speed);
   frc::SmartDashboard::PutNumber("Turn Drive Speed", Turn_Speed);
 
-  SmartDashboard::PutNumber("Network Table X", xEntry.Get());
-  SmartDashboard::PutBoolean("Network Table X New Value", (bool)xEntry.ReadQueue().size());
-  SmartDashboard::PutNumber("Network Table Y", yEntry.Get());
-  SmartDashboard::PutNumber("Network Table Theta", thetaEntry.Get() * 180 / M_PI);
   SmartDashboard::PutNumber("Network Table Sanity", sanityEntry.Get());
-  SmartDashboard::PutBoolean("Network Table Tag Exists", existsEntry.Get());
 
   frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
   frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
   frc::SmartDashboard::PutNumber("Odometry Theta", pose.Rotation().Degrees().value());
-
-  frc::SmartDashboard::PutNumber("Vision Odometry X", visionOdometry.X().value());
-  frc::SmartDashboard::PutNumber("Vision Odometry Y", visionOdometry.Y().value());
-  frc::SmartDashboard::PutNumber("Vision Odometry Theta", visionOdometry.Rotation().Degrees().value());
 
   frc::SmartDashboard::PutNumber("TIMER", timer.Get().value());
 
   
   //Here is our Test Drive Control Code that runs different functions when different buttons are pressed
   if (xbox_Drive->GetLeftBumper())
-    Turn_Speed = swerveDrive->TurnToPointDesiredSpin(pose, Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
+    Turn_Speed = swerveDrive->TurnToPointDesiredSpin(Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
 
   swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
 
   if (xbox_Drive->GetBButtonPressed())
     swerveDrive->BeginPIDLoop();
   if ((CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton()))
-    swerveDrive->DriveToPoseVisionOdometry(Pose2d(0_m, -1_m, Rotation2d(0_rad)), elapsedTime);
+    swerveDrive->DriveToPose(Pose2d(0_m, -1_m, Rotation2d(0_rad)), elapsedTime);
 
   if (xbox_Drive->GetAButtonPressed())
     swerveDrive->BeginPIDLoop();
   if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetAButton()))
-    swerveDrive->DriveToPoseVisionOdometry(Pose2d(0_m, -2_m, Rotation2d(0_rad)), elapsedTime);
+    swerveDrive->DriveToPose(Pose2d(0_m, -2_m, Rotation2d(0_rad)), elapsedTime);
 
   if (xbox_Drive->GetXButtonPressed())
     swerveDrive->BeginPIDLoop();
   if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetXButton()))
-    swerveDrive->DriveToPoseVisionOdometry(Pose2d(-0.5_m, -3_m, Rotation2d(0.5_rad)), elapsedTime);
+    swerveDrive->DriveToPose(Pose2d(-0.5_m, -3_m, Rotation2d(0.5_rad)), elapsedTime);
 
   if (xbox_Drive->GetRightBumperPressed())
     swerveDrive->BeginPIDLoop();
   if (xbox_Drive->GetRightBumper())
-    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
+    swerveDrive->DriveToPose(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
 
   // Reset Pigion Heading
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())

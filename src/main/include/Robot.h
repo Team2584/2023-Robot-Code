@@ -51,6 +51,8 @@
 #include "networktables/StringTopic.h"
 #include "networktables/BooleanTopic.h"
 #include "networktables/IntegerTopic.h"
+#include <networktables/RawTopic.h>
+
 #include "networktables/NetworkTableInstance.h"
 #include <networktables/NetworkTableEntry.h>
 
