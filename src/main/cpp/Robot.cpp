@@ -28,10 +28,14 @@ nt::DoubleEntry thetaEntry;
 nt::IntegerEntry sanityEntry;
 nt::BooleanEntry existsEntry;
 
-// To track time for slew rate and accleration control
+// To track time for slew rate and pid controll
 frc::Timer timer;
 double lastTime = 0;
 bool startedTimer = false;
+double lastFwdSpeed = 0;
+double lastStrafeSpeed = 0;
+double lastTurnSpeed = 0;
+
 
 // To Calibrate Odometry to april tag
 bool isCalibrated = false;
@@ -194,6 +198,11 @@ void Robot::TeleopInit()
   caliX = 0;
   caliY = 0;
   caliTheta = 0;
+
+  lastFwdSpeed = 0;
+  lastStrafeSpeed = 0;
+  lastTurnSpeed = 0;
+
   /*
     orchestra.LoadMusic("CHIRP");
     orchestra.AddInstrument(swerveBL);
@@ -244,6 +253,15 @@ void Robot::TeleopPeriodic()
   double time = timer.Get().value();
   double elapsedTime = time - lastTime;
   lastTime = time;
+
+  lastFwdSpeed += std::clamp(FWD_Drive_Speed - lastFwdSpeed, -1 * MAX_DRIVE_ACCELERATION * elapsedTime,
+                   MAX_DRIVE_ACCELERATION * elapsedTime);
+  lastStrafeSpeed += std::clamp(STRAFE_Drive_Speed - lastStrafeSpeed, -1 * MAX_DRIVE_ACCELERATION * elapsedTime,
+                   MAX_DRIVE_ACCELERATION * elapsedTime);
+  lastTurnSpeed += std::clamp(Turn_Speed - lastTurnSpeed, -1 * MAX_SPIN_ACCELERATION * elapsedTime,
+                   MAX_SPIN_ACCELERATION * elapsedTime);
+  lastTime = time;
+
 
   //Update our odometry 
   swerveDrive->UpdateOdometry();
@@ -308,9 +326,9 @@ void Robot::TeleopPeriodic()
   
   //Here is our Test Drive Control Code that runs different functions when different buttons are pressed
   if (xbox_Drive->GetLeftBumper())
-    Turn_Speed = swerveDrive->TurnToPointDesiredSpin(pose, Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
+    lastTurnSpeed = swerveDrive->TurnToPointDesiredSpin(pose, Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
 
-  swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
+  swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
 
   if (xbox_Drive->GetBButtonPressed())
     swerveDrive->BeginPIDLoop();
