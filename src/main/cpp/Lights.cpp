@@ -1,3 +1,5 @@
+#include <frc/AddressableLED>
+
 class lightStrip
 {
     lightStrip(int length, int port)
@@ -12,6 +14,7 @@ class lightStrip
             m_led.SetLength(length);
             m_led.SetData(m_ledBuffer);
             m_led.Start();
+        fill(0, 255, 0);
     }
 
     void fill(int h, int s, int v){
