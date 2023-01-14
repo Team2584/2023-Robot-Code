@@ -6,6 +6,8 @@
 
 #include "Swerve.cpp"
 
+#include "Lights.cpp"
+
 #include <fmt/core.h>
 
 #include <frc/smartdashboard/SmartDashboard.h>
@@ -43,6 +45,7 @@ double caliTheta = 0;
 
 void Robot::RobotInit()
 {
+  lightStrip lightsTest = new lightStrip(10, 10);
   // Autonomous Choosing
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
   m_chooser.AddOption(kAutoNameCustom, kAutoNameCustom);
@@ -309,7 +312,9 @@ void Robot::TeleopPeriodic()
   //Here is our Test Drive Control Code that runs different functions when different buttons are pressed
   if (xbox_Drive->GetLeftBumper())
     Turn_Speed = swerveDrive->TurnToPointDesiredSpin(pose, Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
-
+  if (xbox_Drive->GetYButtonPressed()) {
+    lightsTest.fill(100, 10, 10);
+  }
   swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
 
   if (xbox_Drive->GetBButtonPressed())
