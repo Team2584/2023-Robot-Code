@@ -9,16 +9,15 @@
 #include "ctre/phoenix/motorcontrol/can/WPI_TalonFX.h"
 #include "ctre/phoenix/sensors/Pigeon2.h"
 #include "ctre/phoenix/music/Orchestra.h"
-
+#include <frc/motorcontrol/PWMSparkMax.h>
 #include <fmt/core.h>
-
 #include <frc/DriverStation.h>
 #include <frc/PS4Controller.h>
 #include <frc/TimedRobot.h>
 #include <frc/Timer.h>
 #include <frc/fmt/Units.h>
 #include <frc/smartdashboard/SmartDashboard.h>
-
+#include <rev/CANSparkMax.h>
 #include <frc/DigitalInput.h>
 #include <frc/controller/PIDController.h>
 #include <frc/controller/ProfiledPIDController.h>

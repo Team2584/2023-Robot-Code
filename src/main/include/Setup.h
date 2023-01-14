@@ -12,6 +12,7 @@ PS4Controller *cont_Driver = new PS4Controller(0);
 XboxController *xbox_Drive = new XboxController(0);
 
 TalonFX swerveFL{11};
+frc::PWMSparkMax lights{9};
 TalonFX driveFL{01};
 TalonFX swerveFR{12};
 TalonFX driveFR{02};

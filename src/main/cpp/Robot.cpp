@@ -45,7 +45,6 @@ double caliTheta = 0;
 
 void Robot::RobotInit()
 {
-  lightStrip lightsTest = new lightStrip(9, 10);
   // Autonomous Choosing
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
   m_chooser.AddOption(kAutoNameCustom, kAutoNameCustom);
@@ -82,6 +81,12 @@ void Robot::RobotInit()
 
   // Initializing Autonomous Trajectory (For Splines)
   swerveDrive->InitializeTrajectory();
+  constexpr float AQUA = 0.81;
+  constexpr float FIRE = -0.59;
+  // void TurnOnLights()
+  // {
+  lights.Set(FIRE);
+  // }
 }
 
 /**
@@ -313,7 +318,7 @@ void Robot::TeleopPeriodic()
   if (xbox_Drive->GetLeftBumper())
     Turn_Speed = swerveDrive->TurnToPointDesiredSpin(pose, Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
   if (xbox_Drive->GetYButtonPressed()) {
-    lightsTest.fill(100, 10, 10);
+ 
   }
   swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
 
