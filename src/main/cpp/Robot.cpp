@@ -43,6 +43,10 @@ double caliX = 0;
 double caliY = 0;
 double caliTheta = 0;
 
+constexpr float GREEN = 0.77;
+constexpr float FIRE = -0.59;
+bool turnLightsGreen;
+
 void Robot::RobotInit()
 {
   // Autonomous Choosing
@@ -81,12 +85,8 @@ void Robot::RobotInit()
 
   // Initializing Autonomous Trajectory (For Splines)
   swerveDrive->InitializeTrajectory();
-  constexpr float AQUA = 0.81;
-  constexpr float FIRE = -0.59;
-  // void TurnOnLights()
-  // {
+  bool turnLightsGreen = false;
   lights.Set(FIRE);
-  // }
 }
 
 /**
@@ -99,6 +99,8 @@ void Robot::RobotInit()
  */
 void Robot::RobotPeriodic()
 {
+  if(turnLightsGreen) lights.Set(GREEN);
+  else lights.Set(FIRE);
 }
 
 /**
@@ -337,8 +339,9 @@ void Robot::TeleopPeriodic()
   if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetXButton()))
     swerveDrive->DriveToPoseVisionOdometry(Pose2d(-0.5_m, -3_m, Rotation2d(0.5_rad)), elapsedTime);
 
-  if (xbox_Drive->GetRightBumperPressed())
-    swerveDrive->BeginPIDLoop();
+  if (xbox_Drive->GetRightBumperPressed()){
+    turnLightsGreen = !turnLightsGreen;
+    swerveDrive->BeginPIDLoop(); }
   if (xbox_Drive->GetRightBumper())
     swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
 
