@@ -7,7 +7,8 @@ class SwerveModule
 {
 private:
   // Instance Variables for each swerve module
-  ctre::phoenix::motorcontrol::can::TalonFX *driveMotor, *spinMotor;
+  ctre::phoenix::motorcontrol::can::TalonFX *driveMotor;
+  rev::CANSparkMax *spinMotor;
   frc::DutyCycleEncoder *magEncoder;
   frc::PIDController *spinPIDController;
   double encoderOffset;       /* Offset in magnetic encoder from 0 facing the front of the robot */
@@ -24,7 +25,7 @@ public:
    * @param magEncoder_ A pointer to the absolute encoder used to track rotation of the swerve module wheels
    */
   SwerveModule(ctre::phoenix::motorcontrol::can::TalonFX *driveMotor_,
-               ctre::phoenix::motorcontrol::can::TalonFX *spinMotor_, frc::DutyCycleEncoder *magEncoder_,
+               rev::CANSparkMax *spinMotor_, frc::DutyCycleEncoder *magEncoder_,
                double encoderOffset_)
   {
     driveMotor = driveMotor_;
@@ -60,7 +61,7 @@ public:
   {
     driveEncoderInitial = driveMotor->GetSelectedSensorPosition();
     spinEncoderInitialHeading = GetMagEncoderReading();
-    spinEncoderInitialValue = -1 * spinMotor->GetSelectedSensorPosition();
+    //spinEncoderInitialValue = -1 * spinMotor->GetSelectedSensorPosition();    likely uneeded code, copied from talon swerve
   }
 
   /**
@@ -80,21 +81,22 @@ public:
   }
 
   /**
-   *  INCOMPLETE DO NOT USE UNDER ANY CIRCUMSTANCE, USE GetMagEncoderReading() INSTEAD!
+   *  INCOMPLETE DO NOT USE UNDER ANY CIRCUMSTANCE, USE GetMagEncoderReading() INSTEAD!   Also this hasn't been updated from the talon swerve drive as it is an uneccessary functino
    */
+  /*
   double GetSpinEncoderRadians()
   {
-    // TODO
     double rotation = ((-1 * spinMotor->GetSelectedSensorPosition() - spinEncoderInitialValue) / 2048 / SPIN_MOTOR_GEAR_RATIO * 2 * M_PI) - spinEncoderInitialHeading;
     return fmod(rotation, 2 * M_PI);
   }
+  */
 
   /**
    *  Setss all motor speeds to 0.
    */
   void StopSwerveModule()
   {
-    spinMotor->Set(ControlMode::PercentOutput, 0);
+    spinMotor->Set(0);
     driveMotor->Set(ControlMode::PercentOutput, 0);
   }
 
@@ -215,7 +217,7 @@ public:
     double output = WHEEL_SPIN_KP * (error / 90);
 
     // Move motors at speeds and directions determined earlier
-    spinMotor->Set(ControlMode::PercentOutput, output * spinDirection);
+    spinMotor->Set(output * spinDirection);
     driveMotor->Set(ControlMode::PercentOutput, driveSpeed * driveDirection);
   }
 
@@ -267,13 +269,13 @@ public:
    * There is also a Pigeon IMU which includes an accelerometer and gyroscope.
    */
   SwerveDrive(ctre::phoenix::motorcontrol::can::TalonFX *_FLDriveMotor,
-              ctre::phoenix::motorcontrol::can::TalonFX *_FLSpinMotor, frc::DutyCycleEncoder *_FLMagEncoder,
+              rev::CANSparkMax *_FLSpinMotor, frc::DutyCycleEncoder *_FLMagEncoder,
               double _FLEncoderOffset, ctre::phoenix::motorcontrol::can::TalonFX *_FRDriveMotor,
-              ctre::phoenix::motorcontrol::can::TalonFX *_FRSpinMotor, frc::DutyCycleEncoder *_FRMagEncoder,
+              rev::CANSparkMax *_FRSpinMotor, frc::DutyCycleEncoder *_FRMagEncoder,
               double _FREncoderOffset, ctre::phoenix::motorcontrol::can::TalonFX *_BRDriveMotor,
-              ctre::phoenix::motorcontrol::can::TalonFX *_BRSpinMotor, frc::DutyCycleEncoder *_BRMagEncoder,
+              rev::CANSparkMax *_BRSpinMotor, frc::DutyCycleEncoder *_BRMagEncoder,
               double _BREncoderOffset, ctre::phoenix::motorcontrol::can::TalonFX *_BLDriveMotor,
-              ctre::phoenix::motorcontrol::can::TalonFX *_BLSpinMotor, frc::DutyCycleEncoder *_BLMagEncoder,
+              rev::CANSparkMax *_BLSpinMotor, frc::DutyCycleEncoder *_BLMagEncoder,
               double _BLEncoderOffset, Pigeon2 *_pigeonIMU, double robotStartingRadian)
       // TODO CLEAN based off of drive width / length variables rather than hard coded
       : m_frontLeft{0.29845_m, 0.2953_m},

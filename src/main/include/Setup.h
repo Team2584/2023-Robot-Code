@@ -11,13 +11,13 @@ Orchestra orchestra;
 PS4Controller *cont_Driver = new PS4Controller(0);
 XboxController *xbox_Drive = new XboxController(0);
 
-TalonFX swerveFL{11};
+rev::CANSparkMax swerveFL{11, rev::CANSparkMax::MotorType::kBrushless};
 TalonFX driveFL{01};
-TalonFX swerveFR{12};
+rev::CANSparkMax swerveFR{12, rev::CANSparkMax::MotorType::kBrushless};
 TalonFX driveFR{02};
-TalonFX swerveBL{13};
+rev::CANSparkMax swerveBL{13, rev::CANSparkMax::MotorType::kBrushless};
 TalonFX driveBL{03};
-TalonFX swerveBR{14};
+rev::CANSparkMax swerveBR{14, rev::CANSparkMax::MotorType::kBrushless};
 TalonFX driveBR{04};
 
 DutyCycleEncoder FLMagEnc(3);
