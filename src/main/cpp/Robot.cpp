@@ -45,7 +45,7 @@ double caliTheta = 0;
 
 void Robot::RobotInit()
 {
-  lightStrip lightsTest = new lightStrip(10, 10);
+  lightStrip lightsTest = new lightStrip(9, 10);
   // Autonomous Choosing
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
   m_chooser.AddOption(kAutoNameCustom, kAutoNameCustom);
