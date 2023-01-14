@@ -1,5 +1,3 @@
-#include <frc/AddressableLED>
-
 class lightStrip
 {
     lightStrip(int length, int port)
@@ -22,5 +20,9 @@ class lightStrip
             m_ledBuffer[i].SetHSV(h, s, v)
         }
         m_led.SetData(m_ledBuffer);
+    }
+
+    void effect(int minH, int maxH, int minS, int maxS, int minV, int maxV){
+
     }
 }
