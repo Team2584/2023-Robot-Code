@@ -300,6 +300,12 @@ void Robot::TeleopPeriodic()
   Pose2d pose = swerveDrive->GetPose();
   Pose2d visionOdometry = swerveDrive->GetPoseVisionOdometry();
 
+  frc::SmartDashboard::PutNumber("FWD Drive Speed", lastFwdSpeed);
+  frc::SmartDashboard::PutNumber("Strafe Drive Speed", lastStrafeSpeed);
+  frc::SmartDashboard::PutNumber("Turn Drive Speed", lastTurnSpeed);
+
+
+/*
   frc::SmartDashboard::PutBoolean("Was 0", thetaEntry.Get() < 0.05 && thetaEntry.Get() > -0.05 && thetaEntry.Get() != 0.0);
 
   frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed);
@@ -322,9 +328,16 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("Vision Odometry Theta", visionOdometry.Rotation().Degrees().value());
 
   frc::SmartDashboard::PutNumber("TIMER", timer.Get().value());
+*/
+  frc::SmartDashboard::PutNumber("FL ENCODER", FLMagEnc.GetAbsolutePosition());
+  frc::SmartDashboard::PutNumber("FR ENCODER", FRMagEnc.GetAbsolutePosition());
+  frc::SmartDashboard::PutNumber("BL ENCODER", BLMagEnc.GetAbsolutePosition());  
+  frc::SmartDashboard::PutNumber("BR ENCODER", BRMagEnc.GetAbsolutePosition());
 
-  
+  swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
+
   //Here is our Test Drive Control Code that runs different functions when different buttons are pressed
+  /*
   if (xbox_Drive->GetLeftBumper())
     lastTurnSpeed = swerveDrive->TurnToPointDesiredSpin(pose, Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
 
@@ -361,6 +374,7 @@ void Robot::TeleopPeriodic()
     pigeon_initial = fmod(_pigeon.GetYaw(), 360);
     swerveDrive->pigeon_initial = pigeon_initial;
   }
+  */
 }
 
 void Robot::DisabledInit()

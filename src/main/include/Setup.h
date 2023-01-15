@@ -20,10 +20,10 @@ TalonFX driveBL{03};
 rev::CANSparkMax swerveBR{14, rev::CANSparkMax::MotorType::kBrushless};
 TalonFX driveBR{04};
 
-DutyCycleEncoder FLMagEnc(3);
-DutyCycleEncoder FRMagEnc(2);
-DutyCycleEncoder BLMagEnc(1);
-DutyCycleEncoder BRMagEnc(0);
+DutyCycleEncoder FLMagEnc(8);
+DutyCycleEncoder FRMagEnc(6);
+DutyCycleEncoder BLMagEnc(9);
+DutyCycleEncoder BRMagEnc(7);
 
 //Change the number value to the port
 Pigeon2 _pigeon(6);
@@ -32,10 +32,10 @@ double thetaInit;
 
 //Customization Variabes (all in percent power so the driver's weak brain don't get confused)
 #define CONTROLLER_DEADBAND 0.15
-#define MAX_SPIN_SPEED 0.4
-#define MAX_DRIVE_SPEED 0.4
-#define MAX_DRIVE_ACCELERATION 1.5 //max change in percent per second
-#define MAX_SPIN_ACCELERATION 1.5
+#define MAX_SPIN_SPEED 0.3
+#define MAX_DRIVE_SPEED 0.3
+#define MAX_DRIVE_ACCELERATION 1//max change in percent per second
+#define MAX_SPIN_ACCELERATION 1
 #define STARTING_DRIVE_HEADING 0
 #define CONTROLLER_TYPE 1
 

@@ -1,8 +1,8 @@
 //Find offsets with bevel gears on the right side of the drive train
-#define FL_WHEEL_OFFSET 0.867   
-#define FR_WHEEL_OFFSET 0.443
-#define BR_WHEEL_OFFSET 0.109
-#define BL_WHEEL_OFFSET 0.515
+#define FL_WHEEL_OFFSET 0.11475   
+#define FR_WHEEL_OFFSET 0.082
+#define BR_WHEEL_OFFSET 0.841
+#define BL_WHEEL_OFFSET 0.0312
 
 //Assuming a rectangular drive train (input distance between center of wheels)
 #define DRIVE_LENGTH 0.29845 * 2
