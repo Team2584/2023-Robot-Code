@@ -852,6 +852,16 @@ public:
     Translation2d goal = state.pose.Translation();
     double xDistance = (-1 * goal.Y() - pose.X()).value();
     double yDistance = (goal.X() - pose.Y()).value();
+    if (fabs(xDistance) < S_ALLOWABLE_ERROR_TRANSLATION)
+    {
+      xDistance = 0;
+      runningIntegralX = 0;
+    }
+    if (fabs(yDistance) < S_ALLOWABLE_ERROR_TRANSLATION)
+    {
+      yDistance = 0;
+      runningIntegralY = 0;
+    }    
     double xPid = std::clamp(S_TRANSLATION_KP * xDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
     double yPid = std::clamp(S_TRANSLATION_KP * yDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
 
