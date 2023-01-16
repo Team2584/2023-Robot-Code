@@ -14,23 +14,13 @@ double pigeon_initial;
 // Our future swerve drive object
 SwerveDrive *swerveDrive;
 
-// Our struct for network table communication with the jetson
-typedef struct complete_robot_pose
-{
-  double x;
-  double y;
-  double theta;
-  int processing_time; //in microseconds
-} complete_robot_pose;
-
 // To find values from cameras
 nt::NetworkTableInstance inst;
 shared_ptr<nt::NetworkTable> table;
-nt::RawTopic poseTopic;
+nt::DoubleArrayTopic poseTopic;
 nt::IntegerTopic sanityTopic;
-nt::RawEntry poseEntry;
+nt::DoubleArraySubscriber poseSub;
 nt::IntegerEntry sanityEntry;
-std::vector<complete_robot_pose> lastPoseVector;
 
 // To track time for slew rate and accleration control
 frc::Timer timer;
@@ -62,9 +52,9 @@ void Robot::RobotInit()
   inst = nt::NetworkTableInstance::GetDefault();
   inst.StartServer();
   table = inst.GetTable("vision/localization");
-  poseTopic = table->GetRawTopic("poseArray");
+  poseTopic = table->GetDoubleArrayTopic("poseArray");
   sanityTopic = table->GetIntegerTopic("sanitycheck");
-  poseEntry = poseTopic.GetEntry("complete_robot_pose", {});
+  poseSub = poseTopic.Subscribe({});
   sanityEntry = sanityTopic.GetEntry(10000);
 
   // Initializing things
@@ -247,20 +237,16 @@ void Robot::TeleopPeriodic()
   //Update our odometry 
   swerveDrive->UpdateOdometry(units::microsecond_t{RobotController::GetFPGATime()});
 
+  for (auto array : poseSub.ReadQueue()) 
+  {
+    Pose2d poseEst = Pose2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]}, Rotation2d(units::radian_t{array.value[3]}));
+    SmartDashboard::PutNumber("Network Table Last Update Time", array.time);
+    swerveDrive->AddPositionEstimate(poseEst, units::second_t{array.time + array.value[4]});
+  }
+
+
   SmartDashboard::PutNumber("Robot Controller FPGA Time", RobotController::GetFPGATime());
   SmartDashboard::PutNumber("Timer Class FPGA Time", Timer::GetFPGATimestamp().value());
-
-  //Update our vision pose from the network table (calculated by a coprocessor, ask Avrick / AJ for details)
-  std::vector<complete_robot_pose> currentPoseVector;
-  for (int i = 0; i < 5; i++)
-  {
-    if (currentPoseVector[i].x == lastPoseVector[i].x && currentPoseVector[i].y == lastPoseVector[i].y && currentPoseVector[i].processing_time == lastPoseVector[i].processing_time)
-      continue;
-    Pose2d estimatedPose = Pose2d(units::meter_t{currentPoseVector[i].x}, units::meter_t{currentPoseVector[i].y}, Rotation2d(units::radian_t{currentPoseVector[i].theta}));
-    swerveDrive->AddPositionEstimate(estimatedPose, Timer::GetFPGATimestamp() + units::microsecond_t{currentPoseVector[i].processing_time});
-  }
-  lastPoseVector = currentPoseVector;
-
 
   // WIP not important
   /*
