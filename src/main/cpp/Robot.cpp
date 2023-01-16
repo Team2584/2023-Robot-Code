@@ -19,8 +19,10 @@ nt::NetworkTableInstance inst;
 shared_ptr<nt::NetworkTable> table;
 nt::DoubleArrayTopic poseTopic;
 nt::IntegerTopic sanityTopic;
+nt::DoubleArrayTopic curPoseTopic;
 nt::DoubleArraySubscriber poseSub;
 nt::IntegerEntry sanityEntry;
+nt::DoubleArrayEntry curPoseEntry;
 
 // To track time for slew rate and accleration control
 frc::Timer timer;
@@ -54,8 +56,10 @@ void Robot::RobotInit()
   table = inst.GetTable("vision/localization");
   poseTopic = table->GetDoubleArrayTopic("poseArray");
   sanityTopic = table->GetIntegerTopic("sanitycheck");
+  curPoseTopic = table->GetDoubleArrayTopic("curPose");
   poseSub = poseTopic.Subscribe({});
   sanityEntry = sanityTopic.GetEntry(10000);
+  curPoseEntry = curPoseTopic.GetEntry({});
 
   // Initializing things
   timer = Timer();
@@ -244,9 +248,9 @@ void Robot::TeleopPeriodic()
     swerveDrive->AddPositionEstimate(poseEst, units::second_t{array.time + array.value[4]});
   }
 
-
-  SmartDashboard::PutNumber("Robot Controller FPGA Time", RobotController::GetFPGATime());
-  SmartDashboard::PutNumber("Timer Class FPGA Time", Timer::GetFPGATimestamp().value());
+  Pose2d pose = swerveDrive->GetPose();
+  double poseArray[] = {pose.X().value(), pose.Y().value(), 0.75, pose.Rotation().Radians().value(), 0};
+  curPoseEntry.Set(poseArray);
 
   // WIP not important
   /*
@@ -258,7 +262,8 @@ void Robot::TeleopPeriodic()
   */
 
   // DEBUG INFO
-  Pose2d pose = swerveDrive->GetPose();
+  SmartDashboard::PutNumber("Robot Controller FPGA Time", RobotController::GetFPGATime());
+  SmartDashboard::PutNumber("Timer Class FPGA Time", Timer::GetFPGATimestamp().value());
 
   frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed);
   frc::SmartDashboard::PutNumber("Strafe Drive Speed", STRAFE_Drive_Speed);
