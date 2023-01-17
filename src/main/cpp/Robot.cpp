@@ -131,7 +131,7 @@ void Robot::AutonomousInit()
   startedTimer = false;
   lastTime = 0;
   timer.Reset();
-  swerveDrive->ResetOdometry(Pose2d(-2_m,  2_m, Rotation2d(0_rad)));
+  swerveDrive->ResetOdometry(Pose2d(7_m,  2_m, Rotation2d(3.14_rad)));
   swerveDrive->BeginPIDLoop();
 }
 
@@ -303,7 +303,9 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("FWD Drive Speed", lastFwdSpeed);
   frc::SmartDashboard::PutNumber("Strafe Drive Speed", lastStrafeSpeed);
   frc::SmartDashboard::PutNumber("Turn Drive Speed", lastTurnSpeed);
-
+  frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
+  frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
+  frc::SmartDashboard::PutNumber("Odometry Theta", pose.Rotation().Degrees().value());
 
 /*
   frc::SmartDashboard::PutBoolean("Was 0", thetaEntry.Get() < 0.05 && thetaEntry.Get() > -0.05 && thetaEntry.Get() != 0.0);
@@ -329,12 +331,13 @@ void Robot::TeleopPeriodic()
 
   frc::SmartDashboard::PutNumber("TIMER", timer.Get().value());
 */
-  frc::SmartDashboard::PutNumber("FL ENCODER", FLMagEnc.GetAbsolutePosition());
-  frc::SmartDashboard::PutNumber("FR ENCODER", FRMagEnc.GetAbsolutePosition());
-  frc::SmartDashboard::PutNumber("BL ENCODER", BLMagEnc.GetAbsolutePosition());  
-  frc::SmartDashboard::PutNumber("BR ENCODER", BRMagEnc.GetAbsolutePosition());
 
   swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
+
+  if (xbox_Drive->GetBButtonPressed())
+    swerveDrive->BeginPIDLoop();
+  if ((CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton()))
+    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
 
   //Here is our Test Drive Control Code that runs different functions when different buttons are pressed
   /*
