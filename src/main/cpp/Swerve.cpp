@@ -7,7 +7,8 @@ class SwerveModule
 {
 private:
   // Instance Variables for each swerve module
-  ctre::phoenix::motorcontrol::can::TalonFX *driveMotor, *spinMotor;
+  ctre::phoenix::motorcontrol::can::TalonFX *driveMotor;
+  rev::CANSparkMax *spinMotor;
   frc::DutyCycleEncoder *magEncoder;
   frc::PIDController *spinPIDController;
   double encoderOffset;       /* Offset in magnetic encoder from 0 facing the front of the robot */
@@ -24,7 +25,7 @@ public:
    * @param magEncoder_ A pointer to the absolute encoder used to track rotation of the swerve module wheels
    */
   SwerveModule(ctre::phoenix::motorcontrol::can::TalonFX *driveMotor_,
-               ctre::phoenix::motorcontrol::can::TalonFX *spinMotor_, frc::DutyCycleEncoder *magEncoder_,
+               rev::CANSparkMax *spinMotor_, frc::DutyCycleEncoder *magEncoder_,
                double encoderOffset_)
   {
     driveMotor = driveMotor_;
@@ -60,7 +61,7 @@ public:
   {
     driveEncoderInitial = driveMotor->GetSelectedSensorPosition();
     spinEncoderInitialHeading = GetMagEncoderReading();
-    spinEncoderInitialValue = -1 * spinMotor->GetSelectedSensorPosition();
+    //spinEncoderInitialValue = -1 * spinMotor->GetSelectedSensorPosition();    likely uneeded code, copied from talon swerve
   }
 
   /**
@@ -80,21 +81,22 @@ public:
   }
 
   /**
-   *  INCOMPLETE DO NOT USE UNDER ANY CIRCUMSTANCE, USE GetMagEncoderReading() INSTEAD!
+   *  INCOMPLETE DO NOT USE UNDER ANY CIRCUMSTANCE, USE GetMagEncoderReading() INSTEAD!   Also this hasn't been updated from the talon swerve drive as it is an uneccessary functino
    */
+  /*
   double GetSpinEncoderRadians()
   {
-    // TODO
     double rotation = ((-1 * spinMotor->GetSelectedSensorPosition() - spinEncoderInitialValue) / 2048 / SPIN_MOTOR_GEAR_RATIO * 2 * M_PI) - spinEncoderInitialHeading;
     return fmod(rotation, 2 * M_PI);
   }
+  */
 
   /**
    *  Setss all motor speeds to 0.
    */
   void StopSwerveModule()
   {
-    spinMotor->Set(ControlMode::PercentOutput, 0);
+    spinMotor->Set(0);
     driveMotor->Set(ControlMode::PercentOutput, 0);
   }
 
@@ -213,9 +215,19 @@ public:
 
     // simple P of PID, makes the wheel move slower as it reaches the target
     double output = WHEEL_SPIN_KP * (error / 90);
+    if (fabs(error) < 3 )
+      output = 0;
+    else if (output > 1)
+      output = 1;
+    else if (output < 0.05)
+      output = 0.05;
 
-    // Move motors at speeds and directions determined earlier
-    spinMotor->Set(ControlMode::PercentOutput, output * spinDirection);
+    SmartDashboard::PutNumber("output", output);
+    SmartDashboard::PutNumber("error", error);
+    SmartDashboard::PutNumber("turndirection", spinDirection);
+
+    // Move motors  at speeds and directions determined earlier
+    spinMotor->Set(output * spinDirection);
     driveMotor->Set(ControlMode::PercentOutput, driveSpeed * driveDirection);
   }
 
@@ -267,19 +279,19 @@ public:
    * There is also a Pigeon IMU which includes an accelerometer and gyroscope.
    */
   SwerveDrive(ctre::phoenix::motorcontrol::can::TalonFX *_FLDriveMotor,
-              ctre::phoenix::motorcontrol::can::TalonFX *_FLSpinMotor, frc::DutyCycleEncoder *_FLMagEncoder,
+              rev::CANSparkMax *_FLSpinMotor, frc::DutyCycleEncoder *_FLMagEncoder,
               double _FLEncoderOffset, ctre::phoenix::motorcontrol::can::TalonFX *_FRDriveMotor,
-              ctre::phoenix::motorcontrol::can::TalonFX *_FRSpinMotor, frc::DutyCycleEncoder *_FRMagEncoder,
+              rev::CANSparkMax *_FRSpinMotor, frc::DutyCycleEncoder *_FRMagEncoder,
               double _FREncoderOffset, ctre::phoenix::motorcontrol::can::TalonFX *_BRDriveMotor,
-              ctre::phoenix::motorcontrol::can::TalonFX *_BRSpinMotor, frc::DutyCycleEncoder *_BRMagEncoder,
+              rev::CANSparkMax *_BRSpinMotor, frc::DutyCycleEncoder *_BRMagEncoder,
               double _BREncoderOffset, ctre::phoenix::motorcontrol::can::TalonFX *_BLDriveMotor,
-              ctre::phoenix::motorcontrol::can::TalonFX *_BLSpinMotor, frc::DutyCycleEncoder *_BLMagEncoder,
+              rev::CANSparkMax *_BLSpinMotor, frc::DutyCycleEncoder *_BLMagEncoder,
               double _BLEncoderOffset, Pigeon2 *_pigeonIMU, double robotStartingRadian)
       // TODO CLEAN based off of drive width / length variables rather than hard coded
-      : m_frontLeft{0.29845_m, 0.2953_m},
-        m_frontRight{0.29845_m, -0.2953_m},
-        m_backLeft{-0.29845_m, 0.2953_m},
-        m_backRight{-0.29845_m, -0.2953_m},
+      : m_frontLeft{0.29645_m, 0.2683_m},
+        m_frontRight{0.29645_m, -0.2683_m},
+        m_backLeft{-0.29645_m, 0.2683_m},
+        m_backRight{-0.29645_m, -0.2683_m},
         kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight}
   {
     FLModule = new SwerveModule(_FLDriveMotor, _FLSpinMotor, _FLMagEncoder, _FLEncoderOffset);
@@ -313,9 +325,9 @@ public:
   double VelocityToPercent(double velocity)
   {
     if (velocity > 0)
-      return std::max((velocity + 0.193) / 4.44, 0.0);
+      return std::max((velocity + 0.0562) / 4.38, 0.0);
     else 
-      return std::min((velocity - 0.193) / 4.44, 0.0);  }
+      return std::min((velocity - 0.0562) / 4.38, 0.0);  }
 
   /**
    * Converts a percent power argument for the falcon motors to a meters per second speed.
@@ -323,9 +335,9 @@ public:
   double PercentToVelocity(double percent)
   {
     if (percent > 0)
-      return std::max(4.44 * percent - 0.193, 0.0) * 2 * M_PI;
+      return std::max(4.38 * percent - 0.0562, 0.0) * 2 * M_PI;
     else 
-      return std::min(4.44 * percent + 0.193, 0.0)  * 2 * M_PI;
+      return std::min(4.38 * percent + 0.0562, 0.0)  * 2 * M_PI;
   }
 
   /**
@@ -335,9 +347,9 @@ public:
   {
     velocity = velocity / 2 / M_PI;
     if (velocity > 0)
-      return std::max((velocity + 0.0749) / 1.44, 0.0);
+      return std::max((velocity + 0.0329) / 1.92, 0.0);
     else 
-      return std::min((velocity - 0.0749) / 1.44, 0.0);  
+      return std::min((velocity - 0.0329) / 1.92, 0.0);  
   }
 
   /**
@@ -346,9 +358,9 @@ public:
   double AngularPercentToVelocity(double percent)
   {
     if (percent > 0)
-      return std::max(1.44 * percent - 0.0749, 0.0);
+      return std::max(1.92 * percent - 0.0329, 0.0);
     else 
-      return std::min(1.44 * percent + 0.0749, 0.0);
+      return std::min(1.92 * percent + 0.0329, 0.0);
   }
 
   /**
@@ -639,6 +651,7 @@ public:
     lastX += std::clamp(intendedVelocity - lastX, -1 * translationMaxAccel * elapsedTime,
                         translationMaxAccel * elapsedTime);
     xSpeed = lastX;
+    SmartDashboard::PutNumber("X I Controb", intendedI);
 
     // This is a WIP that shouldn't be needed for the final robot with well tuned PID
     if (lastX > 0 && lastX < 0.06 && useWeirdMinSpeedThing)
@@ -819,7 +832,7 @@ public:
   void InitializeTrajectory()
   {
   // This will load the file "Example Path.path" and generate it with a max velocity of 4 m/s and a max acceleration of 3 m/s^2
-    trajectory = pathplanner::PathPlanner::loadPath("Circle", pathplanner::PathConstraints(1_mps, 3_mps_sq));
+    trajectory = pathplanner::PathPlanner::loadPath("Circle Copy", pathplanner::PathConstraints(3_mps, 3_mps_sq));
   }
 
   /**
@@ -836,20 +849,21 @@ public:
     auto yFF = state.velocity * state.pose.Rotation().Cos();
     double thetaFF = -1 * state.angularVelocity.value();
 
-
-    SmartDashboard::PutNumber("state velocity", state.velocity.value());
-    SmartDashboard::PutNumber("Program Time", time.value());
-    SmartDashboard::PutNumber("trajectory total time", trajectory.getTotalTime().value());
-
-    SmartDashboard::PutNumber("X Mps", xFF.value());
-    SmartDashboard::PutNumber("Y Mps", yFF.value());
-    SmartDashboard::PutNumber("theta Mps", thetaFF);
-
     // Run simple PID to correct our robots course
     Translation2d pose = GetPose().Translation();
-    Translation2d goal = state.pose.Translation();
-    double xDistance = (-1 * goal.Y() - pose.X()).value();
-    double yDistance = (goal.X() - pose.Y()).value();
+    Translation2d goal = Translation2d(8_m - state.pose.Y(), state.pose.X());
+    double xDistance = (goal.X() - pose.X()).value();
+    double yDistance = (goal.Y() - pose.Y()).value();
+    if (fabs(xDistance) < S_ALLOWABLE_ERROR_TRANSLATION)
+    {
+      xDistance = 0;
+      runningIntegralX = 0;
+    }
+    if (fabs(yDistance) < S_ALLOWABLE_ERROR_TRANSLATION)
+    {
+      yDistance = 0;
+      runningIntegralY = 0;
+    }    
     double xPid = std::clamp(S_TRANSLATION_KP * xDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
     double yPid = std::clamp(S_TRANSLATION_KP * yDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
 
@@ -878,15 +892,19 @@ public:
     SmartDashboard::PutNumber("Theta Distance", thetaDistance);
     SmartDashboard::PutNumber("spin Pid", spinPid);
 
+    SmartDashboard::PutBoolean("Done", false);
+
+
     // If we have finished the spline, just stop
     if (trajectory.getTotalTime() < time && fabs(xDistance) < S_ALLOWABLE_ERROR_TRANSLATION && fabs(yDistance) < S_ALLOWABLE_ERROR_TRANSLATION
         && fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
     {
       DriveSwervePercent(0, 0, 0);
+      SmartDashboard::PutBoolean("Done", true);
       return;
     }
 
     // Drive the swerve drive
-    DriveSwerveMetersAndRadians(xFF.value() + xPid, yFF.value() + yPid, thetaFF + spinPid);
+    DriveSwerveMetersAndRadians(xFF.value() + xPid, yFF.value() + yPid, spinPid);
   }
 };
