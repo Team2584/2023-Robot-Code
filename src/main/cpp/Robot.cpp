@@ -123,7 +123,6 @@ void Robot::AutonomousInit()
   startedTimer = false;
   lastTime = 0;
   timer.Reset();
-  Pose2d origin = 
   swerveDrive->ResetOdometry(Pose2d(7.3_m,  1.99_m, Rotation2d(3.14_rad)));
   swerveDrive->BeginPIDLoop();
 }
@@ -282,8 +281,6 @@ void Robot::TeleopPeriodic()
 
   // DEBUG INFO
 
-  Pose2d pose = swerveDrive->GetPose();
-
   frc::SmartDashboard::PutNumber("FWD Drive Speed", lastFwdSpeed);
   frc::SmartDashboard::PutNumber("Strafe Drive Speed", lastStrafeSpeed);
   frc::SmartDashboard::PutNumber("Turn Drive Speed", lastTurnSpeed);
@@ -307,7 +304,7 @@ void Robot::TeleopPeriodic()
   if (xbox_Drive->GetBButtonPressed())
     swerveDrive->BeginPIDLoop();
   if ((CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton()))
-    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
+    swerveDrive->DriveToPose(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
 
   //Here is our Test Drive Control Code that runs different functions when different buttons are pressed
   /*

@@ -763,7 +763,6 @@ public:
     pathplanner::PathPlannerTrajectory::PathPlannerState state = trajectory.sample(time);
     auto xFF = -1 * state.velocity * state.pose.Rotation().Sin();
     auto yFF = state.velocity * state.pose.Rotation().Cos();
-    double thetaFF = -1 * state.angularVelocity.value();
 
     // Run simple PID to correct our robots course
     Translation2d pose = GetPose().Translation();
