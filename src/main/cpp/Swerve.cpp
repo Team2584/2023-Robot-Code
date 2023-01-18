@@ -750,7 +750,7 @@ public:
   void InitializeTrajectory()
   {
   // This will load the file "Example Path.path" and generate it with a max velocity of 4 m/s and a max acceleration of 3 m/s^2
-    trajectory = pathplanner::PathPlanner::loadPath("Circle Copy", pathplanner::PathConstraints(3_mps, 3_mps_sq));
+    trajectory = pathplanner::PathPlanner::loadPath("RedRight3GamePiece", pathplanner::PathConstraints(3_mps, 5_mps_sq));
   }
 
   /**
@@ -761,12 +761,15 @@ public:
   {
     // Sample the state of the path at some seconds
     pathplanner::PathPlannerTrajectory::PathPlannerState state = trajectory.sample(time);
-    auto xFF = -1 * state.velocity * state.pose.Rotation().Sin();
-    auto yFF = state.velocity * state.pose.Rotation().Cos();
+    // auto xFF = -1 * state.velocity * state.pose.Rotation().Sin(); Blue Alliance
+    // auto yFF = state.velocity * state.pose.Rotation().Cos(); Blue Alliance
+    auto xFF = state.velocity * state.pose.Rotation().Sin();
+    auto yFF = -1 * state.velocity * state.pose.Rotation().Cos();
 
     // Run simple PID to correct our robots course
     Translation2d pose = GetPose().Translation();
-    Translation2d goal = Translation2d(8_m - state.pose.Y(), state.pose.X());
+    //Translation2d goal = Translation2d(8_m - state.pose.Y(), state.pose.X()); Blue Alliance
+    Translation2d goal = Translation2d(state.pose.Y(), 16.5_m - state.pose.X());
     double xDistance = (goal.X() - pose.X()).value();
     double yDistance = (goal.Y() - pose.Y()).value();
     if (fabs(xDistance) < S_ALLOWABLE_ERROR_TRANSLATION)

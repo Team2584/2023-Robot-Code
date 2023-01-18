@@ -123,7 +123,7 @@ void Robot::AutonomousInit()
   startedTimer = false;
   lastTime = 0;
   timer.Reset();
-  swerveDrive->ResetOdometry(Pose2d(7.3_m,  1.99_m, Rotation2d(3.14_rad)));
+  swerveDrive->ResetOdometry(Pose2d(4.74_m,  1.39_m, Rotation2d(3.14_rad)));
   swerveDrive->BeginPIDLoop();
 }
 
