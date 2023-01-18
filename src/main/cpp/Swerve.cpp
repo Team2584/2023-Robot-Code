@@ -630,7 +630,7 @@ public:
    * @param rotationI the I constant for spin PID
    * @param rotationIMaxEffect the maximum effect our I constant can have on the system to prevent overshooting
    */
-  void DriveToPose(Pose2d current, Pose2d target, double elapsedTime,
+  bool DriveToPose(Pose2d current, Pose2d target, double elapsedTime,
                    double translationMaxSpeed, double translationMaxAccel, double allowableErrorTranslation,
                    double translationP, double translationI, double translationIMaxEffect,
                    double rotationMaxSpeed, double rotationMaxAccel, double allowableErrorRotation,
@@ -720,8 +720,12 @@ public:
     SmartDashboard::PutNumber("Drive Y", lastY);
     SmartDashboard::PutNumber("Drive Spin", lastSpin);
 
+    if (xSpeed == 0 && ySpeed == 0 && spinSpeed == 0)
+      return true;
+
     // Drive swerve at desired speeds
     DriveSwervePercent(xSpeed, ySpeed, spinSpeed);
+    return false;
   }
 
   /**
