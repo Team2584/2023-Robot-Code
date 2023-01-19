@@ -85,8 +85,11 @@ void Robot::RobotInit()
  * <p> This runs after the mode specific periodic functions, but before
  * LiveWindow and SmartDashboard integrated updating.
  */
+int count23 = 0;
 void Robot::RobotPeriodic()
 {
+  SmartDashboard::PutNumber("counter", count23);
+  count23 += 1;
 }
 
 /**
@@ -123,7 +126,8 @@ void Robot::AutonomousInit()
   startedTimer = false;
   lastTime = 0;
   timer.Reset();
-  swerveDrive->ResetOdometry(Pose2d(4.74_m,  1.39_m, Rotation2d(3.14_rad)));
+ // swerveDrive->ResetOdometry(Pose2d(4.74_m,  1.39_m, Rotation2d(3.14_rad)));
+  swerveDrive->ResetOdometry(Pose2d(0_m,  1_m, Rotation2d(3.14_rad)));
   swerveDrive->BeginPIDLoop();
 }
 
@@ -261,10 +265,10 @@ void Robot::TeleopPeriodic()
 
   for (auto array : poseSub.ReadQueue()) 
   {
-    frc::SmartDashboard::PutNumber("NT X", array.value[0]);
     Pose2d poseEst = Pose2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]}, Rotation2d(units::radian_t{array.value[3]}));
-    SmartDashboard::PutNumber("Network Table Last Update Time", array.time);
-    swerveDrive->AddPositionEstimate(poseEst, units::second_t{array.time + array.value[4]});
+    SmartDashboard::PutNumber("Network Table Last Update Time", units::microsecond_t{array.time + array.value[4]}.value());
+    SmartDashboard::PutNumber(" Time", units::microsecond_t{RobotController::GetFPGATime()}.value());
+    swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time + array.value[4]});
   }
 
   Pose2d pose = swerveDrive->GetPose();
@@ -278,7 +282,7 @@ void Robot::TeleopPeriodic()
     isCalibrated = true;
     swerveDrive->ResetOdometry(visionPose);
   }
-  */
+  */  
 
   // DEBUG INFO
 
@@ -288,6 +292,9 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
   frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
   frc::SmartDashboard::PutNumber("Odometry Theta", pose.Rotation().Degrees().value());
+
+  SmartDashboard::PutNumber("Robot Controller FPGA Time", RobotController::GetFPGATime());
+  SmartDashboard::PutNumber("Timer Class FPGA Time", Timer::GetFPGATimestamp().value());
 
 /*
   frc::SmartDashboard::PutBoolean("Was 0", thetaEntry.Get() < 0.05 && thetaEntry.Get() > -0.05 && thetaEntry.Get() != 0.0);
