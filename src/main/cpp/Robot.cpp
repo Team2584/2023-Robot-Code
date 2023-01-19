@@ -266,9 +266,9 @@ void Robot::TeleopPeriodic()
   for (auto array : poseSub.ReadQueue()) 
   {
     Pose2d poseEst = Pose2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]}, Rotation2d(units::radian_t{array.value[3]}));
-    SmartDashboard::PutNumber("Network Table Last Update Time", units::microsecond_t{array.time + array.value[4]}.value());
+    SmartDashboard::PutNumber("Network Table Last Update Time", units::microsecond_t{array.time - array.value[4]}.value());
     SmartDashboard::PutNumber(" Time", units::microsecond_t{RobotController::GetFPGATime()}.value());
-    swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time + array.value[4]});
+    swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time - array.value[4]});
   }
 
   Pose2d pose = swerveDrive->GetPose();
