@@ -15,6 +15,7 @@ private:
   double driveEncoderInitial; /* Used to computer the change in encoder tics, aka motor rotation */
   double spinEncoderInitialHeading;
   double spinEncoderInitialValue;
+  double runningIntegral = 0; /* Running sum of errors for integral in PID */
 
 public:
   /**
@@ -98,6 +99,7 @@ public:
   {
     spinMotor->Set(0);
     driveMotor->Set(ControlMode::PercentOutput, 0);
+    runningIntegral = 0;
   }
 
   /**
@@ -214,14 +216,21 @@ public:
     }
 
     // simple P of PID, makes the wheel move slower as it reaches the target
-    double output = WHEEL_SPIN_KP * (error / 90);
+    double ki = std::clamp(WHEEL_SPIN_KI * runningIntegral, -1 * WHEEL_SPIN_KI_MAX, WHEEL_SPIN_KI_MAX);
+    double output = WHEEL_SPIN_KP * (error / 90) + ki;
     if (fabs(error) < 3 )
+    {
+      runningIntegral = 0;
       output = 0;
-    else if (output > 1)
-      output = 1;
-    else if (output < 0.05)
-      output = 0.05;
+    }
+    else 
+    { 
+      if (output > 1)
+        output = 1;
+      runningIntegral += error;
+    }
 
+    SmartDashboard::PutNumber("ki", ki);
     SmartDashboard::PutNumber("output", output);
     SmartDashboard::PutNumber("error", error);
     SmartDashboard::PutNumber("turndirection", spinDirection);
@@ -576,8 +585,9 @@ public:
    * @param rotationP the P constant for spin PID
    * @param rotationI the I constant for spin PID
    * @param rotationIMaxEffect the maximum effect our I constant can have on the system to prevent overshooting
+   * @return If the robot has finished driving to Pose
    */
-  void DriveToPose(Pose2d target, double elapsedTime,
+  bool DriveToPose(Pose2d target, double elapsedTime,
                    double translationMaxSpeed, double translationMaxAccel, double allowableErrorTranslation,
                    double translationP, double translationI, double translationIMaxEffect,
                    double rotationMaxSpeed, double rotationMaxAccel, double allowableErrorRotation,
@@ -668,8 +678,12 @@ public:
     SmartDashboard::PutNumber("Drive Y", lastY);
     SmartDashboard::PutNumber("Drive Spin", lastSpin);
 
+    if (xSpeed == 0 && ySpeed == 0 && spinSpeed == 0)
+      return true;
+
     // Drive swerve at desired speeds
     DriveSwervePercent(xSpeed, ySpeed, spinSpeed);
+    return false;
   }
 
 
