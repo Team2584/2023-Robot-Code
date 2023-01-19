@@ -51,9 +51,11 @@
 #define S_ALLOWABLE_ERROR_TRANSLATION 0.05
 #define S_ALLOWABLE_ERROR_ROTATION 0.05
 
-
-//Conbined Pose Estimation Values
-#define ODOMETRY_REFRESH_TIME 1 //seconds
-
-
+//PID VALUES FOR TURN TO PIXEL WITH LIMELIGHT
+#define P_SPIN_KP 2.7
+#define P_SPIN_KI 0
+#define P_SPIN_KI_MAX 0.1
+#define P_SPIN_MAX_SPEED 0.2
+#define P_SPIN_MAX_ACCEL 0.6
+#define P_ALLOWABLE_ERROR_ROTATION 0.05 // in pixel values from -1 to 1
 

@@ -710,52 +710,7 @@ public:
                            spinMaxAccel * elapsedTime);
     return lastSpin;
   }
-
-  /**
-   * Combination of drive to pose and turn to point to drive to a pose while continuously facing a point.
-   * This lets your camera stay pointed at an april tag.
-   * WIP Code that is likely uneeded
-   */
-  /*
-  void DriveToPoseWhileFacingTag(Pose2d current, Pose2d target, Pose2d tag, double elapsedTime,
-                                 double translationMaxSpeed, double translationMaxAccel, double allowableErrorTranslation,
-                                 double translationP, double translationI, double translationIMaxEffect,
-                                 double rotationMaxSpeed, double rotationMaxAccel, double allowableErrorRotation,
-                                 double rotationP, double rotationI, double rotationIMaxEffect)
-  {
-    double intendedVelocity;
-    double intendedI;
-
-    double xDistance = target.X().value() - current.X().value();
-    if (fabs(xDistance) < allowableErrorTranslation)
-    {
-      xDistance = 0;
-      runningIntegralX = 0;
-    }
-    intendedI = std::clamp(translationI * runningIntegralX, -1 * translationIMaxEffect, translationIMaxEffect);
-    intendedVelocity = std::clamp(translationP * xDistance + intendedI, -1 * translationMaxSpeed, translationMaxSpeed);
-    lastX += std::clamp(intendedVelocity - lastX, -1 * translationMaxAccel * elapsedTime,
-                        translationMaxAccel * elapsedTime);
-    SmartDashboard::PutNumber("X Integral", runningIntegralX);
-    SmartDashboard::PutNumber("X Integral Output", intendedI);
-
-    double yDistance = target.Y().value() - current.Y().value();
-    if (fabs(yDistance) < allowableErrorTranslation)
-    {
-      yDistance = 0;
-      runningIntegralY = 0;
-    }
-    intendedI = std::clamp(translationI * runningIntegralY, -1 * translationIMaxEffect, translationIMaxEffect);
-    intendedVelocity = std::clamp(translationP * yDistance + intendedI, -1 * translationMaxSpeed, translationMaxSpeed);
-    lastY += std::clamp(intendedVelocity - lastY, -1 * translationMaxAccel * elapsedTime,
-                        translationMaxAccel * elapsedTime);
-
-    double spin = TurnToPointDesiredSpin(tag.Translation(), elapsedTime, allowableErrorRotation, rotationMaxSpeed, rotationMaxAccel, rotationP, rotationI);
-
-    DriveSwervePercent(lastX, lastY, spin);
-  }
-  */
-
+ 
   /**
    * Initializes a trajectory to be run during autonomous by loading it into memory.
    * A trajectory is a curve that we tell the robot to move through. AKA a spline.
@@ -838,5 +793,25 @@ public:
 
     // Drive the swerve drive
     DriveSwerveMetersAndRadians(xFF.value() + xPid, yFF.value() + yPid, spinPid);
+  }
+
+  /**
+   * Turns the robot to pid a value to 0, i.e. for limelight
+   * @param offset The position we want to turn to, from -1 to 1 with -1 meaning turn counterclockwise
+   * @param elapsedTime time since function last called
+   */
+  bool TurnToPixel(double offset, double elapsedTime)
+  {
+    // Use PID  to determine our desired spin speed
+    if (fabs(offset) < P_ALLOWABLE_ERROR_ROTATION)
+    {
+      lastSpin = 0;
+      return true;
+    }
+    double intendedVelocity = std::clamp(P_SPIN_KP * offset, -1 * P_SPIN_MAX_SPEED, P_SPIN_MAX_SPEED);
+    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * P_SPIN_MAX_ACCEL * elapsedTime,
+                           P_SPIN_MAX_ACCEL * elapsedTime);
+    DriveSwervePercent(0, 0, lastSpin);
+    return false;
   }
 };
