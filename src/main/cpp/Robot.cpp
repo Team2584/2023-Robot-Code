@@ -23,6 +23,8 @@ nt::DoubleArrayTopic curPoseTopic;
 nt::DoubleArraySubscriber poseSub;
 nt::IntegerEntry sanityEntry;
 nt::DoubleArrayEntry curPoseEntry;
+nt::DoubleTopic polePixelTopic;
+nt::DoubleEntry polePixelEntry;
 
 // To track time for slew rate and pid controll
 frc::Timer timer;
@@ -61,9 +63,11 @@ void Robot::RobotInit()
   poseTopic = table->GetDoubleArrayTopic("poseArray");
   sanityTopic = table->GetIntegerTopic("sanitycheck");
   curPoseTopic = table->GetDoubleArrayTopic("curPose");
+  polePixelTopic = table->GetDoubleTopic("polePixel");
   poseSub = poseTopic.Subscribe({});
   sanityEntry = sanityTopic.GetEntry(10000);
   curPoseEntry = curPoseTopic.GetEntry({});
+  polePixelEntry = polePixelTopic.GetEntry(1000);
 
   // Initializing things
   timer = Timer();
@@ -309,10 +313,37 @@ void Robot::TeleopPeriodic()
 
   swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
 
-  if (xbox_Drive->GetBButtonPressed())
+  // BASIC ELEVATOR CODE
+  if (xbox_Drive->GetLeftBumper())
+  {
+    winchR.Set(0.8);
+    winchL.Set(0.8);
+  }
+  else if (xbox_Drive->GetRightBumper())
+  {
+    winchR.Set(-0.8);
+    winchL.Set(-0.8);
+  }
+  else if (xbox_Drive->GetYButton())
+  {
+    winchR.Set(0.2);
+    winchL.Set(0.2);   
+  }
+  else if (xbox_Drive->GetAButton())
+  {
+    winchR.Set(-0.2);
+    winchL.Set(-0.2);      
+  }
+  else
+  {
+    winchR.Set(0);
+    winchL.Set(0);
+  }
+
+  if (xbox_Drive->GetXButtonPressed())
     swerveDrive->BeginPIDLoop();
-  if ((CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton()))
-    swerveDrive->DriveToPose(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
+  if (xbox_Drive->GetXButton())
+    swerveDrive->TurnToPixel(polePixelEntry.Get(), elapsedTime);
 
   //Here is our Test Drive Control Code that runs different functions when different buttons are pressed
   /*

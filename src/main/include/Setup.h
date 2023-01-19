@@ -19,6 +19,8 @@ rev::CANSparkMax swerveBL{13, rev::CANSparkMax::MotorType::kBrushless};
 TalonFX driveBL{03};
 rev::CANSparkMax swerveBR{14, rev::CANSparkMax::MotorType::kBrushless};
 TalonFX driveBR{04};
+rev::CANSparkMax winchR{5, rev::CANSparkMax::MotorType::kBrushless};
+rev::CANSparkMax winchL{6, rev::CANSparkMax::MotorType::kBrushless};
 
 DutyCycleEncoder FLMagEnc(8);
 DutyCycleEncoder FRMagEnc(6);
