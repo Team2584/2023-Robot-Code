@@ -5,8 +5,8 @@
 #define BL_WHEEL_OFFSET 0.0312
 
 //Assuming a rectangular drive train (input distance between center of wheels)
-#define DRIVE_LENGTH 0.29845 * 2
-#define DRIVE_WIDTH 0.2953 * 2
+#define DRIVE_LENGTH 0.5969_m 
+#define DRIVE_WIDTH 0.5906_m 
 
 //Encoder constants
 #define DRIVE_MOTOR_GEAR_RATIO 7.36 
@@ -34,20 +34,6 @@
 #define O_SPIN_MAX_ACCEL 0.6  
 #define O_ALLOWABLE_ERROR_TRANSLATION 0.02
 #define O_ALLOWABLE_ERROR_ROTATION 0.05
-
-//PID VALUES FOR DRIVE TO POSE VISION
-#define V_TRANSLATION_KP 1.27
-#define V_TRANSLATION_KI 0
-#define V_TRANSLATION_KI_MAX 0.1
-#define V_TRANSLATION_MAX_SPEED 0.2
-#define V_TRANSLATION_MAX_ACCEL 0.7
-#define V_SPIN_KP 0.56
-#define V_SPIN_KI 0
-#define V_SPIN_KI_MAX 0.1
-#define V_SPIN_MAX_SPEED 0.2
-#define V_SPIN_MAX_ACCEL 0.6
-#define V_ALLOWABLE_ERROR_TRANSLATION 0.04
-#define V_ALLOWABLE_ERROR_ROTATION 0.2
 
 //PID VALUES FOR SPLINE
 #define S_TRANSLATION_KP 3
