@@ -12,8 +12,9 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 
 double pigeon_initial;
-// Our future swerve drive object
+// Our future subsystem objects
 SwerveDrive *swerveDrive;
+ElevatorLift *elevatorLift;
 
 // To find values from cameras
 nt::NetworkTableInstance inst;
@@ -77,6 +78,8 @@ void Robot::RobotInit()
   swerveDrive = new SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, FL_WHEEL_OFFSET, &driveFR, &swerveFR, &FRMagEnc,
                                 FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
                                 &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, STARTING_DRIVE_HEADING);
+
+  elevatorLift = new ElevatorLift(&winchL, &winchR, &TOFSensor);
 
   // Initializing Autonomous Trajectory (For Splines)
   swerveDrive->InitializeTrajectory();
@@ -316,30 +319,15 @@ void Robot::TeleopPeriodic()
 
   // BASIC ELEVATOR CODE
   if (xbox_Drive->GetLeftBumper())
-  {
-    winchR.Set(0.8);
-    winchL.Set(0.8);
-  }
+    elevatorLift->MoveElevatorPercent(-0.8);
   else if (xbox_Drive->GetRightBumper())
-  {
-    winchR.Set(-0.8);
-    winchL.Set(-0.8);
-  }
+    elevatorLift->MoveElevatorPercent(0.8);
   else if (xbox_Drive->GetYButton())
-  {
-    winchR.Set(0.2);
-    winchL.Set(0.2);   
-  }
+    elevatorLift->MoveElevatorPercent(0.2);
   else if (xbox_Drive->GetAButton())
-  {
-    winchR.Set(-0.2);
-    winchL.Set(-0.2);      
-  }
+    elevatorLift->MoveElevatorPercent(-0.2);
   else
-  {
-    winchR.Set(0);
-    winchL.Set(0);
-  }
+    elevatorLift->StopElevator();
 
   if (xbox_Drive->GetXButtonPressed())
     swerveDrive->BeginPIDLoop();

@@ -17,10 +17,11 @@ public:
   /**
    * Instantiates a two motor elevator lift
    */
-  ElevatorLift(rev::CANSparkMax *winchL_, rev::CANSparkMax *winchR_)
+  ElevatorLift(rev::CANSparkMax *winchL_, rev::CANSparkMax *winchR_, TimeOfFlight *tofSensor_)
   {
     winchL = winchL_;
     winchR = winchR_;
+    tofSensor = tofSensor_;
   }
 
   double TOFSElevatorHeight()

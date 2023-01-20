@@ -27,8 +27,9 @@ DutyCycleEncoder FRMagEnc(6);
 DutyCycleEncoder BLMagEnc(9);
 DutyCycleEncoder BRMagEnc(7);
 
-//Change the number value to the port
 Pigeon2 _pigeon(6);
+
+TimeOfFlight TOFSensor(5);
 
 double thetaInit;
 
