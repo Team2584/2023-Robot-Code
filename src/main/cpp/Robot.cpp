@@ -5,6 +5,7 @@
 #include "Setup.h"
 
 #include "Swerve.cpp"
+#include "Elevator.cpp"
 
 #include <fmt/core.h>
 

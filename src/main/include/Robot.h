@@ -61,6 +61,8 @@
 #include <wpi/future.h>
 #include <wpi/sendable/SendableRegistry.h>
 
+#include <TimeOfFlight.h>
+
 #include <cmath>
 #include <iostream>
 #include <math.h>
