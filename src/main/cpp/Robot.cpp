@@ -28,10 +28,14 @@ nt::DoubleEntry thetaEntry;
 nt::IntegerEntry sanityEntry;
 nt::BooleanEntry existsEntry;
 
-// To track time for slew rate and accleration control
+// To track time for slew rate and pid controll
 frc::Timer timer;
 double lastTime = 0;
 bool startedTimer = false;
+double lastFwdSpeed = 0;
+double lastStrafeSpeed = 0;
+double lastTurnSpeed = 0;
+
 
 // To Calibrate Odometry to april tag
 bool isCalibrated = false;
@@ -128,7 +132,7 @@ void Robot::AutonomousInit()
   startedTimer = false;
   lastTime = 0;
   timer.Reset();
-  swerveDrive->ResetOdometry(Pose2d(2_m, 0_m, Rotation2d(0_rad)));
+  swerveDrive->ResetOdometry(Pose2d(7.3_m,  1.99_m, Rotation2d(3.14_rad)));
   swerveDrive->BeginPIDLoop();
 }
 
@@ -195,6 +199,11 @@ void Robot::TeleopInit()
   caliX = 0;
   caliY = 0;
   caliTheta = 0;
+
+  lastFwdSpeed = 0;
+  lastStrafeSpeed = 0;
+  lastTurnSpeed = 0;
+
   /*
     orchestra.LoadMusic("CHIRP");
     orchestra.AddInstrument(swerveBL);
@@ -246,6 +255,15 @@ void Robot::TeleopPeriodic()
   double elapsedTime = time - lastTime;
   lastTime = time;
 
+  lastFwdSpeed += std::clamp(FWD_Drive_Speed - lastFwdSpeed, -1 * MAX_DRIVE_ACCELERATION * elapsedTime,
+                   MAX_DRIVE_ACCELERATION * elapsedTime);
+  lastStrafeSpeed += std::clamp(STRAFE_Drive_Speed - lastStrafeSpeed, -1 * MAX_DRIVE_ACCELERATION * elapsedTime,
+                   MAX_DRIVE_ACCELERATION * elapsedTime);
+  lastTurnSpeed += std::clamp(Turn_Speed - lastTurnSpeed, -1 * MAX_SPIN_ACCELERATION * elapsedTime,
+                   MAX_SPIN_ACCELERATION * elapsedTime);
+  lastTime = time;
+
+
   //Update our odometry 
   swerveDrive->UpdateOdometry();
 
@@ -283,6 +301,14 @@ void Robot::TeleopPeriodic()
   Pose2d pose = swerveDrive->GetPose();
   Pose2d visionOdometry = swerveDrive->GetPoseVisionOdometry();
 
+  frc::SmartDashboard::PutNumber("FWD Drive Speed", lastFwdSpeed);
+  frc::SmartDashboard::PutNumber("Strafe Drive Speed", lastStrafeSpeed);
+  frc::SmartDashboard::PutNumber("Turn Drive Speed", lastTurnSpeed);
+  frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
+  frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
+  frc::SmartDashboard::PutNumber("Odometry Theta", pose.Rotation().Degrees().value());
+
+/*
   frc::SmartDashboard::PutBoolean("Was 0", thetaEntry.Get() < 0.05 && thetaEntry.Get() > -0.05 && thetaEntry.Get() != 0.0);
 
   frc::SmartDashboard::PutNumber("FWD Drive Speed", FWD_Drive_Speed);
@@ -305,13 +331,21 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("Vision Odometry Theta", visionOdometry.Rotation().Degrees().value());
 
   frc::SmartDashboard::PutNumber("TIMER", timer.Get().value());
+*/
 
-  
+  swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
+
+  if (xbox_Drive->GetBButtonPressed())
+    swerveDrive->BeginPIDLoop();
+  if ((CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton()))
+    swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
+
   //Here is our Test Drive Control Code that runs different functions when different buttons are pressed
+  /*
   if (xbox_Drive->GetLeftBumper())
-    Turn_Speed = swerveDrive->TurnToPointDesiredSpin(pose, Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
+    lastTurnSpeed = swerveDrive->TurnToPointDesiredSpin(pose, Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
 
-  swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
+  swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
 
   if (xbox_Drive->GetBButtonPressed())
     swerveDrive->BeginPIDLoop();
@@ -344,6 +378,7 @@ void Robot::TeleopPeriodic()
     pigeon_initial = fmod(_pigeon.GetYaw(), 360);
     swerveDrive->pigeon_initial = pigeon_initial;
   }
+  */
 }
 
 void Robot::DisabledInit()

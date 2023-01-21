@@ -7,13 +7,15 @@ class SwerveModule
 {
 private:
   // Instance Variables for each swerve module
-  ctre::phoenix::motorcontrol::can::TalonFX *driveMotor, *spinMotor;
+  ctre::phoenix::motorcontrol::can::TalonFX *driveMotor;
+  rev::CANSparkMax *spinMotor;
   frc::DutyCycleEncoder *magEncoder;
   frc::PIDController *spinPIDController;
   double encoderOffset;       /* Offset in magnetic encoder from 0 facing the front of the robot */
   double driveEncoderInitial; /* Used to computer the change in encoder tics, aka motor rotation */
   double spinEncoderInitialHeading;
   double spinEncoderInitialValue;
+  double runningIntegral = 0; /* Running sum of errors for integral in PID */
 
 public:
   /**
@@ -24,7 +26,7 @@ public:
    * @param magEncoder_ A pointer to the absolute encoder used to track rotation of the swerve module wheels
    */
   SwerveModule(ctre::phoenix::motorcontrol::can::TalonFX *driveMotor_,
-               ctre::phoenix::motorcontrol::can::TalonFX *spinMotor_, frc::DutyCycleEncoder *magEncoder_,
+               rev::CANSparkMax *spinMotor_, frc::DutyCycleEncoder *magEncoder_,
                double encoderOffset_)
   {
     driveMotor = driveMotor_;
@@ -60,7 +62,7 @@ public:
   {
     driveEncoderInitial = driveMotor->GetSelectedSensorPosition();
     spinEncoderInitialHeading = GetMagEncoderReading();
-    spinEncoderInitialValue = -1 * spinMotor->GetSelectedSensorPosition();
+    //spinEncoderInitialValue = -1 * spinMotor->GetSelectedSensorPosition();    likely uneeded code, copied from talon swerve
   }
 
   /**
@@ -80,22 +82,24 @@ public:
   }
 
   /**
-   *  INCOMPLETE DO NOT USE UNDER ANY CIRCUMSTANCE, USE GetMagEncoderReading() INSTEAD!
+   *  INCOMPLETE DO NOT USE UNDER ANY CIRCUMSTANCE, USE GetMagEncoderReading() INSTEAD!   Also this hasn't been updated from the talon swerve drive as it is an uneccessary functino
    */
+  /*
   double GetSpinEncoderRadians()
   {
-    // TODO
     double rotation = ((-1 * spinMotor->GetSelectedSensorPosition() - spinEncoderInitialValue) / 2048 / SPIN_MOTOR_GEAR_RATIO * 2 * M_PI) - spinEncoderInitialHeading;
     return fmod(rotation, 2 * M_PI);
   }
+  */
 
   /**
    *  Setss all motor speeds to 0.
    */
   void StopSwerveModule()
   {
-    spinMotor->Set(ControlMode::PercentOutput, 0);
+    spinMotor->Set(0);
     driveMotor->Set(ControlMode::PercentOutput, 0);
+    runningIntegral = 0;
   }
 
   /**
@@ -212,10 +216,27 @@ public:
     }
 
     // simple P of PID, makes the wheel move slower as it reaches the target
-    double output = WHEEL_SPIN_KP * (error / 90);
+    double ki = std::clamp(WHEEL_SPIN_KI * runningIntegral, -1 * WHEEL_SPIN_KI_MAX, WHEEL_SPIN_KI_MAX);
+    double output = WHEEL_SPIN_KP * (error / 90) + ki;
+    if (fabs(error) < 3 )
+    {
+      runningIntegral = 0;
+      output = 0;
+    }
+    else 
+    { 
+      if (output > 1)
+        output = 1;
+      runningIntegral += error;
+    }
 
-    // Move motors at speeds and directions determined earlier
-    spinMotor->Set(ControlMode::PercentOutput, output * spinDirection);
+    SmartDashboard::PutNumber("ki", ki);
+    SmartDashboard::PutNumber("output", output);
+    SmartDashboard::PutNumber("error", error);
+    SmartDashboard::PutNumber("turndirection", spinDirection);
+
+    // Move motors  at speeds and directions determined earlier
+    spinMotor->Set(output * spinDirection);
     driveMotor->Set(ControlMode::PercentOutput, driveSpeed * driveDirection);
   }
 
@@ -242,7 +263,7 @@ private:
   SwerveDriveKinematics<4> kinematics;
   SwerveDriveOdometry<4> *odometry;
   SwerveDriveOdometry<4> *visionOdometry; /* WIP for testing, probably not neccesary */
-  Trajectory trajectory;
+  pathplanner::PathPlannerTrajectory trajectory; 
 
   // All Variables below are "WIP" for testing and will hopefully be refactored later
   Pose2d visionPose;
@@ -267,19 +288,19 @@ public:
    * There is also a Pigeon IMU which includes an accelerometer and gyroscope.
    */
   SwerveDrive(ctre::phoenix::motorcontrol::can::TalonFX *_FLDriveMotor,
-              ctre::phoenix::motorcontrol::can::TalonFX *_FLSpinMotor, frc::DutyCycleEncoder *_FLMagEncoder,
+              rev::CANSparkMax *_FLSpinMotor, frc::DutyCycleEncoder *_FLMagEncoder,
               double _FLEncoderOffset, ctre::phoenix::motorcontrol::can::TalonFX *_FRDriveMotor,
-              ctre::phoenix::motorcontrol::can::TalonFX *_FRSpinMotor, frc::DutyCycleEncoder *_FRMagEncoder,
+              rev::CANSparkMax *_FRSpinMotor, frc::DutyCycleEncoder *_FRMagEncoder,
               double _FREncoderOffset, ctre::phoenix::motorcontrol::can::TalonFX *_BRDriveMotor,
-              ctre::phoenix::motorcontrol::can::TalonFX *_BRSpinMotor, frc::DutyCycleEncoder *_BRMagEncoder,
+              rev::CANSparkMax *_BRSpinMotor, frc::DutyCycleEncoder *_BRMagEncoder,
               double _BREncoderOffset, ctre::phoenix::motorcontrol::can::TalonFX *_BLDriveMotor,
-              ctre::phoenix::motorcontrol::can::TalonFX *_BLSpinMotor, frc::DutyCycleEncoder *_BLMagEncoder,
+              rev::CANSparkMax *_BLSpinMotor, frc::DutyCycleEncoder *_BLMagEncoder,
               double _BLEncoderOffset, Pigeon2 *_pigeonIMU, double robotStartingRadian)
       // TODO CLEAN based off of drive width / length variables rather than hard coded
-      : m_frontLeft{0.29845_m, 0.2953_m},
-        m_frontRight{0.29845_m, -0.2953_m},
-        m_backLeft{-0.29845_m, 0.2953_m},
-        m_backRight{-0.29845_m, -0.2953_m},
+      : m_frontLeft{0.29645_m, 0.2683_m},
+        m_frontRight{0.29645_m, -0.2683_m},
+        m_backLeft{-0.29645_m, 0.2683_m},
+        m_backRight{-0.29645_m, -0.2683_m},
         kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight}
   {
     FLModule = new SwerveModule(_FLDriveMotor, _FLSpinMotor, _FLMagEncoder, _FLEncoderOffset);
@@ -305,6 +326,50 @@ public:
                                                 Rotation2d(units::radian_t{GetIMURadians()}),
                                                 positions,
                                                 frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
+  }
+
+  /**
+   * Converts a meters per second speed to a percent power argument for the falcon motors.
+   */
+  double VelocityToPercent(double velocity)
+  {
+    if (velocity > 0)
+      return std::max((velocity + 0.0562) / 4.38, 0.0);
+    else 
+      return std::min((velocity - 0.0562) / 4.38, 0.0);  }
+
+  /**
+   * Converts a percent power argument for the falcon motors to a meters per second speed.
+   */
+  double PercentToVelocity(double percent)
+  {
+    if (percent > 0)
+      return std::max(4.38 * percent - 0.0562, 0.0) * 2 * M_PI;
+    else 
+      return std::min(4.38 * percent + 0.0562, 0.0)  * 2 * M_PI;
+  }
+
+  /**
+   * Converts a meters per second speed to a percent power argument for the falcon motors.
+   */
+  double AngularVelocityToPercent(double velocity)
+  {
+    velocity = velocity / 2 / M_PI;
+    if (velocity > 0)
+      return std::max((velocity + 0.0329) / 1.92, 0.0);
+    else 
+      return std::min((velocity - 0.0329) / 1.92, 0.0);  
+  }
+
+  /**
+   * Converts a percent power argument for the falcon motors to a meters per second speed.
+   */
+  double AngularPercentToVelocity(double percent)
+  {
+    if (percent > 0)
+      return std::max(1.92 * percent - 0.0329, 0.0);
+    else 
+      return std::min(1.92 * percent + 0.0329, 0.0);
   }
 
   /**
@@ -532,7 +597,7 @@ public:
    */
   void DriveSwerveMetersAndRadians(double STRAFE_Drive_Speed, double FWD_Drive_Speed, double Turn_Speed)
   {
-    DriveSwervePercent(STRAFE_Drive_Speed / SWERVE_DRIVE_MAX_MPS, FWD_Drive_Speed / SWERVE_DRIVE_MAX_MPS, Turn_Speed / MAX_RADIAN_PER_SECOND);
+    DriveSwervePercent(VelocityToPercent(STRAFE_Drive_Speed), VelocityToPercent(FWD_Drive_Speed), AngularVelocityToPercent(Turn_Speed));
   }
 
   /**
@@ -565,7 +630,7 @@ public:
    * @param rotationI the I constant for spin PID
    * @param rotationIMaxEffect the maximum effect our I constant can have on the system to prevent overshooting
    */
-  void DriveToPose(Pose2d current, Pose2d target, double elapsedTime,
+  bool DriveToPose(Pose2d current, Pose2d target, double elapsedTime,
                    double translationMaxSpeed, double translationMaxAccel, double allowableErrorTranslation,
                    double translationP, double translationI, double translationIMaxEffect,
                    double rotationMaxSpeed, double rotationMaxAccel, double allowableErrorRotation,
@@ -595,6 +660,7 @@ public:
     lastX += std::clamp(intendedVelocity - lastX, -1 * translationMaxAccel * elapsedTime,
                         translationMaxAccel * elapsedTime);
     xSpeed = lastX;
+    SmartDashboard::PutNumber("X I Controb", intendedI);
 
     // This is a WIP that shouldn't be needed for the final robot with well tuned PID
     if (lastX > 0 && lastX < 0.06 && useWeirdMinSpeedThing)
@@ -654,8 +720,12 @@ public:
     SmartDashboard::PutNumber("Drive Y", lastY);
     SmartDashboard::PutNumber("Drive Spin", lastSpin);
 
+    if (xSpeed == 0 && ySpeed == 0 && spinSpeed == 0)
+      return true;
+
     // Drive swerve at desired speeds
     DriveSwervePercent(xSpeed, ySpeed, spinSpeed);
+    return false;
   }
 
   /**
@@ -774,10 +844,8 @@ public:
    */
   void InitializeTrajectory()
   {
-    // Loads file into memory and parses it from json
-    fs::path deployDirectory = frc::filesystem::GetDeployDirectory();
-    deployDirectory = deployDirectory / "LeftCurve.wpilib.json";
-    trajectory = frc::TrajectoryUtil::FromPathweaverJson(deployDirectory.string());
+  // This will load the file "Example Path.path" and generate it with a max velocity of 4 m/s and a max acceleration of 3 m/s^2
+    trajectory = pathplanner::PathPlanner::loadPath("Circle Copy", pathplanner::PathConstraints(3_mps, 3_mps_sq));
   }
 
   /**
@@ -788,28 +856,45 @@ public:
   {
     UpdateOdometry();
 
-    // Determine current desired speeds in an "ideal world"
-    Trajectory::State state = trajectory.Sample(time);
-    auto xFF = state.velocity * state.pose.Rotation().Cos() * 1.2;
-    auto yFF = state.velocity * state.pose.Rotation().Sin() * 1.2;
-
-    SmartDashboard::PutNumber("Program Time", time.value());
-    SmartDashboard::PutNumber("trajectory total time", trajectory.TotalTime().value());
-
-    SmartDashboard::PutNumber("X Mps", xFF.value());
-    SmartDashboard::PutNumber("Y Mps", yFF.value());
+    // Sample the state of the path at some seconds
+    pathplanner::PathPlannerTrajectory::PathPlannerState state = trajectory.sample(time);
+    auto xFF = -1 * state.velocity * state.pose.Rotation().Sin();
+    auto yFF = state.velocity * state.pose.Rotation().Cos();
+    double thetaFF = -1 * state.angularVelocity.value();
 
     // Run simple PID to correct our robots course
     Translation2d pose = GetPose().Translation();
-    Translation2d goal = state.pose.Translation();
+    Translation2d goal = Translation2d(8_m - state.pose.Y(), state.pose.X());
     double xDistance = (goal.X() - pose.X()).value();
     double yDistance = (goal.Y() - pose.Y()).value();
+    if (fabs(xDistance) < S_ALLOWABLE_ERROR_TRANSLATION)
+    {
+      xDistance = 0;
+      runningIntegralX = 0;
+    }
+    if (fabs(yDistance) < S_ALLOWABLE_ERROR_TRANSLATION)
+    {
+      yDistance = 0;
+      runningIntegralY = 0;
+    }    
     double xPid = std::clamp(S_TRANSLATION_KP * xDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
     double yPid = std::clamp(S_TRANSLATION_KP * yDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
+
+    // Spin PID similar to drive to pose
+    Pose2d thetaGoal = Pose2d(0_m, 0_m, Rotation2d(360_deg - state.holonomicRotation.Degrees()));
+    double thetaDistance = thetaGoal.RelativeTo(GetPose()).Rotation().Radians().value();
+    if (fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
+    {
+      thetaDistance = 0;
+      runningIntegralSpin = 0;
+    }
+    double intendedI = std::clamp(S_SPIN_KI * runningIntegralSpin, -1 * S_SPIN_KI_MAX, S_SPIN_KI_MAX);
+    double spinPid = std::clamp(S_SPIN_KP * thetaDistance + intendedI, -1 * S_SPIN_MAX_SPEED, S_SPIN_MAX_SPEED);
 
     // Debugging Info
     SmartDashboard::PutNumber("X Odom", pose.X().value());
     SmartDashboard::PutNumber("Y Odom", pose.Y().value());
+    SmartDashboard::PutNumber("Theta Odom", GetPose().Rotation().Degrees().value());
 
     SmartDashboard::PutNumber("x Dist", xDistance);
     SmartDashboard::PutNumber("y Dist", yDistance);
@@ -817,32 +902,22 @@ public:
     SmartDashboard::PutNumber("x Pid", xPid);
     SmartDashboard::PutNumber("y Pid", yPid);
 
-    // Spin PID similar to drive to pose
-    // TODO change so it can actually spin rather than just stay facing a direction
-    double thetaDistance = Pose2d(0_m, 0_m, Rotation2d(0_rad)).RelativeTo(GetPose()).Rotation().Radians().value();
-    if (thetaDistance > 180)
-      thetaDistance = thetaDistance - 360;
-    if (fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
-    {
-      thetaDistance = 0;
-      runningIntegralSpin = 0;
-    }
-    double intendedI = std::clamp(S_SPIN_KI * runningIntegralSpin, -1 * S_SPIN_KI_MAX, S_SPIN_KI_MAX);
-    double intendedVelocity = std::clamp(S_SPIN_KP * thetaDistance + intendedI, -1 * S_SPIN_MAX_SPEED, S_SPIN_MAX_SPEED);
-    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * S_SPIN_MAX_ACCEL * elapsedTime,
-                           S_SPIN_MAX_ACCEL * elapsedTime);
-
     SmartDashboard::PutNumber("Theta Distance", thetaDistance);
-    SmartDashboard::PutNumber("spin Speed", lastSpin);
+    SmartDashboard::PutNumber("spin Pid", spinPid);
+
+    SmartDashboard::PutBoolean("Done", false);
+
 
     // If we have finished the spline, just stop
-    if (trajectory.TotalTime() < time && xDistance < S_ALLOWABLE_ERROR_TRANSLATION && yDistance < S_ALLOWABLE_ERROR_TRANSLATION && lastSpin == 0)
+    if (trajectory.getTotalTime() < time && fabs(xDistance) < S_ALLOWABLE_ERROR_TRANSLATION && fabs(yDistance) < S_ALLOWABLE_ERROR_TRANSLATION
+        && fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
     {
       DriveSwervePercent(0, 0, 0);
+      SmartDashboard::PutBoolean("Done", true);
       return;
     }
 
     // Drive the swerve drive
-    DriveSwerveMetersAndRadians(xFF.value() + xPid, yFF.value() + yPid, lastSpin);
+    DriveSwerveMetersAndRadians(xFF.value() + xPid, yFF.value() + yPid, spinPid);
   }
 };

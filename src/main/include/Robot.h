@@ -5,7 +5,7 @@
 #include "ctre/Phoenix.h"
 #include <frc/TimedRobot.h>
 #include <frc/smartdashboard/SendableChooser.h>
-//#include "rev/CANEncoder.h"
+#include "rev/CANSparkMax.h"
 #include "ctre/phoenix/motorcontrol/can/WPI_TalonFX.h"
 #include "ctre/phoenix/sensors/Pigeon2.h"
 #include "ctre/phoenix/music/Orchestra.h"
@@ -39,6 +39,8 @@
 
 #include <frc/Compressor.h>
 #include <frc/DoubleSolenoid.h>
+
+#include <pathplanner/lib/PathPlanner.h>
 
 #include "cameraserver/CameraServer.h"
 #include "networktables/NetworkTable.h"
