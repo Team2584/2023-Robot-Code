@@ -6,8 +6,9 @@
 #include <functional>
 //#include "FunctionTemplates/Function.cpp"
 #include <hash_set>
-#include <frc2/command/CommandBase.h>
-#include <frc2/command/CommandHelper.h>
+//#include <frc2/command/CommandBase.h>
+//#include <frc2/command/CommandHelper.h>
+#include <frc2/command/CommandScheduler.h>
 
 /* new
 Scheduler scheduler = Scheduler();

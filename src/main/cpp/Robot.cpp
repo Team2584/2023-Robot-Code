@@ -12,6 +12,9 @@
 
 #include <frc/smartdashboard/SmartDashboard.h>
 
+#include "SchedulerClasses/FunctionWrapper.cpp"
+#include "SchedulerClasses/Scheduler.cpp"
+
 double pigeon_initial;
 // Our future subsystem objects
 SwerveDrive *swerveDrive;
@@ -46,6 +49,8 @@ double MAX_SPIN_SPEED = 0.4;
 // Cringe Auto Values S**FF
 double splineSection = 1;
 bool limelightTracking = false;
+
+Scheduler scheduler;
 
 void Robot::RobotInit()
 {
@@ -105,7 +110,6 @@ void Robot::RobotInit()
  */
 void Robot::RobotPeriodic()
 {
-    frc2::CommandScheduler::GetInstance().Run();
 }
 
 /**
@@ -151,6 +155,8 @@ void Robot::AutonomousInit()
 
  splineSection = 1;
  limelightTracking = false;
+
+ scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);}));
 }
 
 void Robot::AutonomousPeriodic()
@@ -203,6 +209,7 @@ void Robot::AutonomousPeriodic()
   }
 
   lastTime = timer.Get().value();
+  scheduler.Run();
 }
 /*
 void Robot::TeleopInit() {
