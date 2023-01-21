@@ -29,7 +29,7 @@ DutyCycleEncoder BRMagEnc(7);
 
 Pigeon2 _pigeon(6);
 
-TimeOfFlight TOFSensor(5);
+TimeOfFlight TOFSensor(0);
 
 double thetaInit;
 
@@ -37,7 +37,7 @@ double thetaInit;
 #define CONTROLLER_DEADBAND 0.2
 #define MAX_SPIN_SPEED 0.4
 #define MAX_DRIVE_SPEED 0.4
-#define MAX_DRIVE_ACCELERATION 3    //max change in percent per second
+#define MAX_DRIVE_ACCELERATION 1    //max change in percent per second
 #define MAX_SPIN_ACCELERATION 1
 #define STARTING_DRIVE_HEADING 0
 #define CONTROLLER_TYPE 1

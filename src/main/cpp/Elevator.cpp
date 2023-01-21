@@ -21,6 +21,8 @@ public:
   {
     winchL = winchL_;
     winchR = winchR_;
+    winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
+    winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
     tofSensor = tofSensor_;
   }
 
@@ -28,11 +30,20 @@ public:
   {
     if (!tofSensor->IsRangeValid())
         return lastHeight;
-    return tofSensor->GetRange();
+    return ((tofSensor->GetRange() - 30) * 0.70710678 + 260) / 1000;
   }
 
-  void StopElevator()
+  void StopElevatorCoast()
   {
+    winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
+    winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
+    MoveElevatorPercent(0);
+  }
+
+  void StopElevatorBreak()
+  {
+    winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
+    winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
     MoveElevatorPercent(0);
   }
 
@@ -41,8 +52,8 @@ public:
    */
   void MoveElevatorPercent(double percent)
   {
-    winchR->Set(-percent);
-    winchL->Set(-percent);   
+    winchR->Set(percent);
+    winchL->Set(percent);   
   }
 
   void StartPIDLoop()

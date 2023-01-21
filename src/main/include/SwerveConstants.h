@@ -52,6 +52,12 @@
 #define S_ALLOWABLE_ERROR_ROTATION 0.05
 
 //PID VALUES FOR TURN TO PIXEL WITH LIMELIGHT
+#define P_STRAFE_KP 4
+#define P_STRAFE_KI 0.01
+#define P_STRAFE_KI_MAX 0.05
+#define P_STRAFE_MAX_SPEED 0.4
+#define P_STRAFE_MAX_ACCEL 0.8
+#define P_ALLOWABLE_ERROR_STRAFE 0.005 // in pixel values from -1 to 1
 #define P_SPIN_KP 2.7
 #define P_SPIN_KI 0
 #define P_SPIN_KI_MAX 0.1

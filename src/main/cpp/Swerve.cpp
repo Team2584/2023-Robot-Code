@@ -755,7 +755,8 @@ public:
     double yPid = std::clamp(S_TRANSLATION_KP * yDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
 
     // Spin PID similar to drive to pose
-    Pose2d thetaGoal = Pose2d(0_m, 0_m, Rotation2d(360_deg - state.holonomicRotation.Degrees()));
+    // Pose2d thetaGoal = Pose2d(0_m, 0_m, Rotation2d(360_deg - state.holonomicRotation.Degrees())); Blue Aliance
+    Pose2d thetaGoal = Pose2d(0_m, 0_m, Rotation2d(180_deg - state.holonomicRotation.Degrees()));
     double thetaDistance = thetaGoal.RelativeTo(GetPose()).Rotation().Radians().value();
     if (fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
     {
@@ -766,6 +767,10 @@ public:
     double spinPid = std::clamp(S_SPIN_KP * thetaDistance + intendedI, -1 * S_SPIN_MAX_SPEED, S_SPIN_MAX_SPEED);
 
     // Debugging Info
+    SmartDashboard::PutNumber("X FF", xFF.value());
+    SmartDashboard::PutNumber("Y FF", yFF.value());
+
+
     SmartDashboard::PutNumber("X Odom", pose.X().value());
     SmartDashboard::PutNumber("Y Odom", pose.Y().value());
     SmartDashboard::PutNumber("Theta Odom", GetPose().Rotation().Degrees().value());
@@ -812,6 +817,44 @@ public:
     lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * P_SPIN_MAX_ACCEL * elapsedTime,
                            P_SPIN_MAX_ACCEL * elapsedTime);
     DriveSwervePercent(0, 0, lastSpin);
+    return false;
+  }
+
+
+    /**
+   * Turns the robot to pid a value to 0, i.e. for limelight
+   * @param offset The position of the limelight, from -1 to 1 with -1 meaning turn counterclockwise
+   * @param elapsedTime time since function last called
+   */
+  bool StrafeToPole(double offset, double elapsedTime)
+  {
+    double thetaDistance = -1 * GetPose().Rotation().Radians().value();
+    if (fabs(thetaDistance) < O_ALLOWABLE_ERROR_ROTATION)
+    {
+      thetaDistance = 0;
+      runningIntegralSpin = 0;
+    }
+    double intendedI = std::clamp(O_SPIN_KI * runningIntegralSpin, -1 * O_SPIN_KI_MAX, O_SPIN_KI_MAX);
+    double intendedVelocity = std::clamp(O_SPIN_KP * thetaDistance + intendedI, -1 * O_SPIN_MAX_SPEED, O_SPIN_MAX_SPEED);
+    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * O_SPIN_MAX_ACCEL * elapsedTime,
+                           O_SPIN_MAX_ACCEL * elapsedTime);
+
+    // Use PID  to determine our desired spin speed
+    if (fabs(offset) < P_ALLOWABLE_ERROR_STRAFE)
+    {
+      lastX = 0;
+      runningIntegralX = 0;
+      return true;
+    }
+    runningIntegralX += offset;
+    intendedI = std::clamp(P_STRAFE_KI * runningIntegralX, -1 * P_STRAFE_KI_MAX, P_STRAFE_KI_MAX);
+    intendedVelocity = std::clamp(P_STRAFE_KP * offset + intendedI, -1 * P_STRAFE_MAX_SPEED, P_STRAFE_MAX_SPEED);
+    lastX += std::clamp(intendedVelocity - lastX, -1 * P_STRAFE_MAX_ACCEL * elapsedTime,
+                           P_STRAFE_MAX_ACCEL * elapsedTime);
+    DriveSwervePercent(lastX, 0, lastSpin);
+
+    SmartDashboard::PutNumber("Strafe X", lastX);
+    SmartDashboard::PutNumber("I", intendedI);
     return false;
   }
 };

@@ -6,6 +6,7 @@
 
 #include "Swerve.cpp"
 #include "Elevator.cpp"
+#include "Limelight.cpp"
 
 #include <fmt/core.h>
 
@@ -15,10 +16,12 @@ double pigeon_initial;
 // Our future subsystem objects
 SwerveDrive *swerveDrive;
 ElevatorLift *elevatorLift;
+Limelight *limelight;
 
 // To find values from cameras
 nt::NetworkTableInstance inst;
 shared_ptr<nt::NetworkTable> table;
+shared_ptr<nt::NetworkTable> limelightTable;
 nt::DoubleArrayTopic poseTopic;
 nt::IntegerTopic sanityTopic;
 nt::DoubleArrayTopic curPoseTopic;
@@ -62,6 +65,7 @@ void Robot::RobotInit()
   inst = nt::NetworkTableInstance::GetDefault();
   inst.StartServer();
   table = inst.GetTable("vision/localization");
+  limelightTable = inst.GetTable("limelight");
   poseTopic = table->GetDoubleArrayTopic("poseArray");
   sanityTopic = table->GetIntegerTopic("sanitycheck");
   curPoseTopic = table->GetDoubleArrayTopic("curPose");
@@ -80,6 +84,7 @@ void Robot::RobotInit()
                                 &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, STARTING_DRIVE_HEADING);
 
   elevatorLift = new ElevatorLift(&winchL, &winchR, &TOFSensor);
+  limelight = new Limelight(limelightTable);
 
   // Initializing Autonomous Trajectory (For Splines)
   swerveDrive->InitializeTrajectory();
@@ -135,7 +140,7 @@ void Robot::AutonomousInit()
   lastTime = 0;
   timer.Reset();
 
-  swerveDrive->ResetOdometry(Pose2d(7.3_m,  1.99_m, Rotation2d(3.14_rad)));
+  swerveDrive->ResetOdometry(Pose2d(4.74_m,  1.89_m, Rotation2d(3.14_rad)));
   swerveDrive->BeginPIDLoop();
 }
 
@@ -160,6 +165,7 @@ void Robot::AutonomousPeriodic()
   }
 
   // TODO UPDATE ODOMETRY
+  swerveDrive->UpdateOdometry(timer.Get());
 
   //Follow the trajectory of the swerve drive
   swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);
@@ -294,6 +300,8 @@ void Robot::TeleopPeriodic()
 
   // DEBUG INFO
 
+  frc::SmartDashboard::PutNumber("TOF", TOFSensor.GetRange());
+
   frc::SmartDashboard::PutNumber("FWD Drive Speed", lastFwdSpeed);
   frc::SmartDashboard::PutNumber("Strafe Drive Speed", lastStrafeSpeed);
   frc::SmartDashboard::PutNumber("Turn Drive Speed", lastTurnSpeed);
@@ -317,22 +325,22 @@ void Robot::TeleopPeriodic()
 
   swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
 
+  // LIMELIGHT CODE
+  if (xbox_Drive->GetRightBumper())
+  {
+    double offset = limelight->getTargetX();
+    swerveDrive->StrafeToPole(offset, elapsedTime);
+  }
+
   // BASIC ELEVATOR CODE
-  if (xbox_Drive->GetLeftBumper())
-    elevatorLift->MoveElevatorPercent(-0.8);
-  else if (xbox_Drive->GetRightBumper())
-    elevatorLift->MoveElevatorPercent(0.8);
-  else if (xbox_Drive->GetYButton())
+  if (xbox_Drive->GetYButton())
     elevatorLift->MoveElevatorPercent(0.2);
   else if (xbox_Drive->GetAButton())
     elevatorLift->MoveElevatorPercent(-0.2);
+  else if (xbox_Drive->GetBButton())
+    elevatorLift->StopElevatorBreak();
   else
-    elevatorLift->StopElevator();
-
-  if (xbox_Drive->GetXButtonPressed())
-    swerveDrive->BeginPIDLoop();
-  if (xbox_Drive->GetXButton())
-    swerveDrive->TurnToPixel(polePixelEntry.Get(), elapsedTime);
+    elevatorLift->StopElevatorCoast();
 
   //Here is our Test Drive Control Code that runs different functions when different buttons are pressed
   /*
