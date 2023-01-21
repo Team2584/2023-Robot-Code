@@ -43,9 +43,23 @@ double caliX = 0;
 double caliY = 0;
 double caliTheta = 0;
 
-constexpr float GREEN = 0.77;
-constexpr float FIRE = -0.59;
-bool turnLightsGreen;
+//Lights
+float currentLightEffect;
+const std::map<std::string, float> lightEffects;
+
+lightEffects["fire"] = -0.59;
+lightEffects["red"] = 0.61;
+lightEffects["orange"] = 0.65;
+lightEffects["yellow"] = 0.69;
+lightEffects["lime"] = 0.73;
+lightEffects["green"] = 0.77;
+lightEffects["blue"] = 0.81;
+lightEffects["purple"] = 0.91;
+
+void setLED(string color){
+  lights.set(lightEffects[color])
+}
+
 
 void Robot::RobotInit()
 {
@@ -85,8 +99,7 @@ void Robot::RobotInit()
 
   // Initializing Autonomous Trajectory (For Splines)
   swerveDrive->InitializeTrajectory();
-  bool turnLightsGreen = false;
-  lights.Set(FIRE);
+  setLED("fire");
 }
 
 /**
@@ -99,8 +112,6 @@ void Robot::RobotInit()
  */
 void Robot::RobotPeriodic()
 {
-  if(turnLightsGreen) lights.Set(GREEN);
-  else lights.Set(FIRE);
 }
 
 /**
@@ -340,8 +351,8 @@ void Robot::TeleopPeriodic()
     swerveDrive->DriveToPoseVisionOdometry(Pose2d(-0.5_m, -3_m, Rotation2d(0.5_rad)), elapsedTime);
 
   if (xbox_Drive->GetRightBumperPressed()){
-    turnLightsGreen = !turnLightsGreen;
-    swerveDrive->BeginPIDLoop(); }
+    swerveDrive->BeginPIDLoop(); 
+    }
   if (xbox_Drive->GetRightBumper())
     swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
 
