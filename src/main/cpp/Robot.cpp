@@ -124,6 +124,14 @@ void Robot::RobotPeriodic()
  * make sure to add them to the chooser code above as well.
  */
 
+bool Update()
+{
+  swerveDrive->SetNextTrajectory();
+  splineSection ++;
+  timer.Reset();
+  return true;
+}
+
 void Robot::AutonomousInit()
 {
   /*
@@ -153,10 +161,23 @@ void Robot::AutonomousInit()
   swerveDrive->SetNextTrajectory();
 
 
- splineSection = 1;
+ splineSection = 0;
  limelightTracking = false;
+ timer.Start();
 
- scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);}));
+ scheduler.Schedule(new FunctionWrapper([](){return Update();}));
+ scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}));
+ 
+ scheduler.Schedule(new FunctionWrapper([](){return Update();}));
+ scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}));
+ 
+ scheduler.Schedule(new FunctionWrapper([](){return Update();}));
+ scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}));
+ 
+ scheduler.Schedule(new FunctionWrapper([](){return Update();}));
+ scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}));
+
+ scheduler.Schedule(new FunctionWrapper([](){swerveDrive->DriveSwervePercent(0, 0, 0); return true;}));
 }
 
 void Robot::AutonomousPeriodic()
@@ -173,11 +194,11 @@ void Robot::AutonomousPeriodic()
   */
 
   //If we haven't started the timer yet, start the timer
-  if (!startedTimer)  
-  {
-    timer.Start();
-    startedTimer = true;
-  }
+  // if (!startedTimer)  
+  // {
+  //   timer.Start();
+  //   startedTimer = true;
+  // }
 
   // Update Odometry
   swerveDrive->UpdateOdometry(timer.Get());
@@ -185,36 +206,36 @@ void Robot::AutonomousPeriodic()
   if (splineSection == 5)
     return;
 
-  //Follow the trajectory of the swerve drive
-  if (!limelightTracking)
-  {
-    bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);
-    if (splineDone && (splineSection == 2 || splineSection == 4))
-    {
-      limelightTracking = true;
-      splineSection += 1;
-      swerveDrive->SetNextTrajectory();
-    }
-    else if (splineDone)
-    {
-      splineSection += 1;
-      swerveDrive->SetNextTrajectory(); 
-      timer.Reset();
-      lastTime = 0;
-    }
-  }
-  else 
-  {
-    bool limelightDone = swerveDrive->StrafeToPole(limelight->getTargetX(), timer.Get().value() - lastTime);
-    if (limelightDone)
-    {
-      limelightTracking = false;
-      timer.Reset();
-      lastTime = 0;
-    }
-  }
+  // //Follow the trajectory of the swerve drive
+  // if (!limelightTracking)
+  // {
+  //   bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);
+  //   if (splineDone && (splineSection == 2 || splineSection == 4))
+  //   {
+  //     limelightTracking = true;
+  //     splineSection += 1;
+  //     swerveDrive->SetNextTrajectory();
+  //   }
+  //   else if (splineDone)
+  //   {
+  //     splineSection += 1;
+  //     swerveDrive->SetNextTrajectory(); 
+  //     timer.Reset();
+  //     lastTime = 0;
+  //   }
+  // }
+  // else 
+  // {
+  //   bool limelightDone = swerveDrive->StrafeToPole(limelight->getTargetX(), timer.Get().value() - lastTime);
+  //   if (limelightDone)
+  //   {
+  //     limelightTracking = false;
+  //     timer.Reset();
+  //     lastTime = 0;
+  //   }
+  // }
 
-  lastTime = timer.Get().value();
+  // lastTime = timer.Get().value();
   scheduler.Run();
 }
 /*

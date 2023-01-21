@@ -740,8 +740,9 @@ public:
    * Follow a trajectory through auton.
    * Must be called every autonomous loop.
    */
-  bool FollowTrajectory(units::second_t time, double elapsedTime)
+  bool FollowTrajectory(Timer& timer)
   {
+    units::second_t time = timer.Get();
     // Sample the state of the path at some seconds
     pathplanner::PathPlannerTrajectory::PathPlannerState state = trajectory.sample(time);
     // auto xFF = -1 * state.velocity * state.pose.Rotation().Sin(); Blue Alliance
