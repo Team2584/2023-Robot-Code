@@ -50,7 +50,7 @@ float currentLightEffect;
 
 std::map<std::string, float> lightEffects;
 
-void setLED(string color){
+void setLED(std::string color){
   lights.Set(lightEffects[color]);
 }
 
@@ -98,7 +98,6 @@ void Robot::RobotInit()
 
   // Lights
   
-  lightEffects["fire"] = -0.59;
   lightEffects["fire"] = -0.59;
   lightEffects["red"] = 0.61;
   lightEffects["orange"] = 0.65;
@@ -339,7 +338,7 @@ void Robot::TeleopPeriodic()
   if (xbox_Drive->GetLeftBumper())
     Turn_Speed = swerveDrive->TurnToPointDesiredSpin(pose, Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
   if (xbox_Drive->GetYButtonPressed()) {
- 
+
   }
   swerveDrive->DriveSwervePercent(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
 
@@ -360,7 +359,7 @@ void Robot::TeleopPeriodic()
 
   if (xbox_Drive->GetRightBumperPressed()){
     swerveDrive->BeginPIDLoop(); 
-    }
+  }
   if (xbox_Drive->GetRightBumper())
     swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
 
