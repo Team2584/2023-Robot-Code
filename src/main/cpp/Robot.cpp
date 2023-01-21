@@ -110,6 +110,7 @@ void Robot::RobotInit()
  */
 void Robot::RobotPeriodic()
 {
+  scheduler.Run();
 }
 
 /**
@@ -158,7 +159,7 @@ void Robot::AutonomousInit()
 
   swerveDrive->ResetOdometry(Pose2d(4.74_m,  1.89_m, Rotation2d(3.14_rad)));
   swerveDrive->BeginPIDLoop();
-  swerveDrive->SetNextTrajectory();
+  //swerveDrive->SetNextTrajectory();
 
 
  splineSection = 0;
@@ -236,7 +237,6 @@ void Robot::AutonomousPeriodic()
   // }
 
   // lastTime = timer.Get().value();
-  scheduler.Run();
 }
 /*
 void Robot::TeleopInit() {
