@@ -109,6 +109,7 @@ void Robot::RobotPeriodic()
  * if-else structure below with additional strings. If using the SendableChooser
  * make sure to add them to the chooser code above as well.
  */
+
 void Robot::AutonomousInit()
 {
   /*
@@ -132,8 +133,12 @@ void Robot::AutonomousInit()
   startedTimer = false;
   lastTime = 0;
   timer.Reset();
+  timer.Start();
   swerveDrive->ResetOdometry(Pose2d(7.3_m,  1.99_m, Rotation2d(3.14_rad)));
   swerveDrive->BeginPIDLoop();
+  
+  //scheduler.Schedule(new Function2<units::time::second_t, double>([](units::time::second_t a, double b){return swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);}));
+  //DOESNT WORK!! NEED TO CHANGE THE FUNCTION PARAMETERS! //Replace the parameters with 
 }
 
 void Robot::AutonomousPeriodic()
@@ -150,15 +155,15 @@ void Robot::AutonomousPeriodic()
   */
 
   //If we haven't started the timer yet, start the timer
-  if (!startedTimer)
-  {
-    timer.Start();
-    startedTimer = false;
-  }
+  //if (!startedTimer)
+  //{
+  //  timer.Start();
+  //  startedTimer = false;
+  //}
 
 
   //Follow the trajectory of the swerve drive
-  swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);
+  //swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);
   lastTime = timer.Get().value();
 }
 /*

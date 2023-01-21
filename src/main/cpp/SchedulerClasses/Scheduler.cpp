@@ -2,20 +2,12 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-//#include "Scheduler.h"
-
-//Scheduler::Scheduler() = default;
-
-//#include <frc2/command/CommandBase.h>
-//#include <frc2/command/CommandHelper.h>
-
 #include <vector>
 #include <functional>
-#include "FunctionTemplates/Function.cpp"
+//#include "FunctionTemplates/Function.cpp"
 #include <hash_set>
 #include <frc2/command/CommandBase.h>
 #include <frc2/command/CommandHelper.h>
-#include "FunctionTemplates/Function.cpp"
 
 /* new
 Scheduler scheduler = Scheduler();
@@ -56,8 +48,7 @@ class Scheduler
     
     void Run()
     {
-        //run the stuff
-        //also don't forget to initialize the command scheduler
+        frc2::CommandScheduler::GetInstance().Run();
     }
 };
 

@@ -278,6 +278,8 @@ private:
   double runningIntegralY = 0;
   double runningIntegralSpin = 0;
 
+
+
 public:
   SwerveModule *FLModule, *FRModule, *BRModule, *BLModule;
   double pigeon_initial;
@@ -852,7 +854,8 @@ public:
    * Follow a trajectory through auton.
    * Must be called every autonomous loop.
    */
-  void FollowTrajectory(units::second_t time, double elapsedTime)
+  
+  bool FollowTrajectory(units::second_t time, double timeDifference)
   {
     UpdateOdometry();
 
@@ -914,10 +917,11 @@ public:
     {
       DriveSwervePercent(0, 0, 0);
       SmartDashboard::PutBoolean("Done", true);
-      return;
+      return true;
     }
 
     // Drive the swerve drive
     DriveSwerveMetersAndRadians(xFF.value() + xPid, yFF.value() + yPid, spinPid);
+    return false;
   }
 };
