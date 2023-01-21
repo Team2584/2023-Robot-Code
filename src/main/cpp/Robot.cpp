@@ -173,11 +173,11 @@ void Robot::AutonomousPeriodic()
   */
 
   //If we haven't started the timer yet, start the timer
-  //if (!startedTimer)
-  //{
-  //  timer.Start();
-  //  startedTimer = false;
-  //}
+  if (!startedTimer)  
+  {
+    timer.Start();
+    startedTimer = true;
+  }
 
   // Update Odometry
   swerveDrive->UpdateOdometry(timer.Get());
@@ -199,13 +199,19 @@ void Robot::AutonomousPeriodic()
     {
       splineSection += 1;
       swerveDrive->SetNextTrajectory(); 
+      timer.Reset();
+      lastTime = 0;
     }
   }
   else 
   {
     bool limelightDone = swerveDrive->StrafeToPole(limelight->getTargetX(), timer.Get().value() - lastTime);
     if (limelightDone)
+    {
       limelightTracking = false;
+      timer.Reset();
+      lastTime = 0;
+    }
   }
 
   lastTime = timer.Get().value();
@@ -259,7 +265,7 @@ void Robot::TeleopInit()
 void Robot::TeleopPeriodic()
 {
   // Take values from Smartdashboard
-  MAX_DRIVE_SPEED = frc::SmartDashboard::GetNumber("Max Drive Speed", 0.4);
+  MAX_DRIVE_SPEED = frc::SmartDashboard::GetNumber("MAX DRIVE SPEED", 0.4);
 
 
   double joy_lStick_Y, joy_lStick_X, joy_rStick_X;
