@@ -5,7 +5,7 @@ void Swerve::driveToCharger(Pose2d current){
         {
             if (current.Rotation().Z() != 90)
             {
-                pidTurnWheelsTo(90)
+                pidTurnWheelsTo(current.Rotation().X(), 90)
             }
         }
         else
