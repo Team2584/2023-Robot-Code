@@ -6,11 +6,13 @@
 
 #include "Swerve.cpp"
 
-#include "Lights.cpp"
-
 #include <fmt/core.h>
 
 #include <frc/smartdashboard/SmartDashboard.h>
+
+// #include <map>
+// #include <iostream>
+
 
 double pigeon_initial;
 // Instantiates a SwerveDrive object with all the correct references to motors and offset values
@@ -45,24 +47,17 @@ double caliTheta = 0;
 
 //Lights
 float currentLightEffect;
-const std::map<std::string, float> lightEffects;
 
-lightEffects["fire"] = -0.59;
-lightEffects["red"] = 0.61;
-lightEffects["orange"] = 0.65;
-lightEffects["yellow"] = 0.69;
-lightEffects["lime"] = 0.73;
-lightEffects["green"] = 0.77;
-lightEffects["blue"] = 0.81;
-lightEffects["purple"] = 0.91;
+std::map<std::string, float> lightEffects;
 
 void setLED(string color){
-  lights.set(lightEffects[color])
+  lights.Set(lightEffects[color]);
 }
 
 
 void Robot::RobotInit()
 {
+
   // Autonomous Choosing
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
   m_chooser.AddOption(kAutoNameCustom, kAutoNameCustom);
@@ -99,6 +94,19 @@ void Robot::RobotInit()
 
   // Initializing Autonomous Trajectory (For Splines)
   swerveDrive->InitializeTrajectory();
+
+
+  // Lights
+  
+  lightEffects["fire"] = -0.59;
+  lightEffects["fire"] = -0.59;
+  lightEffects["red"] = 0.61;
+  lightEffects["orange"] = 0.65;
+  lightEffects["yellow"] = 0.69;
+  lightEffects["lime"] = 0.73;
+  lightEffects["green"] = 0.77;
+  lightEffects["blue"] = 0.81;
+  lightEffects["purple"] = 0.91;
   setLED("fire");
 }
 
@@ -367,6 +375,7 @@ void Robot::TeleopPeriodic()
     pigeon_initial = fmod(_pigeon.GetYaw(), 360);
     swerveDrive->pigeon_initial = pigeon_initial;
   }
+
 }
 
 void Robot::DisabledInit()
