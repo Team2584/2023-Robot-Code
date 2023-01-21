@@ -39,17 +39,15 @@ double lastFwdSpeed = 0;
 double lastStrafeSpeed = 0;
 double lastTurnSpeed = 0;
 
-
-// To Calibrate Odometry to april tag
-bool isCalibrated = false;
-double calibrationTime = 0;
-double calibrationAmount = 0;
-double caliX = 0;
-double caliY = 0;
-double caliTheta = 0;
+// Values to Set with ShuffleBoard
+double MAX_DRIVE_SPEED = 0.4;
+double MAX_SPIN_SPEED = 0.4;
 
 void Robot::RobotInit()
 {
+  // Set all Values from Shuffleboard (Smartdashboard but cooler)
+  frc::SmartDashboard::PutNumber("MAX DRIVE SPEED", 0.4);
+
   // Autonomous Choosing
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
   m_chooser.AddOption(kAutoNameCustom, kAutoNameCustom);
@@ -63,7 +61,7 @@ void Robot::RobotInit()
 
   // Finding values from network tables
   inst = nt::NetworkTableInstance::GetDefault();
-  inst.StartServer();
+  inst.StartServer(); 
   table = inst.GetTable("vision/localization");
   limelightTable = inst.GetTable("limelight");
   poseTopic = table->GetDoubleArrayTopic("poseArray");
@@ -98,11 +96,8 @@ void Robot::RobotInit()
  * <p> This runs after the mode specific periodic functions, but before
  * LiveWindow and SmartDashboard integrated updating.
  */
-int count23 = 0;
 void Robot::RobotPeriodic()
 {
-  SmartDashboard::PutNumber("counter", count23);
-  count23 += 1;
 }
 
 /**
@@ -199,16 +194,10 @@ void Robot::TeleopInit()
   swerveDrive->pigeon_initial = pigeon_initial;
   swerveDrive->ResetOdometry();
 
+  //Reset all our values throughout the code
   timer.Reset();
   timer.Start();
   lastTime = 0;
-
-  isCalibrated = false;
-  calibrationTime = 0;
-  calibrationAmount = 0;
-  caliX = 0;
-  caliY = 0;
-  caliTheta = 0;
 
   lastFwdSpeed = 0;
   lastStrafeSpeed = 0;
@@ -224,6 +213,10 @@ void Robot::TeleopInit()
 
 void Robot::TeleopPeriodic()
 {
+  // Take values from Smartdashboard
+  MAX_DRIVE_SPEED = frc::SmartDashboard::GetNumber("Max Drive Speed", 0.4);
+
+
   double joy_lStick_Y, joy_lStick_X, joy_rStick_X;
   // Find controller input
   if (CONTROLLER_TYPE == 0)
@@ -288,15 +281,6 @@ void Robot::TeleopPeriodic()
   Pose2d pose = swerveDrive->GetPose();
   double poseArray[] = {pose.X().value(), pose.Y().value(), 0.75, pose.Rotation().Radians().value(), 0};
   curPoseEntry.Set(poseArray);
-
-  // WIP not important
-  /*
-  if (!isCalibrated && existsEntry.Get())
-  {
-    isCalibrated = true;
-    swerveDrive->ResetOdometry(visionPose);
-  }
-  */  
 
   // DEBUG INFO
 

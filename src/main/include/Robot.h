@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include "ctre/Phoenix.h"
 #include <frc/TimedRobot.h>
 #include <frc/RobotController.h>
@@ -63,6 +61,8 @@
 
 #include <TimeOfFlight.h>
 
+#include <string>
+#include <string_view>
 #include <cmath>
 #include <iostream>
 #include <math.h>
