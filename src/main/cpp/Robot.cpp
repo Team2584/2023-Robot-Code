@@ -43,6 +43,10 @@ double lastTurnSpeed = 0;
 double MAX_DRIVE_SPEED = 0.4;
 double MAX_SPIN_SPEED = 0.4;
 
+// Cringe Auto Values S**FF
+double splineSection = 1;
+bool limelightTracking = false;
+
 void Robot::RobotInit()
 {
   // Set all Values from Shuffleboard (Smartdashboard but cooler)
@@ -85,7 +89,10 @@ void Robot::RobotInit()
   limelight = new Limelight(limelightTable);
 
   // Initializing Autonomous Trajectory (For Splines)
-  swerveDrive->InitializeTrajectory();
+  swerveDrive->InitializeTrajectory("RedRight3GamePiece1");
+  swerveDrive->InitializeTrajectory("RedRight3GamePiece2");
+  swerveDrive->InitializeTrajectory("RedRight3GamePiece3");
+  swerveDrive->InitializeTrajectory("RedRight3GamePiece4");
 }
 
 /**
@@ -137,6 +144,11 @@ void Robot::AutonomousInit()
 
   swerveDrive->ResetOdometry(Pose2d(4.74_m,  1.89_m, Rotation2d(3.14_rad)));
   swerveDrive->BeginPIDLoop();
+  swerveDrive->SetNextTrajectory();
+
+
+ splineSection = 1;
+ limelightTracking = false;
 }
 
 void Robot::AutonomousPeriodic()
@@ -159,11 +171,35 @@ void Robot::AutonomousPeriodic()
     startedTimer = false;
   }
 
-  // TODO UPDATE ODOMETRY
+  // Update Odometry
   swerveDrive->UpdateOdometry(timer.Get());
 
+  if (splineSection == 5)
+    return;
+
   //Follow the trajectory of the swerve drive
-  swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);
+  if (!limelightTracking)
+  {
+    bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);
+    if (splineDone && (splineSection == 2 || splineSection == 4))
+    {
+      limelightTracking = true;
+      splineSection += 1;
+      swerveDrive->SetNextTrajectory();
+    }
+    else if (splineDone)
+    {
+      splineSection += 1;
+      swerveDrive->SetNextTrajectory(); 
+    }
+  }
+  else 
+  {
+    bool limelightDone = swerveDrive->StrafeToPole(limelight->getTargetX(), timer.Get().value() - lastTime);
+    if (limelightDone)
+      limelightTracking = false;
+  }
+
   lastTime = timer.Get().value();
 }
 /*

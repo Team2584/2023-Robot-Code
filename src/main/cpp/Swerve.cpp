@@ -262,6 +262,7 @@ private:
   Translation2d m_backRight;
   SwerveDriveKinematics<4> kinematics;
   SwerveDrivePoseEstimator<4> *odometry;
+  std::queue<pathplanner::PathPlannerTrajectory> trajectoryList; 
   pathplanner::PathPlannerTrajectory trajectory; 
 
   // All Variables below are "WIP" for testing and will hopefully be refactored later
@@ -299,7 +300,8 @@ public:
         m_frontRight{DRIVE_LENGTH / 2, -DRIVE_WIDTH / 2},
         m_backLeft{-DRIVE_LENGTH / 2, DRIVE_WIDTH / 2},
         m_backRight{-DRIVE_LENGTH / 2, DRIVE_WIDTH / 2},
-        kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight}
+        kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight},
+        trajectoryList{}
   {
     FLModule = new SwerveModule(_FLDriveMotor, _FLSpinMotor, _FLMagEncoder, _FLEncoderOffset);
     FRModule = new SwerveModule(_FRDriveMotor, _FRSpinMotor, _FRMagEncoder, _FREncoderOffset);
@@ -716,17 +718,27 @@ public:
    * A trajectory is a curve that we tell the robot to move through. AKA a spline.
    * Run in auton Init
    */
-  void InitializeTrajectory()
+  void InitializeTrajectory(string trajectoryString)
   {
-  // This will load the file "Example Path.path" and generate it with a max velocity of 4 m/s and a max acceleration of 3 m/s^2
-    trajectory = pathplanner::PathPlanner::loadPath("RedRight3GamePiece", pathplanner::PathConstraints(3_mps, 5_mps_sq));
+  // This will load the file "Example Path.path" and generate it with a max velocity of 3 m/s and a max acceleration of 5 m/s^2
+    trajectoryList.push(pathplanner::PathPlanner::loadPath(trajectoryString, pathplanner::PathConstraints(3_mps, 5_mps_sq)));
+  }
+
+  /**
+   * Iterates to next trajectory in list of trajectories
+   */
+  void SetNextTrajectory()
+  {
+    BeginPIDLoop();
+    trajectory = trajectoryList.front();
+    trajectoryList.pop();
   }
 
   /**
    * Follow a trajectory through auton.
    * Must be called every autonomous loop.
    */
-  void FollowTrajectory(units::second_t time, double elapsedTime)
+  bool FollowTrajectory(units::second_t time, double elapsedTime)
   {
     // Sample the state of the path at some seconds
     pathplanner::PathPlannerTrajectory::PathPlannerState state = trajectory.sample(time);
@@ -784,20 +796,17 @@ public:
     SmartDashboard::PutNumber("Theta Distance", thetaDistance);
     SmartDashboard::PutNumber("spin Pid", spinPid);
 
-    SmartDashboard::PutBoolean("Done", false);
-
-
     // If we have finished the spline, just stop
     if (trajectory.getTotalTime() < time && fabs(xDistance) < S_ALLOWABLE_ERROR_TRANSLATION && fabs(yDistance) < S_ALLOWABLE_ERROR_TRANSLATION
         && fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
     {
       DriveSwervePercent(0, 0, 0);
-      SmartDashboard::PutBoolean("Done", true);
-      return;
+      return true;
     }
 
     // Drive the swerve drive
     DriveSwerveMetersAndRadians(xFF.value() + xPid, yFF.value() + yPid, spinPid);
+    return false;
   }
 
   /**
