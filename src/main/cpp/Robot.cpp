@@ -186,6 +186,8 @@ void Robot::AutonomousPeriodic()
       limelightTracking = true;
       splineSection += 1;
       swerveDrive->SetNextTrajectory();
+      timer.Reset();
+      lastTime = 0;
     }
     else if (splineDone)
     {
