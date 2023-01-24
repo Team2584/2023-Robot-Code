@@ -7,6 +7,7 @@
 #include "Swerve.cpp"
 #include "Elevator.cpp"
 #include "Limelight.cpp"
+#include "Claw.cpp"
 
 #include <fmt/core.h>
 
@@ -17,20 +18,25 @@ double pigeon_initial;
 SwerveDrive *swerveDrive;
 ElevatorLift *elevatorLift;
 Limelight *limelight;
+Claw *claw;
 
 // To find values from cameras
 nt::NetworkTableInstance inst;
-shared_ptr<nt::NetworkTable> table;
+shared_ptr<nt::NetworkTable> aprilTagTable;
 shared_ptr<nt::NetworkTable> limelightTable;
+shared_ptr<nt::NetworkTable> objectTable;
 nt::DoubleArrayTopic poseTopic;
-nt::IntegerTopic sanityTopic;
+nt::DoubleTopic sanityTopic;
 nt::DoubleArrayTopic curPoseTopic;
 nt::DoubleArraySubscriber poseSub;
-nt::IntegerEntry sanityEntry;
+nt::DoubleEntry sanityEntry;
 nt::DoubleArrayEntry curPoseEntry;
 nt::DoubleTopic polePixelTopic;
 nt::DoubleEntry polePixelEntry;
-
+nt::DoubleTopic coneXTopic;
+nt::DoubleEntry coneXEntry;
+nt::DoubleTopic coneYTopic;
+nt::DoubleEntry coneYEntry;
 // To track time for slew rate and pid controll
 frc::Timer timer;
 double lastTime = 0;
@@ -42,15 +48,19 @@ double lastTurnSpeed = 0;
 // Values to Set with ShuffleBoard
 double MAX_DRIVE_SPEED = 0.4;
 double MAX_SPIN_SPEED = 0.4;
+double ELEVATOR_SPEED = 0.1;
 
 // Cringe Auto Values S**FF
 double splineSection = 1;
 bool limelightTracking = false;
 
+double lastSanity = 0;
+
 void Robot::RobotInit()
 {
   // Set all Values from Shuffleboard (Smartdashboard but cooler)
   frc::SmartDashboard::PutNumber("MAX DRIVE SPEED", 0.4);
+  frc::SmartDashboard::PutNumber("ELEVATOR_SPEED", 0.1) ;
 
   // Autonomous Choosing
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
@@ -66,16 +76,21 @@ void Robot::RobotInit()
   // Finding values from network tables
   inst = nt::NetworkTableInstance::GetDefault();
   inst.StartServer(); 
-  table = inst.GetTable("vision/localization");
+  aprilTagTable = inst.GetTable("vision/localization");
   limelightTable = inst.GetTable("limelight");
-  poseTopic = table->GetDoubleArrayTopic("poseArray");
-  sanityTopic = table->GetIntegerTopic("sanitycheck");
-  curPoseTopic = table->GetDoubleArrayTopic("curPose");
-  polePixelTopic = table->GetDoubleTopic("polePixel");
+  objectTable = inst.GetTable("vision/objects");
+  poseTopic = aprilTagTable->GetDoubleArrayTopic("poseArray");
+  sanityTopic = objectTable->GetDoubleTopic("sanitycheck");
+  curPoseTopic = limelightTable->GetDoubleArrayTopic("curPose");
+  polePixelTopic = limelightTable->GetDoubleTopic("polePixel");
+  coneXTopic = objectTable->GetDoubleTopic("coneX");
+  coneYTopic = objectTable->GetDoubleTopic("coneY");
   poseSub = poseTopic.Subscribe({});
   sanityEntry = sanityTopic.GetEntry(10000);
   curPoseEntry = curPoseTopic.GetEntry({});
   polePixelEntry = polePixelTopic.GetEntry(1000);
+  coneXEntry = coneXTopic.GetEntry(0);
+  coneYEntry = coneYTopic.GetEntry(0);
 
   // Initializing things
   timer = Timer();
@@ -87,6 +102,7 @@ void Robot::RobotInit()
 
   elevatorLift = new ElevatorLift(&winchL, &winchR, &TOFSensor);
   limelight = new Limelight(limelightTable);
+  claw = new Claw(&wrist);
 
   // Initializing Autonomous Trajectory (For Splines)
   swerveDrive->InitializeTrajectory("RedRight3GamePiece1");
@@ -255,11 +271,24 @@ void Robot::TeleopInit()
   */
 }
 
+int counter = 0;
 void Robot::TeleopPeriodic()
 {
+  double test = sanityEntry.Get();
+  frc::SmartDashboard::PutNumber("diff", test - lastSanity);
+  frc::SmartDashboard::PutNumber("sanity", test);
+  frc::SmartDashboard::PutBoolean("changed", lastSanity != test);
+  frc::SmartDashboard::PutNumber("my counter", counter);
+
+
+  counter += 1;
+  lastSanity = test;
+
   // Take values from Smartdashboard
   MAX_DRIVE_SPEED = frc::SmartDashboard::GetNumber("MAX DRIVE SPEED", 0.4);
+  ELEVATOR_SPEED = frc::SmartDashboard::GetNumber("ELEVATOR_SPEED", 0.1);
 
+  SmartDashboard::PutNumber("Spin Encoder Tracker", swerveDrive->FLModule->GetSpinEncoderRadians());
 
   double joy_lStick_Y, joy_lStick_X, joy_rStick_X;
   // Find controller input
@@ -328,7 +357,7 @@ void Robot::TeleopPeriodic()
 
   // DEBUG INFO
 
-  frc::SmartDashboard::PutNumber("TOF", TOFSensor.GetRange());
+  frc::SmartDashboard::PutNumber("TOF", elevatorLift->TOFSReading());
 
   frc::SmartDashboard::PutNumber("FWD Drive Speed", lastFwdSpeed);
   frc::SmartDashboard::PutNumber("Strafe Drive Speed", lastStrafeSpeed);
@@ -356,19 +385,32 @@ void Robot::TeleopPeriodic()
   // LIMELIGHT CODE
   if (xbox_Drive->GetRightBumper())
   {
-    double offset = limelight->getTargetX();
+    double offset = coneXEntry.Get();
     swerveDrive->StrafeToPole(offset, elapsedTime);
   }
 
   // BASIC ELEVATOR CODE
+  if (xbox_Drive->GetBButtonPressed())
+    elevatorLift->StartPIDLoop();
+
   if (xbox_Drive->GetYButton())
     elevatorLift->MoveElevatorPercent(0.2);
   else if (xbox_Drive->GetAButton())
     elevatorLift->MoveElevatorPercent(-0.2);
   else if (xbox_Drive->GetBButton())
+    elevatorLift->SetElevatorHeightPID(2.2, elapsedTime);
+  else if (xbox_Drive->GetXButton())
     elevatorLift->StopElevatorBreak();
-  else
-    elevatorLift->StopElevatorCoast();
+  else 
+    elevatorLift->StopElevatorBreak();
+
+
+  if (xbox_Drive->GetStartButton())
+    claw->MoveWristPercent(0.2);
+  else if (xbox_Drive->GetBackButton())
+    claw->MoveWristPercent(-0.2);
+  else 
+    claw->MoveWristPercent(0);  
 
   //Here is our Test Drive Control Code that runs different functions when different buttons are pressed
   /*

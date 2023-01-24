@@ -9,6 +9,7 @@ private:
   // Instance Variables for each swerve module
   ctre::phoenix::motorcontrol::can::TalonFX *driveMotor;
   rev::CANSparkMax *spinMotor;
+  rev::SparkMaxRelativeEncoder *spinEncoder;
   frc::DutyCycleEncoder *magEncoder;
   frc::PIDController *spinPIDController;
   double encoderOffset;       /* Offset in magnetic encoder from 0 facing the front of the robot */
@@ -33,6 +34,7 @@ public:
     spinMotor = spinMotor_;
     magEncoder = magEncoder_;
     encoderOffset = encoderOffset_;
+    spinEncoder = new rev::SparkMaxRelativeEncoder(spinMotor->GetEncoder());
     ResetEncoders();
   }
 
@@ -84,13 +86,11 @@ public:
   /**
    *  INCOMPLETE DO NOT USE UNDER ANY CIRCUMSTANCE, USE GetMagEncoderReading() INSTEAD!   Also this hasn't been updated from the talon swerve drive as it is an uneccessary functino
    */
-  /*
   double GetSpinEncoderRadians()
   {
-    double rotation = ((-1 * spinMotor->GetSelectedSensorPosition() - spinEncoderInitialValue) / 2048 / SPIN_MOTOR_GEAR_RATIO * 2 * M_PI) - spinEncoderInitialHeading;
-    return fmod(rotation, 2 * M_PI);
+    return spinEncoder->GetPosition();
   }
-  */
+  
 
   /**
    *  Setss all motor speeds to 0.
@@ -837,6 +837,7 @@ public:
    */
   bool StrafeToPole(double offset, double elapsedTime)
   {
+    double P_STRAFE_KP = frc::SmartDashboard::GetNumber("P", 0.75);
     double thetaDistance = -1 * GetPose().Rotation().Radians().value();
     if (fabs(thetaDistance) < O_ALLOWABLE_ERROR_ROTATION)
     {

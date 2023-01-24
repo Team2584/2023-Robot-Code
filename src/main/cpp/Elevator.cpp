@@ -26,6 +26,11 @@ public:
     tofSensor = tofSensor_;
   }
 
+  double TOFSReading()
+  {
+    return (tofSensor->GetRange()) / 100;
+  }
+
   double TOFSElevatorHeight()
   {
     if (!tofSensor->IsRangeValid())
@@ -44,7 +49,7 @@ public:
   {
     winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
     winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
-    MoveElevatorPercent(0);
+    MoveElevatorPercent(0.05);
   }
 
   /**
@@ -52,8 +57,8 @@ public:
    */
   void MoveElevatorPercent(double percent)
   {
-    winchR->Set(percent);
-    winchL->Set(percent);   
+    winchR->Set(-percent);
+    winchL->Set(-percent);   
   }
 
   void StartPIDLoop()
@@ -64,7 +69,7 @@ public:
 
   void SetElevatorHeightPID(double height, double elapsedTime)
   {
-    double error = height - TOFSElevatorHeight();
+    double error = height - TOFSReading();
 
      if (fabs(error) < ALLOWABLE_ERROR_HEIGHT)
     {
@@ -83,6 +88,8 @@ public:
                         MAX_ACCELERATION * elapsedTime);
 
 
+    SmartDashboard::PutNumber("lastSpeed", lastSpeed);
+    SmartDashboard::PutNumber("error", error);
     MoveElevatorPercent(lastSpeed + HOLDFF);
   }
 };
