@@ -320,6 +320,9 @@ public:
                                           Rotation2d(units::radian_t{GetIMURadians()}),
                                           positions,
                                           frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
+
+    wpi::array<double, 3> stdDevs = {10, 10, 25};
+    odometry->SetVisionMeasurementStdDevs(stdDevs);
   }
 
   /**
@@ -672,13 +675,13 @@ public:
     runningIntegralSpin += thetaDistance;
 
     // Debugging info
-    SmartDashboard::PutNumber("XDistance", xDistance);
-    SmartDashboard::PutNumber("YDistance", yDistance);
-    SmartDashboard::PutNumber("ThetaDistance", thetaDistance);
+    // SmartDashboard::PutNumber("XDistance", xDistance);
+    // SmartDashboard::PutNumber("YDistance", yDistance);
+    // SmartDashboard::PutNumber("ThetaDistance", thetaDistance);
 
-    SmartDashboard::PutNumber("Drive X", lastX);
-    SmartDashboard::PutNumber("Drive Y", lastY);
-    SmartDashboard::PutNumber("Drive Spin", lastSpin);
+    // SmartDashboard::PutNumber("Drive X", lastX);
+    // SmartDashboard::PutNumber("Drive Y", lastY);
+    // SmartDashboard::PutNumber("Drive Spin", lastSpin);
 
     if (xSpeed == 0 && ySpeed == 0 && spinSpeed == 0)
       return true;
@@ -779,26 +782,26 @@ public:
     double spinPid = std::clamp(S_SPIN_KP * thetaDistance + intendedI, -1 * S_SPIN_MAX_SPEED, S_SPIN_MAX_SPEED);
 
     // Debugging Info
-    SmartDashboard::PutNumber("X FF", xFF.value());
-    SmartDashboard::PutNumber("Y FF", yFF.value());
+    // SmartDashboard::PutNumber("X FF", xFF.value());
+    // SmartDashboard::PutNumber("Y FF", yFF.value());
 
 
-    SmartDashboard::PutNumber("X Odom", pose.X().value());
-    SmartDashboard::PutNumber("Y Odom", pose.Y().value());
-    SmartDashboard::PutNumber("Theta Odom", GetPose().Rotation().Degrees().value());
+    // SmartDashboard::PutNumber("X Odom", pose.X().value());
+    // SmartDashboard::PutNumber("Y Odom", pose.Y().value());
+    // SmartDashboard::PutNumber("Theta Odom", GetPose().Rotation().Degrees().value());
 
-    SmartDashboard::PutNumber("x Dist", xDistance);
-    SmartDashboard::PutNumber("y Dist", yDistance);
+    // SmartDashboard::PutNumber("x Dist", xDistance);
+    // SmartDashboard::PutNumber("y Dist", yDistance);
 
-    SmartDashboard::PutNumber("x Pid", xPid);
-    SmartDashboard::PutNumber("y Pid", yPid);
+    // SmartDashboard::PutNumber("x Pid", xPid);
+    // SmartDashboard::PutNumber("y Pid", yPid);
 
-    SmartDashboard::PutNumber("Theta Distance", thetaDistance);
-    SmartDashboard::PutNumber("spin Pid", spinPid);
+    // SmartDashboard::PutNumber("Theta Distance", thetaDistance);
+    // SmartDashboard::PutNumber("spin Pid", spinPid);
 
     // If we have finished the spline, just stop
     if (trajectory.getTotalTime() < time && fabs(xDistance) < S_ALLOWABLE_ERROR_TRANSLATION && fabs(yDistance) < S_ALLOWABLE_ERROR_TRANSLATION
-        && fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
+       && fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
     {
       DriveSwervePercent(0, 0, 0);
       return true;
@@ -838,8 +841,10 @@ public:
   bool StrafeToPole(double offset, double elapsedTime)
   {
     double P_STRAFE_KP = frc::SmartDashboard::GetNumber("P", 0.75);
-    double thetaDistance = -1 * GetPose().Rotation().Radians().value();
-    if (fabs(thetaDistance) < O_ALLOWABLE_ERROR_ROTATION)
+    //TODO fix this because it sucks
+    Pose2d thetaGoal = Pose2d(0_m, 0_m, Rotation2d(180_deg));
+    double thetaDistance = thetaGoal.RelativeTo(GetPose()).Rotation().Radians().value();   
+     if (fabs(thetaDistance) < O_ALLOWABLE_ERROR_ROTATION)
     {
       thetaDistance = 0;
       runningIntegralSpin = 0;
@@ -861,7 +866,7 @@ public:
     intendedVelocity = std::clamp(P_STRAFE_KP * offset + intendedI, -1 * P_STRAFE_MAX_SPEED, P_STRAFE_MAX_SPEED);
     lastX += std::clamp(intendedVelocity - lastX, -1 * P_STRAFE_MAX_ACCEL * elapsedTime,
                            P_STRAFE_MAX_ACCEL * elapsedTime);
-    DriveSwervePercent(lastX, 0, lastSpin);
+    DriveSwervePercent(-lastX, 0, lastSpin);
 
     SmartDashboard::PutNumber("Strafe X", lastX);
     SmartDashboard::PutNumber("I", intendedI);

@@ -12,6 +12,7 @@ private:
 
 public:
     rev::CANSparkMax *winchL, *winchR;
+    rev::SparkMaxRelativeEncoder *winchEncoder;
     TimeOfFlight *tofSensor;
 
   /**
@@ -23,7 +24,14 @@ public:
     winchR = winchR_;
     winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
     winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
+    winchEncoder = new rev::SparkMaxRelativeEncoder(winchL->GetEncoder());
+    winchEncoder->SetPosition(0.0);
     tofSensor = tofSensor_;
+  }
+
+  double winchEncoderReading()
+  {
+    return -1 * winchEncoder->GetPosition();
   }
 
   double TOFSReading()
@@ -69,7 +77,7 @@ public:
 
   void SetElevatorHeightPID(double height, double elapsedTime)
   {
-    double error = height - TOFSReading();
+    double error = height - winchEncoderReading();
 
      if (fabs(error) < ALLOWABLE_ERROR_HEIGHT)
     {
