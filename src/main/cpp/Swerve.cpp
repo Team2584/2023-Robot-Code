@@ -434,11 +434,26 @@ public:
   /**
    * Updates the Estimated Position of the robot with an estimate from non-odometry sensors, usually using vision and april-tags
    * 
+   * @param poseEstimate The translation estimated by the sensor
+   * @param timeOfEstimate The FPGA time of the robot when this measuremente was recorded
+   */
+  void AddPositionEstimate(Translation2d poseEstimate, units::second_t timeOfEstimate)
+  {
+    wpi::array<double, 3> stdDevs = {10, 10, 10000000};
+    odometry->SetVisionMeasurementStdDevs(stdDevs);
+    odometry->AddVisionMeasurement(Pose2d(poseEstimate.Y(), poseEstimate.X(), GetPose().Rotation()), timeOfEstimate);
+  }
+
+  /**
+   * Updates the Estimated Position of the robot with an estimate from non-odometry sensors, usually using vision and april-tags
+   * 
    * @param poseEstimate The pose estimated by the sensor
    * @param timeOfEstimate The FPGA time of the robot when this measuremente was recorded
    */
   void AddPositionEstimate(Pose2d poseEstimate, units::second_t timeOfEstimate)
   {
+    wpi::array<double, 3> stdDevs = {10, 10, 25};
+    odometry->SetVisionMeasurementStdDevs(stdDevs);
     odometry->AddVisionMeasurement(Pose2d(poseEstimate.Y(), poseEstimate.X(), poseEstimate.Rotation()), timeOfEstimate);
   }
 

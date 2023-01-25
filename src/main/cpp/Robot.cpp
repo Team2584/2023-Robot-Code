@@ -33,10 +33,10 @@ nt::DoubleEntry sanityEntry;
 nt::DoubleArrayEntry curPoseEntry;
 nt::DoubleTopic polePixelTopic;
 nt::DoubleEntry polePixelEntry;
-nt::DoubleTopic coneXTopic;
-nt::DoubleEntry coneXEntry;
-nt::DoubleTopic coneYTopic;
-nt::DoubleEntry coneYEntry;
+nt::DoubleArrayTopic coneTopic;
+nt::DoubleArrayEntry coneEntry;
+double lastCountNTTHing = 0;
+
 // To track time for slew rate and pid controll
 frc::Timer timer;
 double lastTime = 0;
@@ -84,14 +84,12 @@ void Robot::RobotInit()
   sanityTopic = objectTable->GetDoubleTopic("sanitycheck");
   curPoseTopic = limelightTable->GetDoubleArrayTopic("curPose");
   polePixelTopic = limelightTable->GetDoubleTopic("polePixel");
-  coneXTopic = objectTable->GetDoubleTopic("coneX");
-  coneYTopic = objectTable->GetDoubleTopic("coneY");
+  coneTopic = objectTable->GetDoubleArrayTopic("conePos");
   poseSub = poseTopic.Subscribe({});
   sanityEntry = sanityTopic.GetEntry(10000);
   curPoseEntry = curPoseTopic.GetEntry({});
   polePixelEntry = polePixelTopic.GetEntry(1000);
-  coneXEntry = coneXTopic.GetEntry(0);
-  coneYEntry = coneYTopic.GetEntry(0);
+  coneEntry = coneTopic.GetEntry({});
 
   // Initializing things
   timer = Timer();
@@ -191,6 +189,39 @@ void Robot::AutonomousPeriodic()
 
   // Update Odometry
   swerveDrive->UpdateOdometry(timer.Get());
+
+  // Update Odometry with Cone Vision Values
+  if (splineSection == 1 && timer.Get() > 2_s)
+  {
+    for (auto array : coneEntry.ReadQueue()) 
+    {
+      double angle = -1 * swerveDrive->GetPose().Rotation().Radians().value();
+      double fieldOrientedX = array.value[1] * cos(angle) + array.value[0]  * sin(angle);
+      double fieldOrientedY = array.value[1] * sin(angle) + array.value[0]  * cos(angle);    
+      Translation2d transEst = Translation2d(4.57_m - units::meter_t{fieldOrientedX}, 7_m - units::meter_t{fieldOrientedY});
+      frc::SmartDashboard::PutNumber("Cone X", transEst.X().value());
+      frc::SmartDashboard::PutNumber("Cone Y", transEst.Y().value());
+      frc::SmartDashboard::PutNumber("missed entry", array.value[3] - lastCountNTTHing != 1);
+      lastCountNTTHing += 1;
+      swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
+    }
+  }
+  else if (splineSection == 3 && timer.Get() > 2_s)
+  {
+    for (auto array : coneEntry.ReadQueue()) 
+    {
+      double angle = -1 * swerveDrive->GetPose().Rotation().Radians().value();
+      double fieldOrientedX = array.value[1] * cos(angle) + array.value[0]  * sin(angle);
+      double fieldOrientedY = array.value[1] * sin(angle) + array.value[0]  * cos(angle);    
+      Translation2d transEst = Translation2d(3.38_m - units::meter_t{fieldOrientedX}, 7_m - units::meter_t{fieldOrientedY});
+      frc::SmartDashboard::PutNumber("Cone X", transEst.X().value());
+      frc::SmartDashboard::PutNumber("Cone Y", transEst.Y().value());
+      frc::SmartDashboard::PutNumber("missed entry", array.value[3] - lastCountNTTHing != 1);
+      lastCountNTTHing += 1;
+      swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
+    }
+  }
+
 
   //Follow the trajectory of the swerve drive
   if (!limelightTracking && !done)
