@@ -9,6 +9,8 @@
 //#include <frc2/command/CommandBase.h>
 //#include <frc2/command/CommandHelper.h>
 #include <frc2/command/CommandScheduler.h>
+#include "SystemManager.cpp"
+#include "FunctionWrapper.cpp"
 
 /* new
 Scheduler scheduler = Scheduler();
@@ -26,15 +28,18 @@ class Scheduler
 {
     private:
     std::vector<std::function<void()>> periodicFunctions;
+    SystemManager system;
 
     public:
     Scheduler()
     {
         periodicFunctions = std::vector<std::function<void()>>();
+        system = SystemManager();
     }
 
-    void Schedule(frc2::Command* functionPointer)
+    void Schedule(FunctionWrapper* functionPointer, int systemRequirementID)
     {
+        functionPointer->AddRequirement(system.GetSystem(systemRequirementID));
         frc2::CommandScheduler::GetInstance().Schedule(functionPointer);
     }
 

@@ -20,6 +20,11 @@ class FunctionWrapper : public frc2::CommandHelper<frc2::CommandBase, FunctionWr
     {
     }
 
+    void AddRequirement(frc2::Subsystem* requirement)
+    {
+      frc2::CommandBase::AddRequirements(requirement);
+    }
+
     void Initialize() override
     {
 

@@ -12,7 +12,6 @@
 
 #include <frc/smartdashboard/SmartDashboard.h>
 
-#include "SchedulerClasses/FunctionWrapper.cpp"
 #include "SchedulerClasses/Scheduler.cpp"
 
 double pigeon_initial;
@@ -166,19 +165,19 @@ void Robot::AutonomousInit()
  limelightTracking = false;
  timer.Start();
 
- scheduler.Schedule(new FunctionWrapper([](){return Update();}));
- scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}));
+ scheduler.Schedule(new FunctionWrapper([](){return Update();}), Systems::Chassis);
+ scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}), Systems::Chassis);
  
- scheduler.Schedule(new FunctionWrapper([](){return Update();}));
- scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}));
+ scheduler.Schedule(new FunctionWrapper([](){return Update();}), Systems::Chassis);
+ scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}), Systems::Chassis);
  
- scheduler.Schedule(new FunctionWrapper([](){return Update();}));
- scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}));
+ scheduler.Schedule(new FunctionWrapper([](){return Update();}), Systems::Chassis);
+ scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}), Systems::Chassis);
  
- scheduler.Schedule(new FunctionWrapper([](){return Update();}));
- scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}));
+ scheduler.Schedule(new FunctionWrapper([](){return Update();}), Systems::Chassis);
+ scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}), Systems::Chassis);
 
- scheduler.Schedule(new FunctionWrapper([](){swerveDrive->DriveSwervePercent(0, 0, 0); return true;}));
+ scheduler.Schedule(new FunctionWrapper([](){swerveDrive->DriveSwervePercent(0, 0, 0); return false;}), Systems::Chassis);
 }
 
 void Robot::AutonomousPeriodic()
