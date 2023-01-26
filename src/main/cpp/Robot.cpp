@@ -178,6 +178,9 @@ void Robot::AutonomousPeriodic()
   }
   */
 
+  frc::SmartDashboard::PutNumber("spline section", splineSection);
+  frc::SmartDashboard::PutNumber("timer", timer.Get().value());
+
   // Update Odometry
   swerveDrive->UpdateOdometry(timer.Get());
 
