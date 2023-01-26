@@ -405,7 +405,8 @@ void Robot::TeleopPeriodic()
   lastTime = time;
 
   // Update our odometry
-  swerveDrive->UpdateOdometry(units::microsecond_t{RobotController::GetFPGATime()});
+  double microsecondTime = (double) RobotController::GetFPGATime();
+  swerveDrive->UpdateOdometry(units::microsecond_t{microsecondTime});
 
   for (auto array : coneEntry.ReadQueue())
   {

@@ -321,7 +321,7 @@ public:
                                           positions,
                                           frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
 
-    wpi::array<double, 3> stdDevs = {10, 10, 25};
+    wpi::array<double, 3> stdDevs = {10.0, 10.0, 25.0};
     odometry->SetVisionMeasurementStdDevs(stdDevs);
   }
 
@@ -439,7 +439,7 @@ public:
    */
   void AddPositionEstimate(Translation2d poseEstimate, units::second_t timeOfEstimate)
   {
-    wpi::array<double, 3> stdDevs = {10, 10, 1000000000};
+    wpi::array<double, 3> stdDevs = {10.0, 10.0, 1000000000.0};
     odometry->SetVisionMeasurementStdDevs(stdDevs);
     odometry->AddVisionMeasurement(Pose2d(poseEstimate.Y(), poseEstimate.X(), GetPose().Rotation()), timeOfEstimate);
   }
@@ -452,7 +452,7 @@ public:
    */
   void AddPositionEstimate(Pose2d poseEstimate, units::second_t timeOfEstimate)
   {
-    wpi::array<double, 3> stdDevs = {10, 10, 25};
+    wpi::array<double, 3> stdDevs = {10.0, 10.0, 25.0};
     odometry->SetVisionMeasurementStdDevs(stdDevs);
     odometry->AddVisionMeasurement(Pose2d(poseEstimate.Y(), poseEstimate.X(), poseEstimate.Rotation()), timeOfEstimate);
   }

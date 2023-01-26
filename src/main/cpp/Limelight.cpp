@@ -25,9 +25,9 @@ public:
     }
 
     void changeTargetDefaults(double txD, double tyD, double taD){
-        txD = txDefault;
-        tyD = tyDefault;
-        taD = taDefault;
+        txDefault = txD;
+        tyDefault = tyD;
+        taDefault = taD;
     }
 
     double getTargetX(){
