@@ -771,11 +771,23 @@ public:
   bool FollowTrajectory(units::second_t time, double elapsedTime)
   {
     // Sample the state of the path at some seconds
-    pathplanner::PathPlannerTrajectory::PathPlannerState state = trajectory.sample(time);
-    // auto xFF = -1 * state.velocity * state.pose.Rotation().Sin(); Blue Alliance
-    // auto yFF = state.velocity * state.pose.Rotation().Cos(); Blue Alliance
-    auto xFF = state.velocity * state.pose.Rotation().Sin();
-    auto yFF = -1 * state.velocity * state.pose.Rotation().Cos();
+    units::meters_per_second_t xFF;
+    units::meters_per_second_t yFF;
+    pathplanner::PathPlannerTrajectory::PathPlannerState state;
+    if (trajectory.getTotalTime() < time)
+    {
+      xFF = 0_mps;
+      yFF = 0_mps;
+      state = trajectory.getEndState();
+    }
+    else
+    {
+      state = trajectory.sample(time);
+      // auto xFF = -1 * state.velocity * state.pose.Rotation().Sin(); Blue Alliance
+      // auto yFF = state.velocity * state.pose.Rotation().Cos(); Blue Alliance
+       xFF = state.velocity * state.pose.Rotation().Sin();
+       yFF = -1 * state.velocity * state.pose.Rotation().Cos();
+    }
 
     // Run simple PID to correct our robots course
     Translation2d pose = GetPose().Translation();
