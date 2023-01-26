@@ -439,7 +439,7 @@ public:
    */
   void AddPositionEstimate(Translation2d poseEstimate, units::second_t timeOfEstimate)
   {
-    wpi::array<double, 3> stdDevs = {10, 10, 10000000};
+    wpi::array<double, 3> stdDevs = {10, 10, 1000000000};
     odometry->SetVisionMeasurementStdDevs(stdDevs);
     odometry->AddVisionMeasurement(Pose2d(poseEstimate.Y(), poseEstimate.X(), GetPose().Rotation()), timeOfEstimate);
   }
@@ -731,6 +731,15 @@ public:
     return lastSpin;
   }
  
+
+  void ResetTrajectoryList()
+  {
+    while (trajectoryList.empty() == false)
+    {
+      trajectoryList.pop();
+    }
+  }
+
   /**
    * Initializes a trajectory to be run during autonomous by loading it into memory.
    * A trajectory is a curve that we tell the robot to move through. AKA a spline.
@@ -748,8 +757,11 @@ public:
   void SetNextTrajectory()
   {
     BeginPIDLoop();
-    trajectory = trajectoryList.front();
-    trajectoryList.pop();
+    if (trajectoryList.size() > 0)
+    {
+      trajectory = trajectoryList.front();
+      trajectoryList.pop();
+    }
   }
 
   /**
@@ -805,13 +817,13 @@ public:
     // SmartDashboard::PutNumber("Y Odom", pose.Y().value());
     // SmartDashboard::PutNumber("Theta Odom", GetPose().Rotation().Degrees().value());
 
-    // SmartDashboard::PutNumber("x Dist", xDistance);
-    // SmartDashboard::PutNumber("y Dist", yDistance);
+     SmartDashboard::PutNumber("x Dist", xDistance);
+     SmartDashboard::PutNumber("y Dist", yDistance);
 
     // SmartDashboard::PutNumber("x Pid", xPid);
     // SmartDashboard::PutNumber("y Pid", yPid);
 
-    // SmartDashboard::PutNumber("Theta Distance", thetaDistance);
+     SmartDashboard::PutNumber("Theta Distance", thetaDistance);
     // SmartDashboard::PutNumber("spin Pid", spinPid);
 
     // If we have finished the spline, just stop

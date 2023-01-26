@@ -22,9 +22,8 @@ Claw *claw;
 
 // To find values from cameras
 nt::NetworkTableInstance inst;
-shared_ptr<nt::NetworkTable> aprilTagTable;
+shared_ptr<nt::NetworkTable> visionTable;
 shared_ptr<nt::NetworkTable> limelightTable;
-shared_ptr<nt::NetworkTable> objectTable;
 nt::DoubleArrayTopic poseTopic;
 nt::DoubleTopic sanityTopic;
 nt::DoubleArrayTopic curPoseTopic;
@@ -34,7 +33,7 @@ nt::DoubleArrayEntry curPoseEntry;
 nt::DoubleTopic polePixelTopic;
 nt::DoubleEntry polePixelEntry;
 nt::DoubleArrayTopic coneTopic;
-nt::DoubleArrayEntry coneEntry;
+nt::DoubleArraySubscriber coneEntry;
 double lastCountNTTHing = 0;
 
 // To track time for slew rate and pid controll
@@ -61,7 +60,7 @@ void Robot::RobotInit()
 {
   // Set all Values from Shuffleboard (Smartdashboard but cooler)
   frc::SmartDashboard::PutNumber("MAX DRIVE SPEED", 0.4);
-  frc::SmartDashboard::PutNumber("ELEVATOR_SPEED", 0.1) ;
+  frc::SmartDashboard::PutNumber("ELEVATOR_SPEED", 0.1);
 
   // Autonomous Choosing
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
@@ -76,20 +75,19 @@ void Robot::RobotInit()
 
   // Finding values from network tables
   inst = nt::NetworkTableInstance::GetDefault();
-  inst.StartServer(); 
-  aprilTagTable = inst.GetTable("vision/localization");
+  inst.StartServer();
+  visionTable = inst.GetTable("vision");
   limelightTable = inst.GetTable("limelight");
-  objectTable = inst.GetTable("vision/objects");
-  poseTopic = aprilTagTable->GetDoubleArrayTopic("poseArray");
-  sanityTopic = objectTable->GetDoubleTopic("sanitycheck");
-  curPoseTopic = limelightTable->GetDoubleArrayTopic("curPose");
+  poseTopic = visionTable->GetDoubleArrayTopic("poseArray");
+  sanityTopic = visionTable->GetDoubleTopic("sanitycheck");
+  curPoseTopic = visionTable->GetDoubleArrayTopic("curPose");
   polePixelTopic = limelightTable->GetDoubleTopic("polePixel");
-  coneTopic = objectTable->GetDoubleArrayTopic("conePos");
+  coneTopic = visionTable->GetDoubleArrayTopic("conePos");
   poseSub = poseTopic.Subscribe({});
   sanityEntry = sanityTopic.GetEntry(10000);
   curPoseEntry = curPoseTopic.GetEntry({});
   polePixelEntry = polePixelTopic.GetEntry(1000);
-  coneEntry = coneTopic.GetEntry({});
+  coneEntry = coneTopic.Subscribe({});
 
   // Initializing things
   timer = Timer();
@@ -104,6 +102,7 @@ void Robot::RobotInit()
   claw = new Claw(&wrist);
 
   // Initializing Autonomous Trajectory (For Splines)
+  swerveDrive->ResetTrajectoryList();
   swerveDrive->InitializeTrajectory("RedRight3GamePiece1");
   swerveDrive->InitializeTrajectory("RedRight3GamePiece2");
   swerveDrive->InitializeTrajectory("RedRight3GamePiece3");
@@ -151,24 +150,29 @@ void Robot::AutonomousInit()
   }
   */
 
-
-  //Start our match timer and reset our odometry to the robot's starting position
+  // Start our match timer and reset our odometry to the robot's starting position
   startedTimer = false;
   lastTime = 0;
   timer.Reset();
 
-  swerveDrive->ResetOdometry(Pose2d(4.74_m,  1.89_m, Rotation2d(3.14_rad)));
-  swerveDrive->BeginPIDLoop();
+  swerveDrive->ResetOdometry(Pose2d(4.74_m, 1.89_m, Rotation2d(3.14_rad)));
+  swerveDrive->ResetTrajectoryList();
+  swerveDrive->InitializeTrajectory("RedRight3GamePiece1");
+  swerveDrive->InitializeTrajectory("RedRight3GamePiece2");
+  swerveDrive->InitializeTrajectory("RedRight3GamePiece3");
+  swerveDrive->InitializeTrajectory("RedRight3GamePiece4");
   swerveDrive->SetNextTrajectory();
 
-
- splineSection = 1;
- limelightTracking = false;
- done = false;
+  splineSection = 1;
+  limelightTracking = false;
+  done = false;
 }
 
 void Robot::AutonomousPeriodic()
 {
+  frc::Timer timething;
+  timething = frc::Timer();
+  timething.Start();
   /*
   if (m_autoSelected == kAutoNameCustom)
   {
@@ -180,8 +184,8 @@ void Robot::AutonomousPeriodic()
   }
   */
 
-  //If we haven't started the timer yet, start the timer
-  if (!startedTimer)  
+  // If we haven't started the timer yet, start the timer
+  if (!startedTimer)
   {
     timer.Start();
     startedTimer = true;
@@ -193,78 +197,108 @@ void Robot::AutonomousPeriodic()
   // Update Odometry with Cone Vision Values
   if (splineSection == 1 && timer.Get() > 2_s)
   {
-    for (auto array : coneEntry.ReadQueue()) 
+    for (auto array : coneEntry.ReadQueue())
     {
       double angle = -1 * swerveDrive->GetPose().Rotation().Radians().value();
-      double fieldOrientedX = array.value[1] * cos(angle) + array.value[0]  * sin(angle);
-      double fieldOrientedY = array.value[1] * sin(angle) + array.value[0]  * cos(angle);    
-      Translation2d transEst = Translation2d(4.57_m - units::meter_t{fieldOrientedX}, 7_m - units::meter_t{fieldOrientedY});
-      frc::SmartDashboard::PutNumber("Cone X", transEst.X().value());
-      frc::SmartDashboard::PutNumber("Cone Y", transEst.Y().value());
-      frc::SmartDashboard::PutNumber("missed entry", array.value[3] - lastCountNTTHing != 1);
-      lastCountNTTHing += 1;
-      swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
+      if (array.value[0] != 0 || array.value[1] != 0)
+      {
+        double fieldOrientedX = -1 * (array.value[0] * cos(angle) - array.value[1] * sin(angle));
+        double fieldOrientedY = -1 * (array.value[0] * sin(angle) + array.value[1] * cos(angle));
+        Translation2d transEst = Translation2d(4.56_m + units::meter_t{fieldOrientedX}, 7_m + units::meter_t{fieldOrientedY});
+        frc::SmartDashboard::PutNumber("Cone X Final", transEst.X().value());
+        frc::SmartDashboard::PutNumber("Cone Y Final", transEst.Y().value());
+        lastCountNTTHing += 1;
+        swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
+      }
     }
   }
   else if (splineSection == 3 && timer.Get() > 2_s)
   {
-    for (auto array : coneEntry.ReadQueue()) 
+  /* for (auto array : coneEntry.ReadQueue())
     {
       double angle = -1 * swerveDrive->GetPose().Rotation().Radians().value();
-      double fieldOrientedX = array.value[1] * cos(angle) + array.value[0]  * sin(angle);
-      double fieldOrientedY = array.value[1] * sin(angle) + array.value[0]  * cos(angle);    
-      Translation2d transEst = Translation2d(3.38_m - units::meter_t{fieldOrientedX}, 7_m - units::meter_t{fieldOrientedY});
-      frc::SmartDashboard::PutNumber("Cone X", transEst.X().value());
-      frc::SmartDashboard::PutNumber("Cone Y", transEst.Y().value());
-      frc::SmartDashboard::PutNumber("missed entry", array.value[3] - lastCountNTTHing != 1);
-      lastCountNTTHing += 1;
-      swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
-    }
+      if (array.value[0] != 0 || array.value[1] != 0)
+      {
+        double fieldOrientedX = -1 * (array.value[0] * cos(angle) - array.value[1] * sin(angle));
+        double fieldOrientedY = -1 * (array.value[0] * sin(angle) + array.value[1] * cos(angle));
+        Translation2d transEst = Translation2d(3.38_m + units::meter_t{fieldOrientedX}, 7_m + units::meter_t{fieldOrientedY});
+        frc::SmartDashboard::PutNumber("Cone X Final", transEst.X().value());
+        frc::SmartDashboard::PutNumber("Cone Y Final", transEst.Y().value());
+        lastCountNTTHing += 1;
+        swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
+      }
+    }*/
+  }
+  else
+  {
+    SmartDashboard::PutNumber("debug", 50);
+    coneEntry.ReadQueue();
+    SmartDashboard::PutNumber("debug", 1000000000000);
+
   }
 
 
-  //Follow the trajectory of the swerve drive
+
+  // Follow the trajectory of the swerve drive
   if (!limelightTracking && !done)
   {
+    SmartDashboard::PutNumber("debug", -3);
     bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), timer.Get().value() - lastTime);
+    SmartDashboard::PutNumber("debug", -2);
     SmartDashboard::PutBoolean("Spline Done", splineDone);
+    SmartDashboard::PutBoolean("limelightTracking", limelightTracking);
+  SmartDashboard::PutNumber("Timer", lastTime);
+
+  SmartDashboard::PutNumber("SPline Section", splineSection);
+
     if (splineDone && (splineSection == 2 || splineSection == 4))
     {
+      SmartDashboard::PutNumber("debug", -1);
       limelightTracking = true;
       splineSection += 1;
       swerveDrive->SetNextTrajectory();
       timer.Reset();
       lastTime = 0;
+      SmartDashboard::PutNumber("debug", 20);
     }
     else if (splineDone)
     {
+      SmartDashboard::PutNumber("debug", 7);
       splineSection += 1;
-      swerveDrive->SetNextTrajectory(); 
+      swerveDrive->SetNextTrajectory();
       timer.Reset();
       lastTime = 0;
+      SmartDashboard::PutNumber("debug", 8);
     }
   }
   else if (!done)
   {
-    bool limelightDone = swerveDrive->StrafeToPole(limelight->getTargetX(), timer.Get().value() - lastTime);
+    SmartDashboard::PutNumber("debug", 0);
+    //bool limelightDone = swerveDrive->StrafeToPole(limelight->getTargetX(), timer.Get().value() - lastTime);
+    bool limelightDone = true;
     if (limelightDone)
     {
       limelightTracking = false;
-      done = true;
-      timer.Reset();  
+      timer.Reset();
       lastTime = 0;
+      if (splineSection == 5)
+      {
+        SmartDashboard::PutNumber("debug", 1);  
+        done = true;
+      }
     }
+    SmartDashboard::PutNumber("debug", 80);
   }
   else
   {
-    swerveDrive->DriveSwervePercent(0,0,0);
+    swerveDrive->DriveSwervePercent(0, 0, 0);
   }
 
+  SmartDashboard::PutNumber("debug", 101);
   lastTime = timer.Get().value();
-SmartDashboard::PutBoolean("limelightTracking", limelightTracking);
-
-  SmartDashboard::PutNumber("SPline Section", splineSection);
-}  
+  SmartDashboard::PutNumber("debug", 102);
+  SmartDashboard::PutNumber("Loop time", timething.Get().value());
+}
 /*
 void Robot::TeleopInit() {
   inst = nt::NetworkTableInstance::GetDefault();
@@ -291,9 +325,9 @@ void Robot::TeleopInit()
   // Prepare swerve drive odometry
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
-  swerveDrive->ResetOdometry(Pose2d(0_m, 1_m, Rotation2d(180_deg)));
+  swerveDrive->ResetOdometry(Pose2d(3.38_m, 6_m, Rotation2d(180_deg)));
 
-  //Reset all our values throughout the code
+  // Reset all our values throughout the code
   timer.Reset();
   timer.Start();
   lastTime = 0;
@@ -352,34 +386,52 @@ void Robot::TeleopPeriodic()
     joy_rStick_X = 0;
   }
 
-  //Scale our joystick inputs to our intended max drive speeds
+  // Scale our joystick inputs to our intended max drive speeds
   double FWD_Drive_Speed = joy_lStick_Y * MAX_DRIVE_SPEED;
   double STRAFE_Drive_Speed = joy_lStick_X * MAX_DRIVE_SPEED;
   double Turn_Speed = joy_rStick_X * MAX_SPIN_SPEED;
 
-  //update our timer
+  // update our timer
   double time = timer.Get().value();
   double elapsedTime = time - lastTime;
   lastTime = time;
 
   lastFwdSpeed += std::clamp(FWD_Drive_Speed - lastFwdSpeed, -1 * MAX_DRIVE_ACCELERATION * elapsedTime,
-                   MAX_DRIVE_ACCELERATION * elapsedTime);
+                             MAX_DRIVE_ACCELERATION * elapsedTime);
   lastStrafeSpeed += std::clamp(STRAFE_Drive_Speed - lastStrafeSpeed, -1 * MAX_DRIVE_ACCELERATION * elapsedTime,
-                   MAX_DRIVE_ACCELERATION * elapsedTime);
+                                MAX_DRIVE_ACCELERATION * elapsedTime);
   lastTurnSpeed += std::clamp(Turn_Speed - lastTurnSpeed, -1 * MAX_SPIN_ACCELERATION * elapsedTime,
-                   MAX_SPIN_ACCELERATION * elapsedTime);
+                              MAX_SPIN_ACCELERATION * elapsedTime);
   lastTime = time;
 
-
-  //Update our odometry 
+  // Update our odometry
   swerveDrive->UpdateOdometry(units::microsecond_t{RobotController::GetFPGATime()});
 
-  for (auto array : poseSub.ReadQueue()) 
+  for (auto array : coneEntry.ReadQueue())
   {
-    Pose2d poseEst = Pose2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]}, Rotation2d(units::radian_t{array.value[3]}));
-   frc::SmartDashboard::PutNumber("Vision X", poseEst.X().value());
-   frc::SmartDashboard::PutNumber("Vision Y", poseEst.Y().value());
-   frc::SmartDashboard::PutNumber("vision Theta", poseEst.Rotation().Degrees().value());
+    double angle = -1 * swerveDrive->GetPose().Rotation().Radians().value();
+    frc::SmartDashboard::PutNumber("Cone X Orig", array.value[0]);
+    frc::SmartDashboard::PutNumber("Cone Y Orig", array.value[1]);
+    if (array.value[0] != 0 || array.value[1] != 0)
+    {
+      double fieldOrientedX = -1 * (array.value[0] * cos(angle) - array.value[1] * sin(angle));
+      double fieldOrientedY = -1 * (array.value[0] * sin(angle) + array.value[1] * cos(angle));
+      frc::SmartDashboard::PutNumber("Cone X Rotated", fieldOrientedX);
+      frc::SmartDashboard::PutNumber("Cone Y Rotated", fieldOrientedY);
+      Translation2d transEst = Translation2d(3.38_m + units::meter_t{fieldOrientedX}, 7_m + units::meter_t{fieldOrientedY});
+      frc::SmartDashboard::PutNumber("Cone X Final", transEst.X().value());
+      frc::SmartDashboard::PutNumber("Cone Y Final", transEst.Y().value());
+      frc::SmartDashboard::PutNumber("missed entry", array.value[3] - lastCountNTTHing != 1);
+      lastCountNTTHing += 1;
+      swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
+    }
+  }
+
+  for (auto array : poseSub.ReadQueue())
+  {
+    Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
+    frc::SmartDashboard::PutNumber("Vision X", poseEst.X().value());
+    frc::SmartDashboard::PutNumber("Vision Y", poseEst.Y().value());
     swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time - array.value[4]});
   }
 
@@ -394,23 +446,23 @@ void Robot::TeleopPeriodic()
   // frc::SmartDashboard::PutNumber("FWD Drive Speed", lastFwdSpeed);
   // frc::SmartDashboard::PutNumber("Strafe Drive Speed", lastStrafeSpeed);
   // frc::SmartDashboard::PutNumber("Turn Drive Speed", lastTurnSpeed);
-   frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
-   frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
-   frc::SmartDashboard::PutNumber("Odometry Theta", pose.Rotation().Degrees().value());
+  frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
+  frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
+  frc::SmartDashboard::PutNumber("Odometry Theta", pose.Rotation().Degrees().value());
 
   SmartDashboard::PutNumber("Robot Controller FPGA Time", RobotController::GetFPGATime());
   SmartDashboard::PutNumber("Timer Class FPGA Time", Timer::GetFPGATimestamp().value());
 
-/*
-  frc::SmartDashboard::PutBoolean("Was 0", thetaEntry.Get() < 0.05 && thetaEntry.Get() > -0.05 && thetaEntry.Get() != 0.0);
+  /*
+    frc::SmartDashboard::PutBoolean("Was 0", thetaEntry.Get() < 0.05 && thetaEntry.Get() > -0.05 && thetaEntry.Get() != 0.0);
 
-  SmartDashboard::PutNumber("Robot Controller FPGA Time", RobotController::GetFPGATime());
-  SmartDashboard::PutNumber("Timer Class FPGA Time", Timer::GetFPGATimestamp().value());
+    SmartDashboard::PutNumber("Robot Controller FPGA Time", RobotController::GetFPGATime());
+    SmartDashboard::PutNumber("Timer Class FPGA Time", Timer::GetFPGATimestamp().value());
 
-  SmartDashboard::PutNumber("Network Table Sanity", sanityEntry.Get());
+    SmartDashboard::PutNumber("Network Table Sanity", sanityEntry.Get());
 
-  frc::SmartDashboard::PutNumber("TIMER", timer.Get().value());
-*/
+    frc::SmartDashboard::PutNumber("TIMER", timer.Get().value());
+  */
 
   swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
 
@@ -426,8 +478,7 @@ void Robot::TeleopPeriodic()
   if (xbox_Drive->GetRightBumperPressed())
     swerveDrive->BeginPIDLoop();
   if (xbox_Drive->GetRightBumper())
-    swerveDrive->DriveToPose(Pose2d(0_m, 1_m, Rotation2d(180_deg)), elapsedTime);
-
+    swerveDrive->DriveToPose(Pose2d(3.38_m, 6_m, Rotation2d(180_deg)), elapsedTime);
 
   // BASIC ELEVATOR CODE
   if (xbox_Drive->GetBButtonPressed())
@@ -439,20 +490,17 @@ void Robot::TeleopPeriodic()
     elevatorLift->MoveElevatorPercent(-0.2);
   else if (xbox_Drive->GetBButton())
     elevatorLift->SetElevatorHeightPID(5, elapsedTime);
-  else if (xbox_Drive->GetXButton())
-    elevatorLift->StopElevatorBreak();
-  else 
-    elevatorLift->StopElevatorBreak();
-
+  else
+    elevatorLift->MoveElevatorPercent(0);
 
   if (xbox_Drive->GetStartButton())
     claw->MoveWristPercent(0.2);
   else if (xbox_Drive->GetBackButton())
     claw->MoveWristPercent(-0.2);
-  else 
-    claw->MoveWristPercent(0);  
+  else
+    claw->MoveWristPercent(0);
 
-  //Here is our Test Drive Control Code that runs different functions when different buttons are pressed
+  // Here is our Test Drive Control Code that runs different functions when different buttons are pressed
   /*
   if (xbox_Drive->GetLeftBumper())
     Turn_Speed = swerveDrive->TurnToPointDesiredSpin(Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);

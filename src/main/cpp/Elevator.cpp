@@ -22,8 +22,8 @@ public:
   {
     winchL = winchL_;
     winchR = winchR_;
-    winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
-    winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
+    winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
+    winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
     winchEncoder = new rev::SparkMaxRelativeEncoder(winchL->GetEncoder());
     winchEncoder->SetPosition(0.0);
     tofSensor = tofSensor_;
@@ -46,17 +46,8 @@ public:
     return ((tofSensor->GetRange() - 30) * 0.70710678 + 260) / 1000;
   }
 
-  void StopElevatorCoast()
+  void StopElevator()
   {
-    winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
-    winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
-    MoveElevatorPercent(0);
-  }
-
-  void StopElevatorBreak()
-  {
-    winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
-    winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
     MoveElevatorPercent(0.05);
   }
 
