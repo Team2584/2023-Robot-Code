@@ -469,7 +469,7 @@ void Robot::TeleopPeriodic()
   else if (xbox_Drive->GetAButton())
     elevatorLift->MoveElevatorPercent(-0.2);
   else if (xbox_Drive->GetBButton())
-    elevatorLift->SetElevatorHeightPID(5, elapsedTime);
+    elevatorLift->SetElevatorHeightPID(10, elapsedTime);
   else
     elevatorLift->MoveElevatorPercent(0);
 
