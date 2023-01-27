@@ -66,14 +66,14 @@ public:
     lastSpeed = 0;
   }
 
-  void SetElevatorHeightPID(double height, double elapsedTime)
+  bool SetElevatorHeightPID(double height, double elapsedTime)
   {
     double error = height - winchEncoderReading();
 
      if (fabs(error) < ALLOWABLE_ERROR_HEIGHT)
     {
-      error = 0;
       runningIntegral = 0;
+      return true;
     }
 
     // calculate our I in PID and clamp it between our maximum I effects
@@ -90,5 +90,6 @@ public:
     SmartDashboard::PutNumber("lastSpeed", lastSpeed);
     SmartDashboard::PutNumber("error", error);
     MoveElevatorPercent(lastSpeed + HOLDFF);
+    return false;
   }
 };
