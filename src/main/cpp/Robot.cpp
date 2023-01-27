@@ -181,10 +181,8 @@ void Robot::AutonomousPeriodic()
     {
       if (swerveDrive->GetPose().Y() > 5.5_m)
       {
-        int i = 0;
         for (auto array : coneEntry.ReadQueue())
         {
-          i += 1;
           double angle = -1 * swerveDrive->GetPose().Rotation().Radians().value();
           if (array.value[0] != 0 || array.value[1] != 0)
           {
@@ -196,7 +194,6 @@ void Robot::AutonomousPeriodic()
             swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
           }
         }
-        SmartDashboard::PutNumber("cone Entry iterations", i);
       }
       else
       {
@@ -310,26 +307,6 @@ void Robot::AutonomousPeriodic()
     lastTime = timer.Get().value();
   }
 }
-/*
-void Robot::TeleopInit() {
-  inst = nt::NetworkTableInstance::GetDefault();
-  inst.StartServer();
-  table = inst.GetTable("vision/localization");
-  xTopic = table->GetDoubleTopic("x");
-  xEntry = xTopic.GetEntry(100000);
-}
-
-int hi = 0;
-
-void Robot::TeleopPeriodic() {
-  frc::SmartDashboard::PutNumber("x I'm getting", xEntry.Get());
-  frc::SmartDashboard::PutNumber("hi", hi);
-  wpi::outs() << "yo";
-  frc::SmartDashboard::PutNumber("aj counter", sanityEntry.Get());
-  hi += 1;
-  inst.Flush();
-}
-*/
 
 void Robot::TeleopInit()
 {

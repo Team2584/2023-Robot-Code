@@ -230,11 +230,6 @@ public:
       runningIntegral += error;
     }
 
-    SmartDashboard::PutNumber("ki", ki);
-    SmartDashboard::PutNumber("output", output);
-    SmartDashboard::PutNumber("error", error);
-    SmartDashboard::PutNumber("turndirection", spinDirection);
-
     // Move motors  at speeds and directions determined earlier
     spinMotor->Set(output * spinDirection);
     driveMotor->Set(ControlMode::PercentOutput, driveSpeed * driveDirection);
@@ -638,7 +633,6 @@ public:
     lastX += std::clamp(intendedVelocity - lastX, -1 * translationMaxAccel * elapsedTime,
                         translationMaxAccel * elapsedTime);
     xSpeed = lastX;
-    SmartDashboard::PutNumber("X I Controb", intendedI);
 
     // This is a WIP that shouldn't be needed for the final robot with well tuned PID
     if (lastX > 0 && lastX < 0.06 && useWeirdMinSpeedThing)
@@ -879,7 +873,6 @@ public:
    */
   bool StrafeToPole(double offset, double elapsedTime)
   {
-    double P_STRAFE_KP = frc::SmartDashboard::GetNumber("P", 0.75);
     //TODO fix this because it sucks
     Pose2d thetaGoal = Pose2d(0_m, 0_m, Rotation2d(180_deg));
     double thetaDistance = thetaGoal.RelativeTo(GetPose()).Rotation().Radians().value();   
@@ -908,7 +901,6 @@ public:
     DriveSwervePercent(-lastX, 0, lastSpin);
 
     SmartDashboard::PutNumber("Strafe X", lastX);
-    SmartDashboard::PutNumber("I", intendedI);
     return false;
   }
 };

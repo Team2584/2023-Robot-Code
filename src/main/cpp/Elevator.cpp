@@ -86,9 +86,6 @@ public:
     lastSpeed += std::clamp(intendedVelocity - lastSpeed, -1 * MAX_ACCELERATION * elapsedTime,
                         MAX_ACCELERATION * elapsedTime);
 
-
-    SmartDashboard::PutNumber("lastSpeed", lastSpeed);
-    SmartDashboard::PutNumber("error", error);
     MoveElevatorPercent(lastSpeed + HOLDFF);
     return false;
   }
