@@ -22,6 +22,7 @@ TalonFX driveBR{04};
 rev::CANSparkMax winchR{5, rev::CANSparkMax::MotorType::kBrushless};
 rev::CANSparkMax winchL{6, rev::CANSparkMax::MotorType::kBrushless};
 rev::CANSparkMax wrist{7, rev::CANSparkMax::MotorType::kBrushless};
+rev::CANSparkMax claw{9, rev::CANSParkMax::MotorType::kBrushess};
 
 DutyCycleEncoder FLMagEnc(8);
 DutyCycleEncoder FRMagEnc(6);
