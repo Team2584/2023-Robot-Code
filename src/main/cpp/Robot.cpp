@@ -95,7 +95,7 @@ void Robot::RobotInit()
 
   elevatorLift = new ElevatorLift(&winchL, &winchR, &TOFSensor);
   limelight = new Limelight(limelightTable);
-  claw = new Claw(&wrist);
+  claw = new Claw(&wrist, &clawM1);
 
   // Initializing Autonomous Trajectory (For Splines)
   swerveDrive->ResetTrajectoryList();
@@ -193,7 +193,7 @@ void Robot::AutonomousPeriodic()
   }
   else if (splineSection == 1)
   {
-    if (timer.Get() > 2_s)
+    if (swerveDrive->GetPose().Y() > 5.5_m)
     {
       int i = 0;
       for (auto array : coneEntry.ReadQueue())
@@ -239,7 +239,7 @@ void Robot::AutonomousPeriodic()
   }
   else if (splineSection == 3)
   {
-    if (timer.Get() > 2_s)
+    if (swerveDrive->GetPose().Y() > 5.5_m)
     {
       for (auto array : coneEntry.ReadQueue())
       {
@@ -308,7 +308,7 @@ void Robot::TeleopInit()
   // Prepare swerve drive odometry
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
-  swerveDrive->ResetOdometry(Pose2d(3.38_m, 6_m, Rotation2d(180_deg)));
+  swerveDrive->ResetOdometry(Pose2d(0_m, -1_m, Rotation2d(0_deg)));
 
   // Reset all our values throughout the code
   timer.Reset();
@@ -327,16 +327,11 @@ void Robot::TeleopInit()
   */
 }
 
-int counter = 0;
 void Robot::TeleopPeriodic()
 {
-  SmartDashboard::PutNumber("encoder", elevatorLift->winchEncoderReading());
-
   // Take values from Smartdashboard
   MAX_DRIVE_SPEED = frc::SmartDashboard::GetNumber("MAX DRIVE SPEED", 0.4);
   ELEVATOR_SPEED = frc::SmartDashboard::GetNumber("ELEVATOR_SPEED", 0.1);
-
-  SmartDashboard::PutNumber("Spin Encoder Tracker", swerveDrive->FLModule->GetSpinEncoderRadians());
 
   double joy_lStick_Y, joy_lStick_X, joy_rStick_X;
   // Find controller input
@@ -387,66 +382,44 @@ void Robot::TeleopPeriodic()
                               MAX_SPIN_ACCELERATION * elapsedTime);
   lastTime = time;
 
+  swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
+
   // Update our odometry
   double microsecondTime = (double)RobotController::GetFPGATime();
   swerveDrive->UpdateOdometry(units::microsecond_t{microsecondTime});
 
+  // Update our odometry position based on cone data
   for (auto array : coneEntry.ReadQueue())
   {
     double angle = -1 * swerveDrive->GetPose().Rotation().Radians().value();
-    frc::SmartDashboard::PutNumber("Cone X Orig", array.value[0]);
-    frc::SmartDashboard::PutNumber("Cone Y Orig", array.value[1]);
     if (array.value[0] != 0 || array.value[1] != 0)
     {
       double fieldOrientedX = -1 * (array.value[0] * cos(angle) - array.value[1] * sin(angle));
       double fieldOrientedY = -1 * (array.value[0] * sin(angle) + array.value[1] * cos(angle));
-      frc::SmartDashboard::PutNumber("Cone X Rotated", fieldOrientedX);
-      frc::SmartDashboard::PutNumber("Cone Y Rotated", fieldOrientedY);
-      Translation2d transEst = Translation2d(3.38_m + units::meter_t{fieldOrientedX}, 7_m + units::meter_t{fieldOrientedY});
+      Translation2d transEst = Translation2d(units::meter_t{fieldOrientedX}, units::meter_t{fieldOrientedY});
       frc::SmartDashboard::PutNumber("Cone X Final", transEst.X().value());
       frc::SmartDashboard::PutNumber("Cone Y Final", transEst.Y().value());
       swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
     }
   }
 
-  for (auto array : poseSub.ReadQueue())
-  {
-    Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
-    frc::SmartDashboard::PutNumber("Vision X", poseEst.X().value());
-    frc::SmartDashboard::PutNumber("Vision Y", poseEst.Y().value());
-    swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time - array.value[4]});
-  }
+  // for (auto array : poseSub.ReadQueue())
+  // {
+  //   Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
+  //   frc::SmartDashboard::PutNumber("Vision X", poseEst.X().value());
+  //   frc::SmartDashboard::PutNumber("Vision Y", poseEst.Y().value());
+  //   swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time - array.value[4]});
+  // }
 
   Pose2d pose = swerveDrive->GetPose();
   double poseArray[] = {pose.X().value(), pose.Y().value(), 0.75, pose.Rotation().Radians().value(), 0};
   curPoseEntry.Set(poseArray);
 
   // DEBUG INFO
-
-  frc::SmartDashboard::PutNumber("TOF", elevatorLift->TOFSReading());
-
-  // frc::SmartDashboard::PutNumber("FWD Drive Speed", lastFwdSpeed);
-  // frc::SmartDashboard::PutNumber("Strafe Drive Speed", lastStrafeSpeed);
-  // frc::SmartDashboard::PutNumber("Turn Drive Speed", lastTurnSpeed);
   frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
   frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
   frc::SmartDashboard::PutNumber("Odometry Theta", pose.Rotation().Degrees().value());
-
-  SmartDashboard::PutNumber("Robot Controller FPGA Time", RobotController::GetFPGATime());
-  SmartDashboard::PutNumber("Timer Class FPGA Time", Timer::GetFPGATimestamp().value());
-
-  /*
-    frc::SmartDashboard::PutBoolean("Was 0", thetaEntry.Get() < 0.05 && thetaEntry.Get() > -0.05 && thetaEntry.Get() != 0.0);
-
-    SmartDashboard::PutNumber("Robot Controller FPGA Time", RobotController::GetFPGATime());
-    SmartDashboard::PutNumber("Timer Class FPGA Time", Timer::GetFPGATimestamp().value());
-
-    SmartDashboard::PutNumber("Network Table Sanity", sanityEntry.Get());
-
-    frc::SmartDashboard::PutNumber("TIMER", timer.Get().value());
-  */
-
-  swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
+  SmartDashboard::PutNumber("lift encoder", elevatorLift->winchEncoderReading());
 
   // LIMELIGHT CODE
   // if (xbox_Drive->GetRightBumper())
@@ -456,11 +429,6 @@ void Robot::TeleopPeriodic()
   //   bool thing = swerveDrive->StrafeToPole(offset, elapsedTime);
   //   SmartDashboard::PutNumber("thing", thing);
   // }
-
-  if (xbox_Drive->GetRightBumperPressed())
-    swerveDrive->BeginPIDLoop();
-  if (xbox_Drive->GetRightBumper())
-    swerveDrive->DriveToPose(Pose2d(3.38_m, 6_m, Rotation2d(180_deg)), elapsedTime);
 
   // BASIC ELEVATOR CODE
   if (xbox_Drive->GetBButtonPressed())
@@ -475,40 +443,26 @@ void Robot::TeleopPeriodic()
   else
     elevatorLift->MoveElevatorPercent(0);
 
-  if (xbox_Drive->GetStartButton())
+  if (xbox_Drive->GetRightBumper())
     claw->MoveWristPercent(0.2);
-  else if (xbox_Drive->GetBackButton())
+  else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
     claw->MoveWristPercent(-0.2);
   else
     claw->MoveWristPercent(0);
 
-  // Here is our Test Drive Control Code that runs different functions when different buttons are pressed
-  /*
   if (xbox_Drive->GetLeftBumper())
-    Turn_Speed = swerveDrive->TurnToPointDesiredSpin(Translation2d(0_m, 0_m), elapsedTime, TURN_TO_POINT_ALLOWABLE_ERROR, TURN_TO_POINT_MAX_SPIN, TURN_TO_POINT_MAX_ACCEL, TURN_TO_TO_POINT_P, TURN_TO_TO_POINT_I);
+    claw->MoveWristPercent(0.2);
+  else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
+    claw->MoveWristPercent(-0.2);
+  else
+    claw->MoveWristPercent(0);
 
-  swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
-
-  if (xbox_Drive->GetBButtonPressed())
+  if (xbox_Drive->GetStartButtonPressed())
     swerveDrive->BeginPIDLoop();
-  if ((CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton()))
-    swerveDrive->DriveToPose(Pose2d(0_m, -1_m, Rotation2d(0_rad)), elapsedTime);
+  if (xbox_Drive->GetStartButton())
+    swerveDrive->DriveToPose(Pose2d(0_m, 0.25_m, Rotation2d(0_deg)), elapsedTime);
 
-  if (xbox_Drive->GetAButtonPressed())
-    swerveDrive->BeginPIDLoop();
-  if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetAButton()))
-    swerveDrive->DriveToPose(Pose2d(0_m, -2_m, Rotation2d(0_rad)), elapsedTime);
-
-  if (xbox_Drive->GetXButtonPressed())
-    swerveDrive->BeginPIDLoop();
-  if ((CONTROLLER_TYPE == 0 && cont_Driver->GetTriangleButton()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetXButton()))
-    swerveDrive->DriveToPose(Pose2d(-0.5_m, -3_m, Rotation2d(0.5_rad)), elapsedTime);
-
-  if (xbox_Drive->GetRightBumperPressed())
-    swerveDrive->BeginPIDLoop();
-  if (xbox_Drive->GetRightBumper())
-    swerveDrive->DriveToPose(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
-
+  /*
   // Reset Pigion Heading
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())
   {
