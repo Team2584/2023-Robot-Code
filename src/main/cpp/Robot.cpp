@@ -195,8 +195,10 @@ void Robot::AutonomousPeriodic()
   {
     if (timer.Get() > 2_s)
     {
+      int i = 0;
       for (auto array : coneEntry.ReadQueue())
       {
+        i += 1;
         double angle = -1 * swerveDrive->GetPose().Rotation().Radians().value();
         if (array.value[0] != 0 || array.value[1] != 0)
         {
@@ -208,6 +210,7 @@ void Robot::AutonomousPeriodic()
           swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
         }
       }
+      SmartDashboard::PutNumber("cone Entry iterations", i);
     }
     else
     {

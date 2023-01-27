@@ -8,13 +8,15 @@ private:
 
 public:
     rev::CANSparkMax *wristMotor;
+    rev::CANSpakrMax *clawMotor;
 
   /**
    * Instantiates a two motor elevator lift
    */
-  Claw(rev::CANSparkMax *wrist)
+  Claw(rev::CANSparkMax *wrist, rev::CANSParkMax *claw)
   {
     wristMotor = wrist;
+    clawMotor = claw;
   }
 
   void StopWristCoast()
