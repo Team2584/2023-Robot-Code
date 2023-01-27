@@ -39,7 +39,8 @@ class Scheduler
 
     void Schedule(FunctionWrapper* functionPointer, int systemRequirementID)
     {
-        functionPointer->AddRequirement(system.GetSystem(systemRequirementID));
+        //functionPointer->AddRequirement(system.GetSystem(systemRequirementID));
+        functionPointer->AddRequirement(system.System);
         frc2::CommandScheduler::GetInstance().Schedule(functionPointer);
     }
 

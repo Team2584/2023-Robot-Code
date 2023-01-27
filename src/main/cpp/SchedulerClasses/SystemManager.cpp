@@ -18,6 +18,7 @@ class SystemManager
     // static SystemManager* manager;
 
     public:
+    SystemWrapper* System = new SystemWrapper();
     SystemManager()
     {
         systemMap = std::unordered_map<int, SystemWrapper>(); //Map from systemID to system
