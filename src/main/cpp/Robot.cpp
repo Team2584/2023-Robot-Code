@@ -287,6 +287,7 @@ void Robot::AutonomousPeriodic()
     else if(splineSection == 0.25)
     {
       bool elevatorDone = elevatorLift->SetElevatorHeightPID(16, elapsedTime);
+      claw->PIDWrist(0, elapsedTime);
       if (elevatorDone)
       {
         elevatorLift->StopElevator();
