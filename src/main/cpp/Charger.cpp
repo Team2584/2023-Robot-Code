@@ -36,7 +36,7 @@ ctre::phoenix::sensors::WPI_Pigeon2 gyroScope = ctre::phoenix::sensors::WPI_Pige
 }*/
 
 void Swerve::balence(Pose2d current){
-    gyroRot = gyroScope.GetPitch();     //Pull pitch angle from gyroscope
+      gyroRot = gyroScope.getRoll();//Pull roll angle from gyroscope
     frc::SmartDashboard::PutNumber("gyroRot", gyroRot); //on the dashboard, output the gyroRot number
     float deadZone = 2.5;                           //deadzone angle
     float motorMaxSpeed = 0.02;                     //max speed of motor in %
