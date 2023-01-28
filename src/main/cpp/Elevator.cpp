@@ -22,8 +22,8 @@ public:
   {
     winchL = winchL_;
     winchR = winchR_;
-    winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
-    winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
+    winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
+    winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
     winchEncoder = new rev::SparkMaxRelativeEncoder(winchL->GetEncoder());
     winchEncoder->SetPosition(0.0);
     tofSensor = tofSensor_;
@@ -66,14 +66,14 @@ public:
     lastSpeed = 0;
   }
 
-  void SetElevatorHeightPID(double height, double elapsedTime)
+  bool SetElevatorHeightPID(double height, double elapsedTime)
   {
     double error = height - winchEncoderReading();
 
      if (fabs(error) < ALLOWABLE_ERROR_HEIGHT)
     {
-      error = 0;
       runningIntegral = 0;
+      return true;
     }
 
     // calculate our I in PID and clamp it between our maximum I effects
@@ -86,9 +86,7 @@ public:
     lastSpeed += std::clamp(intendedVelocity - lastSpeed, -1 * MAX_ACCELERATION * elapsedTime,
                         MAX_ACCELERATION * elapsedTime);
 
-
-    SmartDashboard::PutNumber("lastSpeed", lastSpeed);
-    SmartDashboard::PutNumber("error", error);
     MoveElevatorPercent(lastSpeed + HOLDFF);
+    return false;
   }
 };
