@@ -286,7 +286,6 @@ void Robot::AutonomousPeriodic()
     }
     else if(splineSection == 0.25)
     {
-      claw->PIDWrist(-10, elapsedTime);
       bool elevatorDone = elevatorLift->SetElevatorHeightPID(16, elapsedTime);
       if (elevatorDone)
       {
@@ -296,14 +295,27 @@ void Robot::AutonomousPeriodic()
     }
     else if(splineSection == 0.5)
     {
+      double wristDone = claw->PIDWrist(-10, elapsedTime);
+      if (wristDone)
+      {
+        splineSection = 0.75;
+      }
+    }
+    else if(splineSection == 0.75)
+    {
       claw->PIDWrist(-10, elapsedTime);
       bool clawDone = claw->OpenClaw(elapsedTime);
       if (clawDone)
       {
-        claw->MoveWristPercent(0);
         claw->MoveClawPercent(0);
-        splineSection = 0.75;
+        splineSection = 0.9;
       }
+    }
+    else
+    {
+        claw->PIDWrist(-3, elapsedTime);
+        claw->MoveClawPercent(0);
+        elevatorLift->MoveElevatorPercent(0.03);
     }
 
     lastTime = timer.Get().value();
