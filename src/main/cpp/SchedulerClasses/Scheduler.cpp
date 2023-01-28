@@ -3,46 +3,37 @@
 // the WPILib BSD license file in the root directory of this project.
 
 #include <vector>
-#include <functional>
-//#include "FunctionTemplates/Function.cpp"
 #include <hash_set>
-//#include <frc2/command/CommandBase.h>
-//#include <frc2/command/CommandHelper.h>
 #include <frc2/command/CommandScheduler.h>
-#include "SystemManager.cpp"
-#include "FunctionWrapper.cpp"
+#include "SequentialProgram.cpp"
 
-/* new
-Scheduler scheduler = Scheduler();
-
-Chassis chassis;
-scheduler.AddRequirement(&chassis.MoveAtPower, chassis); Not working yet
-Lift lift;
-scheduler.AddRequirement(&life.MoveAtPowerForTime, lift); Not working yet
-
-scheduler.Schedule(Function1<int>(&chassis.MoveAtPower, 50, "Chassis")); //string represents the requirements
-scheduler.ScheduleTogether(Function1<int>(&chassis.MoveAtPower, 25, "Chassis"), Function2<int, int>(&lift.MoveListAtPowerForTime, 100, 10, "Lift")); //string represents the requirements
-*/
 
 class Scheduler
 {
     private:
     std::vector<std::function<void()>> periodicFunctions;
-    SystemManager system;
 
     public:
     Scheduler()
     {
+        //frc2::CommandScheduler::GetInstance().OnCommandInterrupt([](const frc2::Command& command) {frc::SmartDashboard::PutBoolean(command.GetName() + " was interrupted.", true);});
         periodicFunctions = std::vector<std::function<void()>>();
-        system = SystemManager();
     }
 
-    void Schedule(FunctionWrapper* functionPointer, int systemRequirementID)
+    // void Schedule(FunctionWrapper* functionPointer, int systemRequirementID)
+    // {
+    //     //functionPointer->AddRequirement(system.GetSystem(systemRequirementID));
+    //     //functionPointer->AddRequirement(new SystemWrapper());
+        
+    //     frc::SmartDashboard::PutBoolean(functionPointer->GetName() + " was interrupted.", false);
+    //     functionPointer->AddRequirements(system.System);
+    //     functionPointer->Schedule();
+    //     //frc2::CommandScheduler::GetInstance().Schedule(functionPointer);
+    // }
+    
+    void Schedule(frc2::SequentialCommandGroup program)
     {
-        //functionPointer->AddRequirement(system.GetSystem(systemRequirementID));
-        //functionPointer->AddRequirement(new SystemWrapper());
-        functionPointer->AddRequirement(system.System);
-        frc2::CommandScheduler::GetInstance().Schedule(functionPointer);
+        program.Schedule();
     }
 
     /*void ScheduleTogether(frc2::CommandHelper<frc2::CommandBase, Function> function1, frc2::CommandHelper<frc2::CommandBase, Function> function2)

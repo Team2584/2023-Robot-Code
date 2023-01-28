@@ -15,25 +15,31 @@ class SystemManager
 {
     private:
     std::unordered_map<int, SystemWrapper> systemMap;
-    // static SystemManager* manager;
-
-    public:
-    SystemWrapper* System = new SystemWrapper();
     SystemManager()
     {
         systemMap = std::unordered_map<int, SystemWrapper>(); //Map from systemID to system
         systemMap.insert(std::pair<int, SystemWrapper>(0, SystemWrapper()));
         systemMap.insert(std::pair<int, SystemWrapper>(1, SystemWrapper()));
     }
-    void Add(int value)
+
+    public:
+    SystemWrapper* System = new SystemWrapper();
+
+    static SystemManager& GetInstance()
     {
-        systemMap.insert(std::pair<int, SystemWrapper>(value, SystemWrapper()));
+        static SystemManager manager;
+        return manager;
+    }
+
+    void Add(int systemID)
+    {
+        systemMap.insert(std::pair<int, SystemWrapper>(systemID, SystemWrapper()));
+        frc2::CommandScheduler::GetInstance().RegisterSubsystem(GetSystem(systemID));
     }
 
     SystemWrapper* GetSystem(int systemID)
     {
-        SystemWrapper returnSystem = systemMap.at(systemID);
-        return &returnSystem;
+        return &systemMap.at(systemID);
     }
 
     void AddPeriodic(/*takes in an ID and function*/)

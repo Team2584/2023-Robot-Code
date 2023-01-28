@@ -171,50 +171,41 @@ void Robot::AutonomousInit()
 
 SmartDashboard::PutBoolean("StageZeroComplete",  false);
 SmartDashboard::PutBoolean("StageOneComplete",   false);
-SmartDashboard::PutBoolean("StageTwoComplete",   false);
-SmartDashboard::PutBoolean("StageThreeComplete", false);
-SmartDashboard::PutBoolean("StageFourComplete",  false);
-SmartDashboard::PutBoolean("StageFiveComplete",  false);
+// SmartDashboard::PutBoolean("StageTwoComplete",   false);
+// SmartDashboard::PutBoolean("StageThreeComplete", false);
+// SmartDashboard::PutBoolean("StageFourComplete",  false);
+// SmartDashboard::PutBoolean("StageFiveComplete",  false);
 
-//  scheduler.Schedule(new FunctionWrapper([](){throw std::bad_exception(); return false;}), Systems::Chassis);
- scheduler.Schedule(new FunctionWrapper([](){SmartDashboard::PutBoolean("StageZeroComplete", true); return true;}), Systems::Chassis);
+SequentialProgram autonomousTestProgram = SequentialProgram();
+autonomousTestProgram.AddFunction([](){SmartDashboard::PutBoolean("StageZeroComplete", true); return true;}, Systems::Chassis);
+autonomousTestProgram.AddFunction([](){return Update();}, Systems::Chassis);
+autonomousTestProgram.AddFunction([](){return swerveDrive->FollowTrajectory(timer);}, Systems::Chassis);
+autonomousTestProgram.AddFunction([](){SmartDashboard::PutBoolean("StageOneComplete", true); return true;}, Systems::Chassis);
+autonomousTestProgram.Schedule();
 
- scheduler.Schedule(new FunctionWrapper([](){return Update();}), Systems::Chassis);
- scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}), Systems::Chassis);
+//  new FunctionWrapper([](){return Update();}, Systems::Chassis),
+//  new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}, Systems::Chassis),
  
- scheduler.Schedule(new FunctionWrapper([](){SmartDashboard::PutBoolean("StageOneComplete", true); return true;}), Systems::Chassis);
+//  new FunctionWrapper([](){return Update();}, Systems::Chassis),
+//  new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}, Systems::Chassis),
 
- scheduler.Schedule(new FunctionWrapper([](){return Update();}), Systems::Chassis);
- scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}), Systems::Chassis);
-
- scheduler.Schedule(new FunctionWrapper([](){SmartDashboard::PutBoolean("StageTwoComplete", true); return true;}), Systems::Chassis);
-
- scheduler.Schedule(new FunctionWrapper([](){return Update();}), Systems::Chassis);
- scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}), Systems::Chassis);
+//  new FunctionWrapper([](){return Update();}, Systems::Chassis),
+//  new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}, Systems::Chassis),
  
- scheduler.Schedule(new FunctionWrapper([](){SmartDashboard::PutBoolean("StageThreeComplete", true); return true;}), Systems::Chassis);
+//  new FunctionWrapper([](){return Update();}, Systems::Chassis),
+//  new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}, Systems::Chassis),
 
- scheduler.Schedule(new FunctionWrapper([](){return Update();}), Systems::Chassis);
- scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}), Systems::Chassis);
+//  new FunctionWrapper([](){swerveDrive->DriveSwervePercent(0, 0, 0); return false;}, Systems::Chassis),
+//  new FunctionWrapper([](){SmartDashboard::PutBoolean("StageFiveComplete", true); return true;}, Systems::Chassis),
 
- scheduler.Schedule(new FunctionWrapper([](){SmartDashboard::PutBoolean("StageFourComplete", true); return true;}), Systems::Chassis);
 
- scheduler.Schedule(new FunctionWrapper([](){swerveDrive->DriveSwervePercent(0, 0, 0); return false;}), Systems::Chassis);
+
 
 //check to make one big command. Check if commands need to be declared uninterruptable. Check if there is a ScheduleNext or special sequential shceduling function
-
- scheduler.Schedule(new FunctionWrapper([](){SmartDashboard::PutBoolean("StageTwoComplete", true); return true;}), Systems::Chassis);
-
- scheduler.Schedule(new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}), Systems::Chassis);
- scheduler.Schedule(new FunctionWrapper([](){return Update();}), Systems::Chassis);
- scheduler.Schedule(new FunctionWrapper([](){SmartDashboard::PutBoolean("StageTwoComplete", true); return true;}), Systems::Chassis);
-
- scheduler.Schedule(new FunctionWrapper([](){SmartDashboard::PutBoolean("StageFiveComplete", true); return true;}), Systems::Chassis);
 }
 
 void Robot::AutonomousPeriodic()
 {
-  scheduler.Run();
   /*
   if (m_autoSelected == kAutoNameCustom)
   {
