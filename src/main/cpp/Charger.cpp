@@ -2,7 +2,7 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 #include <ctre/phoenix/sensors/WPI_Pigeon2.h>
 
-ctre::phoenix::sensors::WPI_Pigeon2 gyroScope = ctre::phoenix::sensors::WPI_Pigeon2(0);
+//ctre::phoenix::sensors::WPI_Pigeon2 gyroScope = ctre::phoenix::sensors::WPI_Pigeon2(0);
 /*void Swerve::driveToCharger(Pose2d current){
     if (onCharger)
     {
