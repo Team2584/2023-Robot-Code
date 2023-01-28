@@ -2,7 +2,9 @@
 #include "Robot.h"
 
 #include <frc/smartdashboard/SmartDashboard.h>
+#include <ctre/phoenix/sensors/WPI_Pigeon2.h>
 
+ctre::phoenix::sensors::WPI_Pigeon2 gyroScope = ctre::phoenix::sensors::WPI_Pigeon2(0); //Gyro declaration
 class SwerveModule
 {
 private:
@@ -922,7 +924,7 @@ public:
   }
 
   void BalanceOnCharger(){
-      gyroRot = gyroScope.getRoll();//Pull roll angle from gyroscope
+    float gyroRot = gyroScope.getRoll();//Pull roll angle from gyroscope
     frc::SmartDashboard::PutNumber("gyroRot", gyroRot); //on the dashboard, output the gyroRot number
     float deadZone = 2.5;                           //deadzone angle
     float motorMaxSpeed = 0.02;                     //max speed of motor in %
