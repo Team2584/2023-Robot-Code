@@ -924,7 +924,7 @@ public:
   }
 
   void BalanceOnCharger(){
-    float gyroRot = gyroScope.getRoll();//Pull roll angle from gyroscope
+    float gyroRot = gyroScope.GetRoll();//Pull roll angle from gyroscope
     frc::SmartDashboard::PutNumber("gyroRot", gyroRot); //on the dashboard, output the gyroRot number
     float deadZone = 2.5;                           //deadzone angle
     float motorMaxSpeed = 0.02;                     //max speed of motor in %
