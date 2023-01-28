@@ -1,4 +1,9 @@
-void Swerve::driveToCharger(Pose2d current){
+#include <fmt/core.h>
+#include <frc/smartdashboard/SmartDashboard.h>
+#include <ctre/phoenix/sensors/WPI_Pigeon2.h>
+
+ctre::phoenix::sensors::WPI_Pigeon2 gyroScope = ctre::phoenix::sensors::WPI_Pigeon2(0);
+/*void Swerve::driveToCharger(Pose2d current){
     if (onCharger)
     {
         if (current.Rotation().X() == 0)
@@ -28,7 +33,7 @@ void Swerve::driveToCharger(Pose2d current){
             double elapsedTime, double translationMaxSpeed, double translationMaxAccel, double allowableErrorTranslation, double translationP, double translationI, double translationIMaxEffect, double rotationMaxSpeed, double rotationMaxAccel, double allowableErrorRotation, double rotationP, double rotationI, double rotationIMaxEffect, double useWeirdMinSpeedThing);
         }
     }
-}
+}*/
 
 void Swerve::balence(Pose2d current){
       gyroRot = gyroScope.GetPitch();     //Pull pitch angle from gyroscope
