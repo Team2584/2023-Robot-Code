@@ -23,6 +23,7 @@ public:
   {
     wristMotor = wrist;
     clawMotor = claw;
+    wristMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
     clawEncoder =  new rev::SparkMaxRelativeEncoder(clawMotor->GetEncoder());
     clawEncoder->SetPosition(1.0);
     wristEncoder =  new rev::SparkMaxRelativeEncoder(wristMotor->GetEncoder());
@@ -62,7 +63,7 @@ public:
                         WRISTMAX_ACCELERATION * elapsedTime);
 
     SmartDashboard::PutNumber("error", error);
-    MoveClawPercent(lastWristSpeed);
+    MoveWristPercent(lastWristSpeed);
     return false;
   }
 
@@ -102,7 +103,7 @@ public:
 
   bool OpenClaw(double elapsedTime)
   {
-    return PIDClaw(0, elapsedTime);
+    return PIDClaw(5, elapsedTime);
   }
 
 };

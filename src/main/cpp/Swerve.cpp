@@ -434,7 +434,7 @@ public:
    */
   void AddPositionEstimate(Translation2d poseEstimate, units::second_t timeOfEstimate)
   {
-    wpi::array<double, 3> stdDevs = {10.0, 10.0, 1000000000.0};
+    wpi::array<double, 3> stdDevs = {5.0, 5.0, 1000000000.0};
     odometry->SetVisionMeasurementStdDevs(stdDevs);
     odometry->AddVisionMeasurement(Pose2d(poseEstimate.Y(), poseEstimate.X(), GetPose().Rotation()), timeOfEstimate);
   }

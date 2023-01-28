@@ -160,7 +160,7 @@ void Robot::AutonomousInit()
 
 void Robot::AutonomousPeriodic()
 {
-  if (m_autoSelected == kAutoNameCustom)
+  /*if (m_autoSelected == kAutoNameCustom)
   {
 
     frc::SmartDashboard::PutNumber("spline section", splineSection);
@@ -274,7 +274,7 @@ void Robot::AutonomousPeriodic()
     lastTime = timer.Get().value();
   }
   else
-  {
+  {*/
     double elapsedTime = timer.Get().value() - lastTime;
 
     if (splineSection == 0)
@@ -286,8 +286,8 @@ void Robot::AutonomousPeriodic()
     }
     else if(splineSection == 0.25)
     {
-      claw->PIDWrist(-0.25, elapsedTime);
-      bool elevatorDone = elevatorLift->SetElevatorHeightPID(10, elapsedTime);
+      claw->PIDWrist(-10, elapsedTime);
+      bool elevatorDone = elevatorLift->SetElevatorHeightPID(16, elapsedTime);
       if (elevatorDone)
       {
         elevatorLift->StopElevator();
@@ -296,16 +296,18 @@ void Robot::AutonomousPeriodic()
     }
     else if(splineSection == 0.5)
     {
+      claw->PIDWrist(-10, elapsedTime);
       bool clawDone = claw->OpenClaw(elapsedTime);
       if (clawDone)
       {
+        claw->MoveWristPercent(0);
         claw->MoveClawPercent(0);
         splineSection = 0.75;
       }
     }
 
     lastTime = timer.Get().value();
-  }
+  //}
 }
 
 void Robot::TeleopInit()
@@ -394,6 +396,7 @@ void Robot::TeleopPeriodic()
   swerveDrive->UpdateOdometry(units::microsecond_t{microsecondTime});
 
   // Update our odometry position based on cone data
+  /*
   for (auto array : coneEntry.ReadQueue())
   {
     double angle = -1 * swerveDrive->GetPose().Rotation().Radians().value();
@@ -407,7 +410,7 @@ void Robot::TeleopPeriodic()
       swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
     }
   }
-
+  */
   // for (auto array : poseSub.ReadQueue())
   // {
   //   Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
@@ -444,31 +447,37 @@ void Robot::TeleopPeriodic()
   if (xbox_Drive->GetYButton())
     elevatorLift->MoveElevatorPercent(0.2);
   else if (xbox_Drive->GetAButton())
-    elevatorLift->MoveElevatorPercent(-0.2);
-  else if (xbox_Drive->GetBButton())
-    elevatorLift->SetElevatorHeightPID(10, elapsedTime);
-  else
     elevatorLift->MoveElevatorPercent(0);
+  else if (xbox_Drive->GetBButton())
+    elevatorLift->SetElevatorHeightPID(16, elapsedTime);
+  else if (xbox_Drive->GetXButton())
+    elevatorLift->MoveElevatorPercent(0.05);
+  else
+    elevatorLift->MoveElevatorPercent(0.05);
 
   if (xbox_Drive->GetRightBumper())
-    claw->MoveWristPercent(0.2);
+    claw->MoveClawPercent(0.2);
   else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
-    claw->MoveWristPercent(-0.2);
+    claw->MoveClawPercent(-0.2);
+  else if (xbox_Drive->GetBackButton())
+    claw->PIDClaw(5, elapsedTime);
   else
-    claw->MoveWristPercent(0);
-
+    claw->MoveClawPercent(0);
+  
   if (xbox_Drive->GetLeftBumper())
     claw->MoveWristPercent(0.2);
   else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
-    claw->MoveWristPercent(-0.2);
+    claw->MoveWristPercent(-0.1);
+  else if (xbox_Drive->GetBackButton())
+    claw->PIDWrist(-10, elapsedTime);
   else
-    claw->MoveWristPercent(0);
+    claw->MoveWristPercent(0.0);
 
-  if (xbox_Drive->GetStartButtonPressed())
+  /*if (xbox_Drive->GetStartButtonPressed())
     swerveDrive->BeginPIDLoop();
   if (xbox_Drive->GetStartButton())
-    swerveDrive->DriveToPose(Pose2d(0_m, 0.25_m, Rotation2d(0_deg)), elapsedTime);
-
+    swerveDrive->DriveToPose(Pose2d(0.05_m, -0.3_m, Rotation2d(0_deg)), elapsedTime);
+*/
   /*
   // Reset Pigion Heading
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())
@@ -498,6 +507,7 @@ void Robot::TestInit()
 
 void Robot::TestPeriodic()
 {
+ 
 }
 
 #ifndef RUNNING_FRC_TESTS

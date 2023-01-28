@@ -22,8 +22,8 @@ public:
   {
     winchL = winchL_;
     winchR = winchR_;
-    winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
-    winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
+    winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
+    winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
     winchEncoder = new rev::SparkMaxRelativeEncoder(winchL->GetEncoder());
     winchEncoder->SetPosition(0.0);
     tofSensor = tofSensor_;
