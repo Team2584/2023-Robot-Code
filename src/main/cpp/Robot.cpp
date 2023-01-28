@@ -64,10 +64,10 @@ void Robot::RobotInit()
   frc::SmartDashboard::PutData("Auto Modes", &m_chooser);
 
   // Setting motor breaktypes
-  driveFL.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
-  driveBL.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
-  driveFR.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
-  driveBR.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
+  driveFL.SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
+  driveFR.SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
+  driveBL.SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
+  driveBR.SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
 
   // Finding values from network tables
   inst = nt::NetworkTableInstance::GetDefault();

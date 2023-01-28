@@ -7,13 +7,12 @@ class SwerveModule
 {
 private:
   // Instance Variables for each swerve module
-  ctre::phoenix::motorcontrol::can::TalonFX *driveMotor;
+  rev::CANSparkMax *driveMotor;
   rev::CANSparkMax *spinMotor;
-  rev::SparkMaxRelativeEncoder *spinEncoder;
+  rev::SparkMaxRelativeEncoder *spinEncoder, *driveEncoder;
   frc::DutyCycleEncoder *magEncoder;
   frc::PIDController *spinPIDController;
   double encoderOffset;       /* Offset in magnetic encoder from 0 facing the front of the robot */
-  double driveEncoderInitial; /* Used to computer the change in encoder tics, aka motor rotation */
   double spinEncoderInitialHeading;
   double spinEncoderInitialValue;
   double runningIntegral = 0; /* Running sum of errors for integral in PID */
@@ -26,7 +25,7 @@ public:
    * @param spinMotor_ A pointer to a Talon FX Spin Motor (the one that makes the wheel rotate to change direction)
    * @param magEncoder_ A pointer to the absolute encoder used to track rotation of the swerve module wheels
    */
-  SwerveModule(ctre::phoenix::motorcontrol::can::TalonFX *driveMotor_,
+  SwerveModule(rev::CANSparkMax *driveMotor_,
                rev::CANSparkMax *spinMotor_, frc::DutyCycleEncoder *magEncoder_,
                double encoderOffset_)
   {
@@ -35,6 +34,7 @@ public:
     magEncoder = magEncoder_;
     encoderOffset = encoderOffset_;
     spinEncoder = new rev::SparkMaxRelativeEncoder(spinMotor->GetEncoder());
+    driveEncoder = new rev::SparkMaxRelativeEncoder(driveMotor->GetEncoder());
     ResetEncoders();
   }
 
@@ -62,7 +62,7 @@ public:
    */
   void ResetEncoders()
   {
-    driveEncoderInitial = driveMotor->GetSelectedSensorPosition();
+    driveEncoder->SetPosition(0.0);
     spinEncoderInitialHeading = GetMagEncoderReading();
     //spinEncoderInitialValue = -1 * spinMotor->GetSelectedSensorPosition();    likely uneeded code, copied from talon swerve
   }
@@ -72,7 +72,7 @@ public:
    */
   double GetDriveEncoderMeters()
   {
-    return (driveMotor->GetSelectedSensorPosition() - driveEncoderInitial) / 2048 / DRIVE_MOTOR_GEAR_RATIO * DRIVE_MOTOR_CIRCUMFERENCE;
+    return (driveEncoder->GetPosition()) / 48 / DRIVE_MOTOR_GEAR_RATIO * DRIVE_MOTOR_CIRCUMFERENCE;
   }
 
   /**
@@ -80,7 +80,7 @@ public:
    */
   double GetDriveVelocity()
   {
-    return driveMotor->GetSelectedSensorVelocity() / 2048 / 6.54 * 0.10322 * M_PI * 10;
+    return driveEncoder->GetVelocity() / 48 / 6.54 * 0.10322 * M_PI * 10;
   }
 
   /**
@@ -98,7 +98,7 @@ public:
   void StopSwerveModule()
   {
     spinMotor->Set(0);
-    driveMotor->Set(ControlMode::PercentOutput, 0);
+    driveMotor->Set(0);
     runningIntegral = 0;
   }
 
@@ -232,7 +232,7 @@ public:
 
     // Move motors  at speeds and directions determined earlier
     spinMotor->Set(output * spinDirection);
-    driveMotor->Set(ControlMode::PercentOutput, driveSpeed * driveDirection);
+    driveMotor->Set(driveSpeed * driveDirection);
   }
 
   /**
@@ -282,13 +282,13 @@ public:
    * Just know there are 8 motors and 4 mag encoders on a Swerve Drive
    * There is also a Pigeon IMU which includes an accelerometer and gyroscope.
    */
-  SwerveDrive(ctre::phoenix::motorcontrol::can::TalonFX *_FLDriveMotor,
+  SwerveDrive(rev::CANSparkMax *_FLDriveMotor,
               rev::CANSparkMax *_FLSpinMotor, frc::DutyCycleEncoder *_FLMagEncoder,
-              double _FLEncoderOffset, ctre::phoenix::motorcontrol::can::TalonFX *_FRDriveMotor,
+              double _FLEncoderOffset, rev::CANSparkMax *_FRDriveMotor,
               rev::CANSparkMax *_FRSpinMotor, frc::DutyCycleEncoder *_FRMagEncoder,
-              double _FREncoderOffset, ctre::phoenix::motorcontrol::can::TalonFX *_BRDriveMotor,
+              double _FREncoderOffset, rev::CANSparkMax *_BRDriveMotor,
               rev::CANSparkMax *_BRSpinMotor, frc::DutyCycleEncoder *_BRMagEncoder,
-              double _BREncoderOffset, ctre::phoenix::motorcontrol::can::TalonFX *_BLDriveMotor,
+              double _BREncoderOffset, rev::CANSparkMax *_BLDriveMotor,
               rev::CANSparkMax *_BLSpinMotor, frc::DutyCycleEncoder *_BLMagEncoder,
               double _BLEncoderOffset, Pigeon2 *_pigeonIMU, double robotStartingRadian)
       : m_frontLeft{DRIVE_LENGTH / 2, DRIVE_WIDTH / 2},

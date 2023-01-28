@@ -12,13 +12,13 @@ PS4Controller *cont_Driver = new PS4Controller(0);
 XboxController *xbox_Drive = new XboxController(0);
 
 rev::CANSparkMax swerveFL{11, rev::CANSparkMax::MotorType::kBrushless};
-TalonFX driveFL{01};
+rev::CANSparkMax driveFL{1, rev::CANSparkMax::MotorType::kBrushless};
 rev::CANSparkMax swerveFR{12, rev::CANSparkMax::MotorType::kBrushless};
-TalonFX driveFR{02};
+rev::CANSparkMax driveFR{2, rev::CANSparkMax::MotorType::kBrushless};
 rev::CANSparkMax swerveBL{13, rev::CANSparkMax::MotorType::kBrushless};
-TalonFX driveBL{03};
+rev::CANSparkMax driveBL{3, rev::CANSparkMax::MotorType::kBrushless};
 rev::CANSparkMax swerveBR{14, rev::CANSparkMax::MotorType::kBrushless};
-TalonFX driveBR{04};
+rev::CANSparkMax driveBR{4, rev::CANSparkMax::MotorType::kBrushless};
 rev::CANSparkMax winchR{5, rev::CANSparkMax::MotorType::kBrushless};
 rev::CANSparkMax winchL{6, rev::CANSparkMax::MotorType::kBrushless};
 rev::CANSparkMax wrist{7, rev::CANSparkMax::MotorType::kBrushless};
