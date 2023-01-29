@@ -927,17 +927,20 @@ public:
   void BalanceOnCharger(){
     float gyroRot = pigeonIMU->GetRoll();//Pull roll angle from gyroscope
     frc::SmartDashboard::PutNumber("gyroRot", gyroRot); //on the dashboard, output the gyroRot number
+    frc::SmartDashboard::PutNumber("gyroRot", gyroRot);
+    frc::SmartDashboard::PutNumber("gyroRot", gyroRot);
     float deadZone = 2.5;                           //deadzone angle
     float motorMaxSpeed = 0.2;                     //max speed of motor in %
+    float hardMotorCap = 0.2;
     float motorVelocity;                            //final velocity of motor
     int direction = (gyroRot > 0) ? 1 : -1;         // if gyroRot is greater than 0, change direction to -1, vice versa. This is for correction, we want to move opposite direction from tilt
 
     if (abs(gyroRot) > deadZone)
         motorVelocity = direction * (abs(gyroRot) - deadZone) * motorMaxSpeed * 1 / 9; //when rotation of gyro exceeds the deadzone, set motor velocity (this is proportional to the gyro angle)
-    if (motorVelocity > 0.2)
-        motorVelocity = 0.2;
-    if (motorVelocity < -0.2)
-        motorVelocity = -0.2;
+    if (motorVelocity > hardMotorCap)
+        motorVelocity = hardMotorCap;
+    if (motorVelocity < -hardMotorCap)
+        motorVelocity = -hardMotorCap;
 
     frc::SmartDashboard::PutNumber("MotorVelocity", motorVelocity);
     DriveSwervePercent(0, motorVelocity, 0);
