@@ -336,7 +336,7 @@ void Robot::TeleopPeriodic()
 
   if (xbox_Drive->GetBButtonPressed())
     swerveDrive->BeginPIDLoop();
-  if (xbox_Drive->GetAButtonPressed())
+  if (xbox_Drive->GetAButton())
     swerveDrive->BalanceOnCharger();
   if ((CONTROLLER_TYPE == 0 && cont_Driver->GetSquareButtonPressed()) || (CONTROLLER_TYPE == 1 && xbox_Drive->GetBButton()))
     swerveDrive->DriveToPoseOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)), elapsedTime);
