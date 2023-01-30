@@ -290,7 +290,7 @@ void Robot::AutonomousPeriodic()
       claw->PIDWrist(0, elapsedTime);
       if (elevatorDone)
       {
-        elevatorLift->StopElevator();
+        elevatorLift->MoveElevatorPercent(0, elapsedTime);
         splineSection = 0.5;
       }
     }
@@ -316,7 +316,7 @@ void Robot::AutonomousPeriodic()
     {
         claw->PIDWrist(-3, elapsedTime);
         claw->MoveClawPercent(0);
-        elevatorLift->MoveElevatorPercent(0.03);
+        elevatorLift->MoveElevatorPercent(-0.03, elapsedTime);
     }
 
     lastTime = timer.Get().value();
@@ -458,15 +458,15 @@ void Robot::TeleopPeriodic()
     elevatorLift->StartPIDLoop();
 
   if (xbox_Drive->GetYButton())
-    elevatorLift->MoveElevatorPercent(0.2);
+    elevatorLift->MoveElevatorPercent(0.8, elapsedTime);
   else if (xbox_Drive->GetAButton())
-    elevatorLift->MoveElevatorPercent(0);
+    elevatorLift->MoveElevatorPercent(-0.25, elapsedTime);
   else if (xbox_Drive->GetBButton())
-    elevatorLift->SetElevatorHeightPID(16, elapsedTime);
+    elevatorLift->SetElevatorHeightPID(20, elapsedTime);
   else if (xbox_Drive->GetXButton())
-    elevatorLift->MoveElevatorPercent(0.05);
+    elevatorLift->SetElevatorHeightPID(40, elapsedTime);
   else
-    elevatorLift->MoveElevatorPercent(0.05);
+    elevatorLift->MoveElevatorPercent(0, elapsedTime);
 
   if (xbox_Drive->GetRightBumper())
     claw->MoveClawPercent(0.2);
