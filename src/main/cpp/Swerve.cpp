@@ -937,9 +937,9 @@ public:
 
     if (abs(gyroRot) > deadZone)
         motorVelocity = direction * (abs(gyroRot) - deadZone) * motorMaxSpeed * 1 / 9; //when rotation of gyro exceeds the deadzone, set motor velocity (this is proportional to the gyro angle)
-    if (motorVelocity > hardMotorCap)
+    if (motorVelocity > hardMotorCap)   //if motorVelocity exceeds the hard cap, make the motor velocity equal the hard cap
         motorVelocity = hardMotorCap;
-    if (motorVelocity < -hardMotorCap)
+    if (motorVelocity < -hardMotorCap)  //same in negative direction
         motorVelocity = -hardMotorCap;
 
     frc::SmartDashboard::PutNumber("MotorVelocity", motorVelocity);
