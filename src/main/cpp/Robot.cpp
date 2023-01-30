@@ -334,8 +334,16 @@ void Robot::AutonomousPeriodic()
     }
   }
 
+
   double elapsedTime = timer.Get().value() - lastTime;
-  swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
+  bool doneWithTrajectory =  swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
+
+  // if (doneWithTrajectory)
+  // {
+  //   swerveDrive->DriveSwervePercent(0,0,0);
+  //   claw->PIDClaw(-10, elapsedTime);
+  // }
+
   lastTime = timer.Get().value();
 }
 
