@@ -123,12 +123,12 @@ void Robot::RobotPeriodic()
  */
 void Robot::AutonomousInit()
 {
-  m_autoSelected = m_chooser.GetSelected();
+  /*m_autoSelected = m_chooser.GetSelected();
   m_autoSelected = SmartDashboard::GetString("Auto Selector",
                                              kAutoNameDefault);
   fmt::print("Auto selected: {}\n", m_autoSelected);
 
-  /*if (m_autoSelected == kAutoNameCustom)
+  if (m_autoSelected == kAutoNameCustom)
   {
     swerveDrive->ResetOdometry(Pose2d(4.74_m, 1.89_m, Rotation2d(3.14_rad)));
     swerveDrive->ResetTrajectoryList();
@@ -145,9 +145,11 @@ void Robot::AutonomousInit()
     splineSection = 0;
   }*/
 
-  swerveDrive->ResetOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));
+  swerveDrive->ResetOdometry(Pose2d(4.74_m, 1.89_m, Rotation2d(3.14_rad)));
   swerveDrive->ResetTrajectoryList();
-  swerveDrive->InitializeTrajectory("Simple Spline");
+  swerveDrive->InitializeTrajectory("RedRight3GamePiece1");
+  swerveDrive->SetNextTrajectory();
+  splineSection = 0;
 
   // Start our match timer and reset our odometry to the robot's starting position
   lastTime = 0;
@@ -318,31 +320,41 @@ void Robot::AutonomousPeriodic()
     lastTime = timer.Get().value();
   }*/
 
+  
   double microsecondTime = (double)RobotController::GetFPGATime();
   swerveDrive->UpdateOdometry(units::microsecond_t{microsecondTime});
-  for (auto array : coneEntry.ReadQueue())
+  if (swerveDrive->GetPose().Y() > 4_m)
   {
-    double angle = swerveDrive->GetPose().Rotation().Radians().value();
-    if (array.value[0] != 0 || array.value[1] != 0)
+    for (auto array : coneEntry.ReadQueue())
     {
-      double fieldOrientedX = -1 * (array.value[0] * cos(angle) - array.value[1] * sin(angle));
-      double fieldOrientedY = -1 * (array.value[0] * sin(angle) + array.value[1] * cos(angle));
-      Translation2d transEst = Translation2d(0_m + units::meter_t{fieldOrientedX}, 1.5_m + units::meter_t{fieldOrientedY});
-      frc::SmartDashboard::PutNumber("Cone X Final", transEst.X().value());
-      frc::SmartDashboard::PutNumber("Cone Y Final", transEst.Y().value());
-      swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
+      double angle = swerveDrive->GetPose().Rotation().Radians().value();
+      if (array.value[0] != 0 || array.value[1] != 0)
+      {
+        double fieldOrientedX = -1 * (array.value[0] * cos(angle) - array.value[1] * sin(angle));
+        double fieldOrientedY = -1 * (array.value[0] * sin(angle) + array.value[1] * cos(angle));
+        Translation2d transEst = Translation2d(4.56_m + units::meter_t{fieldOrientedX}, 7_m + units::meter_t{fieldOrientedY});
+        frc::SmartDashboard::PutNumber("Cone X Final", transEst.X().value());
+        frc::SmartDashboard::PutNumber("Cone Y Final", transEst.Y().value());
+        swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
+      }
     }
   }
-
+  else
+  {
+    coneEntry.ReadQueue();
+  }
 
   double elapsedTime = timer.Get().value() - lastTime;
-  bool doneWithTrajectory =  swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
 
-  // if (doneWithTrajectory)
-  // {
-  //   swerveDrive->DriveSwervePercent(0,0,0);
-  //   claw->PIDClaw(-10, elapsedTime);
-  // }
+  bool doneWithTrajectory = true;
+  if (splineSection == 0)
+    doneWithTrajectory = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
+
+  if (doneWithTrajectory)
+  {
+    swerveDrive->DriveSwervePercent(0,0,0);
+    splineSection = 1;
+  }
 
   lastTime = timer.Get().value();
 }
@@ -436,9 +448,11 @@ void Robot::TeleopPeriodic()
   
   for (auto array : coneEntry.ReadQueue())
   {
-    double angle = swerveDrive->GetPose().Rotation().Radians().value();
+    double angle = -swerveDrive->GetPose().Rotation().Radians().value();
     if (array.value[0] != 0 || array.value[1] != 0)
     {
+      frc::SmartDashboard::PutNumber("Cone X", array.value[0]);
+      frc::SmartDashboard::PutNumber("Cone Y", array.value[1]);
       double fieldOrientedX = -1 * (array.value[0] * cos(angle) - array.value[1] * sin(angle));
       double fieldOrientedY = -1 * (array.value[0] * sin(angle) + array.value[1] * cos(angle));
       Translation2d transEst = Translation2d(0_m + units::meter_t{fieldOrientedX}, 1.5_m + units::meter_t{fieldOrientedY});
@@ -488,8 +502,8 @@ void Robot::TeleopPeriodic()
     elevatorLift->SetElevatorHeightPID(16, elapsedTime);
   else if (xbox_Drive->GetXButton())
     elevatorLift->MoveElevatorPercent(0.05);
-  else
-    elevatorLift->MoveElevatorPercent(0.05);
+  //else
+    //elevatorLift->MoveElevatorPercent(0.05);
 
   if (xbox_Drive->GetRightBumper())
     claw->MoveClawPercent(0.2);

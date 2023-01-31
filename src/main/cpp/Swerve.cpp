@@ -434,7 +434,7 @@ public:
    */
   void AddPositionEstimate(Translation2d poseEstimate, units::second_t timeOfEstimate)
   {
-    wpi::array<double, 3> stdDevs = {5.0, 5.0, 1000000000.0};
+    wpi::array<double, 3> stdDevs = {1.0, 1.0, 1000000000.0};
     odometry->SetVisionMeasurementStdDevs(stdDevs);
     odometry->AddVisionMeasurement(Pose2d(poseEstimate.Y(), poseEstimate.X(), GetPose().Rotation()), timeOfEstimate);
   }
@@ -742,7 +742,7 @@ public:
   void InitializeTrajectory(string trajectoryString)
   {
   // This will load the file "Example Path.path" and generate it with a max velocity of 3 m/s and a max acceleration of 5 m/s^2
-    trajectoryList.push(pathplanner::PathPlanner::loadPath(trajectoryString, pathplanner::PathConstraints(1_mps, 5_mps_sq)));
+    trajectoryList.push(pathplanner::PathPlanner::loadPath(trajectoryString, pathplanner::PathConstraints(0.5_mps, 5_mps_sq)));
   }
 
   /**
@@ -819,9 +819,9 @@ public:
     // SmartDashboard::PutNumber("Y FF", yFF.value());
 
 
-    // SmartDashboard::PutNumber("X Odom", pose.X().value());
-    // SmartDashboard::PutNumber("Y Odom", pose.Y().value());
-    // SmartDashboard::PutNumber("Theta Odom", GetPose().Rotation().Degrees().value());
+     SmartDashboard::PutNumber("X Odom", pose.X().value());
+     SmartDashboard::PutNumber("Y Odom", pose.Y().value());
+     SmartDashboard::PutNumber("Theta Odom", GetPose().Rotation().Degrees().value());
 
      SmartDashboard::PutNumber("x Dist", xDistance);
      SmartDashboard::PutNumber("y Dist", yDistance);
