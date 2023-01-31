@@ -159,7 +159,8 @@ void Robot::AutonomousInit()
 
 void Robot::AutonomousPeriodic()
 {
-  /*if (m_autoSelected == kAutoNameCustom)
+  /*
+  if (m_autoSelected == kAutoNameCustom)
   {
 
     frc::SmartDashboard::PutNumber("spline section", splineSection);
@@ -438,13 +439,13 @@ void Robot::TeleopPeriodic()
   double elapsedTime = time - lastTime;
   lastTime = time;
 
+  // Slew rate limiting driver input
   lastFwdSpeed += std::clamp(FWD_Drive_Speed - lastFwdSpeed, -1 * MAX_DRIVE_ACCELERATION * elapsedTime,
                              MAX_DRIVE_ACCELERATION * elapsedTime);
   lastStrafeSpeed += std::clamp(STRAFE_Drive_Speed - lastStrafeSpeed, -1 * MAX_DRIVE_ACCELERATION * elapsedTime,
                                 MAX_DRIVE_ACCELERATION * elapsedTime);
   lastTurnSpeed += std::clamp(Turn_Speed - lastTurnSpeed, -1 * MAX_SPIN_ACCELERATION * elapsedTime,
                               MAX_SPIN_ACCELERATION * elapsedTime);
-  lastTime = time;
 
   swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
 
@@ -510,8 +511,8 @@ void Robot::TeleopPeriodic()
     elevatorLift->SetElevatorHeightPID(16, elapsedTime);
   else if (xbox_Drive->GetXButton())
     elevatorLift->MoveElevatorPercent(0.05);
-  //else
-    //elevatorLift->MoveElevatorPercent(0.05);
+  else
+    elevatorLift->MoveElevatorPercent(0);
 
   if (xbox_Drive->GetRightBumper())
     claw->MoveClawPercent(0.2);

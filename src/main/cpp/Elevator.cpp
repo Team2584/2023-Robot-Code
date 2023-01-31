@@ -48,7 +48,7 @@ public:
 
   void StopElevator()
   {
-    MoveElevatorPercent(0.05);
+    MoveElevatorPercent(0);
   }
 
   /**
@@ -73,6 +73,7 @@ public:
      if (fabs(error) < ALLOWABLE_ERROR_HEIGHT)
     {
       runningIntegral = 0;
+      MoveElevatorPercent(0);
       return true;
     }
 
@@ -85,6 +86,8 @@ public:
     // Make sure our change in velocity from the last loop is not going above our maximum acceleration
     lastSpeed += std::clamp(intendedVelocity - lastSpeed, -1 * MAX_ACCELERATION * elapsedTime,
                         MAX_ACCELERATION * elapsedTime);
+
+    runningIntegral += error;
 
     MoveElevatorPercent(lastSpeed + HOLDFF);
     return false;

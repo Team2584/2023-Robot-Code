@@ -11,7 +11,6 @@ private:
   rev::CANSparkMax *spinMotor;
   rev::SparkMaxRelativeEncoder *spinEncoder;
   frc::DutyCycleEncoder *magEncoder;
-  frc::PIDController *spinPIDController;
   double encoderOffset;       /* Offset in magnetic encoder from 0 facing the front of the robot */
   double driveEncoderInitial; /* Used to computer the change in encoder tics, aka motor rotation */
   double spinEncoderInitialHeading;
@@ -746,6 +745,17 @@ public:
   }
 
   /**
+   * Initializes a trajectory to be run during autonomous by loading it into memory.
+   * A trajectory is a curve that we tell the robot to move through. AKA a spline.
+   * Run in auton Init
+   */
+  void InitializeTrajectory(string trajectoryString, units::meters_per_second_t velocity, units::meters_per_second_squared_t acceleration)
+  {
+  // This will load the file "Example Path.path" and generate it with a max velocity of 3 m/s and a max acceleration of 5 m/s^2
+    trajectoryList.push(pathplanner::PathPlanner::loadPath(trajectoryString, pathplanner::PathConstraints(velocity, acceleration)));
+  }
+
+  /**
    * Iterates to next trajectory in list of trajectories
    */
   void SetNextTrajectory()
@@ -761,6 +771,9 @@ public:
   /**
    * Follow a trajectory through auton.
    * Must be called every autonomous loop.
+   * 
+   * @param time   TIME SINCE TRAJECTORY STARTEDDD (not system time)
+   * @param elapsedTime time since last function call
    */
   bool FollowTrajectory(units::second_t time, double elapsedTime)
   {

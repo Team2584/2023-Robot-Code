@@ -14,9 +14,11 @@
 #define SPIN_MOTOR_GEAR_RATIO 15.43
 
 //Numerical Constants TODO CHANGE
-#define SWERVE_DRIVE_MAX_MPS 4.247
-#define SWERVE_DRIVE_MAX_ACCELERATION 3 //TODO
-#define MAX_RADIAN_PER_SECOND 4 // TODO
+#define SWERVE_DRIVE_MAX_MPS 4.247 // unneccesary
+#define SWERVE_DRIVE_MAX_ACCELERATION 3 // unneccesary
+#define MAX_RADIAN_PER_SECOND 4 // unneccesary
+
+// Swerve Module Wheel Spin PID Values
 #define WHEEL_SPIN_KP 1
 #define WHEEL_SPIN_KI 0
 #define WHEEL_SPIN_KI_MAX 0.03
