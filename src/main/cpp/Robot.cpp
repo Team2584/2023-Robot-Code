@@ -161,7 +161,7 @@ void Robot::AutonomousPeriodic()
 {
   /*
   if (m_autoSelected == kAutoNameCustom)
-  {
+  {*/
 
     frc::SmartDashboard::PutNumber("spline section", splineSection);
     frc::SmartDashboard::PutNumber("timer", timer.Get().value());
@@ -169,6 +169,13 @@ void Robot::AutonomousPeriodic()
     // Update Odometry
     swerveDrive->UpdateOdometry(timer.Get());
     double elapsedTime = timer.Get().value() - lastTime;
+    for (auto array : poseSub.ReadQueue())
+    {
+      Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
+      frc::SmartDashboard::PutNumber("Vision X", poseEst.X().value());
+      frc::SmartDashboard::PutNumber("Vision Y", poseEst.Y().value());
+      swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time - array.value[4]});
+    }
 
     // Run actual Auto
     if (splineSection == 0)
@@ -211,14 +218,14 @@ void Robot::AutonomousPeriodic()
     }
     else if (splineSection == 2)
     {
-      bool elevatorDone = false;
+      /*bool elevatorDone = false;
       if (swerveDrive->GetPose().Y() < 2_m)
       {
         elevatorDone = elevatorLift->SetElevatorHeightPID(10, elapsedTime);
-      }
+      }*/
 
       bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
-      if (splineDone && elevatorDone)
+      if (splineDone)
       {
         splineSection = 3;
         swerveDrive->SetNextTrajectory();
@@ -272,6 +279,7 @@ void Robot::AutonomousPeriodic()
     }
 
     lastTime = timer.Get().value();
+  /*
   }
   else
   {
@@ -321,7 +329,7 @@ void Robot::AutonomousPeriodic()
     lastTime = timer.Get().value();
   }*/
 
-  
+  /*
   double microsecondTime = (double)RobotController::GetFPGATime();
   swerveDrive->UpdateOdometry(units::microsecond_t{microsecondTime});
   /*if (swerveDrive->GetPose().Y() > 4_m)
@@ -343,7 +351,7 @@ void Robot::AutonomousPeriodic()
   else
   {
     coneEntry.ReadQueue();
-  }*/
+  }
   
 for (auto array : poseSub.ReadQueue())
   {
@@ -365,7 +373,7 @@ for (auto array : poseSub.ReadQueue())
     splineSection = 1;
   }
 
-  lastTime = timer.Get().value();
+  lastTime = timer.Get().value();*/
 }
 
 void Robot::TeleopInit()
@@ -506,7 +514,7 @@ void Robot::TeleopPeriodic()
   if (xbox_Drive->GetYButton())
     elevatorLift->MoveElevatorPercent(0.2);
   else if (xbox_Drive->GetAButton())
-    elevatorLift->MoveElevatorPercent(0);
+    elevatorLift->MoveElevatorPercent(-0.2);
   else if (xbox_Drive->GetBButton())
     elevatorLift->SetElevatorHeightPID(16, elapsedTime);
   else if (xbox_Drive->GetXButton())
@@ -524,9 +532,9 @@ void Robot::TeleopPeriodic()
     claw->MoveClawPercent(0);
   
   if (xbox_Drive->GetLeftBumper())
-    claw->MoveWristPercent(0.2);
+    claw->MoveWristPercent(0.5);
   else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
-    claw->MoveWristPercent(-0.1);
+    claw->MoveWristPercent(-0.2);
   else if (xbox_Drive->GetBackButton())
     claw->PIDWrist(-10, elapsedTime);
   else
