@@ -145,6 +145,7 @@ void Robot::AutonomousInit()
     splineSection = 0;
   }*/
 
+  elevatorLift->ResetElevatorEncoder();
   swerveDrive->ResetOdometry(Pose2d(4.74_m, 1.89_m, Rotation2d(3.14_rad)));
   swerveDrive->ResetTrajectoryList();
   swerveDrive->InitializeTrajectory("RedRight3GamePiece1");
@@ -161,7 +162,7 @@ void Robot::AutonomousPeriodic()
 {
   /*
   if (m_autoSelected == kAutoNameCustom)
-  {*/
+  {
 
     frc::SmartDashboard::PutNumber("spline section", splineSection);
     frc::SmartDashboard::PutNumber("timer", timer.Get().value());
@@ -222,7 +223,7 @@ void Robot::AutonomousPeriodic()
       if (swerveDrive->GetPose().Y() < 2_m)
       {
         elevatorDone = elevatorLift->SetElevatorHeightPID(10, elapsedTime);
-      }*/
+      }
 
       bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
       if (splineDone)
@@ -279,10 +280,10 @@ void Robot::AutonomousPeriodic()
     }
 
     lastTime = timer.Get().value();
-  /*
+  
   }
   else
-  {
+  {*/
     double elapsedTime = timer.Get().value() - lastTime;
 
     if (splineSection == 0)
@@ -294,7 +295,8 @@ void Robot::AutonomousPeriodic()
     }
     else if(splineSection == 0.25)
     {
-      bool elevatorDone = elevatorLift->SetElevatorHeightPID(16, elapsedTime);
+      claw->PIDWrist(0.6, elapsedTime);
+      bool elevatorDone = elevatorLift->SetElevatorHeightPID(76, elapsedTime);
       if (elevatorDone)
       {
         elevatorLift->StopElevator();
@@ -303,7 +305,7 @@ void Robot::AutonomousPeriodic()
     }
     else if(splineSection == 0.5)
     {
-      double wristDone = claw->PIDWrist(-10, elapsedTime);
+      double wristDone = claw->PIDWrist(M_PI / 2, elapsedTime);
       if (wristDone)
       {
         splineSection = 0.75;
@@ -311,7 +313,7 @@ void Robot::AutonomousPeriodic()
     }
     else if(splineSection == 0.75)
     {
-      claw->PIDWrist(-10, elapsedTime);
+      claw->PIDWrist(M_PI / 2, elapsedTime);
       bool clawDone = claw->OpenClaw(elapsedTime);
       if (clawDone)
       {
@@ -321,15 +323,15 @@ void Robot::AutonomousPeriodic()
     }
     else
     {
-        claw->PIDWrist(-3, elapsedTime);
+        claw->PIDWrist(0.5, elapsedTime);
         claw->MoveClawPercent(0);
         elevatorLift->MoveElevatorPercent(0.03);
     }
 
     lastTime = timer.Get().value();
-  }*/
+  //}
 
-  /*
+  /*  
   double microsecondTime = (double)RobotController::GetFPGATime();
   swerveDrive->UpdateOdometry(units::microsecond_t{microsecondTime});
   /*if (swerveDrive->GetPose().Y() > 4_m)
@@ -382,6 +384,7 @@ void Robot::TeleopInit()
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
   swerveDrive->ResetOdometry(Pose2d(0_m, -1_m, Rotation2d(0_deg)));
+  elevatorLift->ResetElevatorEncoder();
 
   // Reset all our values throughout the code
   timer.Reset();
@@ -402,6 +405,7 @@ void Robot::TeleopInit()
 
 void Robot::TeleopPeriodic()
 {
+  SmartDashboard::PutNumber("thingamabob", claw->MagEncoderReading());
   // Take values from Smartdashboard
   MAX_DRIVE_SPEED = frc::SmartDashboard::GetNumber("MAX DRIVE SPEED", 0.4);
   ELEVATOR_SPEED = frc::SmartDashboard::GetNumber("ELEVATOR_SPEED", 0.1);
@@ -516,27 +520,27 @@ void Robot::TeleopPeriodic()
   else if (xbox_Drive->GetAButton())
     elevatorLift->MoveElevatorPercent(-0.2);
   else if (xbox_Drive->GetBButton())
-    elevatorLift->SetElevatorHeightPID(16, elapsedTime);
+    elevatorLift->SetElevatorHeightPID(76, elapsedTime);
   else if (xbox_Drive->GetXButton())
     elevatorLift->MoveElevatorPercent(0.05);
   else
     elevatorLift->MoveElevatorPercent(0);
 
   if (xbox_Drive->GetRightBumper())
-    claw->MoveClawPercent(0.2);
+    claw->MoveClawPercent(-0.7);
   else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
-    claw->MoveClawPercent(-0.2);
-  else if (xbox_Drive->GetBackButton())
-    claw->PIDClaw(5, elapsedTime);
+    claw->MoveClawPercent(0.7);
+  else if (xbox_Drive->GetStartButton())
+    claw->OpenClaw(elapsedTime);
   else
     claw->MoveClawPercent(0);
   
   if (xbox_Drive->GetLeftBumper())
-    claw->MoveWristPercent(0.5);
+    claw->MoveWristPercent(0.8);
   else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
-    claw->MoveWristPercent(-0.2);
+    claw->MoveWristPercent(-0.6);
   else if (xbox_Drive->GetBackButton())
-    claw->PIDWrist(-10, elapsedTime);
+    claw->PIDWrist(M_PI / 2, elapsedTime);
   else
     claw->MoveWristPercent(0.0);
 

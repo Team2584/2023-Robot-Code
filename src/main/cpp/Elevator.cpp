@@ -29,9 +29,14 @@ public:
     tofSensor = tofSensor_;
   }
 
+  void ResetElevatorEncoder()
+  {
+    winchEncoder->SetPosition(0.0);
+  }
+
   double winchEncoderReading()
   {
-    return -1 * winchEncoder->GetPosition();
+    return winchEncoder->GetPosition();
   }
 
   double TOFSReading()
@@ -56,8 +61,8 @@ public:
    */
   void MoveElevatorPercent(double percent)
   {
-    winchR->Set(-percent);
-    winchL->Set(-percent);   
+    winchR->Set(percent);
+    winchL->Set(percent);   
   }
 
   void StartPIDLoop()

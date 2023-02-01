@@ -15,6 +15,7 @@ public:
     rev::CANSparkMax *wristMotor;
     rev::CANSparkMax *clawMotor;
     rev::SparkMaxRelativeEncoder *clawEncoder, *wristEncoder;
+    rev::SparkMaxAbsoluteEncoder *magEncoder;
 
   /**
    * Instantiates a two motor elevator lift
@@ -28,11 +29,21 @@ public:
     clawEncoder->SetPosition(1.0);
     wristEncoder =  new rev::SparkMaxRelativeEncoder(wristMotor->GetEncoder());
     wristEncoder->SetPosition(0.0);
+
+    magEncoder = new rev::SparkMaxAbsoluteEncoder(wristMotor->GetAbsoluteEncoder(rev::SparkMaxAbsoluteEncoder::Type::kDutyCycle));
   }
 
   double WristEncoderReading()
   {
     return wristEncoder->GetPosition();
+  }
+
+  double MagEncoderReading()
+  {
+    double reading = magEncoder->GetPosition();
+    if (reading > 0.5)
+      reading -= 1;
+    return reading * 2 * M_PI;
   }
 
   /**
@@ -45,10 +56,13 @@ public:
 
   bool PIDWrist(double point, double elapsedTime)
   {
-    double error = point - WristEncoderReading();
+    double error = MagEncoderReading() - point;
 
-     if (fabs(error) < ALLOWABLE_ERROR_WRIST)
+    SmartDashboard::PutNumber("error", error);
+
+    if (fabs(error) < ALLOWABLE_ERROR_WRIST)
     {
+      MoveWristPercent(0);
       return true;
     }
 
@@ -103,7 +117,7 @@ public:
 
   bool OpenClaw(double elapsedTime)
   {
-    return PIDClaw(5, elapsedTime);
+    return PIDClaw(-5, elapsedTime);
   }
 
 };
