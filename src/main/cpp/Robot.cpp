@@ -129,7 +129,7 @@ void Robot::AutonomousInit()
   fmt::print("Auto selected: {}\n", m_autoSelected);
 
   if (m_autoSelected == kAutoNameCustom)
-  {
+  {*/
     swerveDrive->ResetOdometry(Pose2d(4.74_m, 1.89_m, Rotation2d(3.14_rad)));
     swerveDrive->ResetTrajectoryList();
     swerveDrive->InitializeTrajectory("RedRight3GamePiece1");
@@ -138,18 +138,20 @@ void Robot::AutonomousInit()
     swerveDrive->InitializeTrajectory("RedRight3GamePiece4");
     swerveDrive->SetNextTrajectory();
 
+      frc::SmartDashboard::PutBoolean("saw april tag", false);
     splineSection = 0;
+    /*
   }
   else
   {
     splineSection = 0;
-  }*/
+  }
 
   swerveDrive->ResetOdometry(Pose2d(4.74_m, 1.89_m, Rotation2d(3.14_rad)));
   swerveDrive->ResetTrajectoryList();
   swerveDrive->InitializeTrajectory("RedRight3GamePiece1");
   swerveDrive->SetNextTrajectory();
-  splineSection = 0;
+  splineSection = 0;*/
 
   // Start our match timer and reset our odometry to the robot's starting position
   lastTime = 0;
@@ -171,6 +173,7 @@ void Robot::AutonomousPeriodic()
     double elapsedTime = timer.Get().value() - lastTime;
     for (auto array : poseSub.ReadQueue())
     {
+      frc::SmartDashboard::PutBoolean("saw april tag", true);
       Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
       frc::SmartDashboard::PutNumber("Vision X", poseEst.X().value());
       frc::SmartDashboard::PutNumber("Vision Y", poseEst.Y().value());
