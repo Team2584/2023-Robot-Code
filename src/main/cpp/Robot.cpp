@@ -370,7 +370,7 @@ void Robot::AutonomousPeriodic()
 
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->OpenClaw(elapsedTime);
-      claw->PIDWrist(2.2, elapsedTime);
+      claw->PIDWrist(2, elapsedTime);
       bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
       if (splineDone)
       {
@@ -386,7 +386,6 @@ void Robot::AutonomousPeriodic()
 
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       bool clawDone = claw->PIDClaw(-3, elapsedTime);
-      bool wristDone = claw->PIDWrist(0, elapsedTime);
       swerveDrive->DriveSwervePercent(0,0,0);
 
       if (clawDone)
@@ -400,7 +399,7 @@ void Robot::AutonomousPeriodic()
     {
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->PIDClaw(-3, elapsedTime);
-      claw->PIDWrist(M_PI / 2 + 1, elapsedTime);
+      claw->PIDWrist(M_PI / 2, elapsedTime);
       bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
       if (splineDone)
       {
