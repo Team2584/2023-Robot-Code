@@ -416,7 +416,7 @@ void Robot::TeleopInit()
   // Prepare swerve drive odometry
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
-  swerveDrive->ResetOdometry(Pose2d(0_m, -1_m, Rotation2d(0_deg)));
+  swerveDrive->ResetOdometry(Pose2d(5.22_m, 1.78_m, Rotation2d(3.14_rad)));
   elevatorLift->ResetElevatorEncoder();
   claw->ResetClawEncoder();
 
@@ -439,7 +439,6 @@ void Robot::TeleopInit()
 
 void Robot::TeleopPeriodic()
 {
-  SmartDashboard::PutNumber("thingamabob", claw->MagEncoderReading());
   // Take values from Smartdashboard
   MAX_DRIVE_SPEED = frc::SmartDashboard::GetNumber("MAX DRIVE SPEED", 0.4);
   ELEVATOR_SPEED = frc::SmartDashboard::GetNumber("ELEVATOR_SPEED", 0.1);
@@ -501,27 +500,25 @@ void Robot::TeleopPeriodic()
 
   // Update our odometry position based on cone data
 
-  // for (auto array : coneEntry.ReadQueue())
-  // {
-  //   double angle = -swerveDrive->GetPose().Rotation().Radians().value();
-  //   if (array.value[0] != 0 || array.value[1] != 0)
-  //   {
-  //     frc::SmartDashboard::PutNumber("Cone X", array.value[0]);
-  //     frc::SmartDashboard::PutNumber("Cone Y", array.value[1]);
-  //     double fieldOrientedX = -1 * (array.value[0] * cos(angle) - array.value[1] * sin(angle));
-  //     double fieldOrientedY = -1 * (array.value[0] * sin(angle) + array.value[1] * cos(angle));
-  //     Translation2d transEst = Translation2d(0_m + units::meter_t{fieldOrientedX}, 1.5_m + units::meter_t{fieldOrientedY});
-  //     frc::SmartDashboard::PutNumber("Cone X Final", transEst.X().value());
-  //     frc::SmartDashboard::PutNumber("Cone Y Final", transEst.Y().value());
-  //     swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
-  //   }
-  // }
+  for (auto array : coneEntry.ReadQueue())
+  {
+    double angle = -swerveDrive->GetPose().Rotation().Radians().value();
+    if (array.value[0] != 0 || array.value[1] != 0)
+    {
+      double fieldOrientedX = -1 * (array.value[0] * cos(angle) - array.value[1] * sin(angle));
+      double fieldOrientedY = -1 * (array.value[0] * sin(angle) + array.value[1] * cos(angle));
+      Translation2d transEst = Translation2d(0_m + units::meter_t{fieldOrientedX}, 1.5_m + units::meter_t{fieldOrientedY});
+      frc::SmartDashboard::PutNumber("Cone X Vision", transEst.X().value());
+      frc::SmartDashboard::PutNumber("Cone Y Vision", transEst.Y().value());
+      //swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
+    }
+  }
   for (auto array : poseSub.ReadQueue())
   {
     Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
     frc::SmartDashboard::PutNumber("Vision X", poseEst.X().value());
     frc::SmartDashboard::PutNumber("Vision Y", poseEst.Y().value());
-    swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time - array.value[4]});
+    //swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time - array.value[4]});
   }
 
   Pose2d pose = swerveDrive->GetPose();
@@ -533,7 +530,6 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
   frc::SmartDashboard::PutNumber("Odometry Theta", pose.Rotation().Degrees().value());
   SmartDashboard::PutNumber("lift encoder", elevatorLift->winchEncoderReading());
-  SmartDashboard::PutNumber("wrist encoder", claw->WristEncoderReading());
   SmartDashboard::PutNumber("wrist encoder", claw->MagEncoderReading());
   SmartDashboard::PutNumber("claw encoder", claw->ClawEncoderReading());
 
