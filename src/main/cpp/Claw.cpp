@@ -97,6 +97,7 @@ public:
 
      if (fabs(error) < ALLOWABLE_ERROR_CLAW)
     {
+      MoveClawPercent(0);
       return true;
     }
 
@@ -115,9 +116,14 @@ public:
     return false;
   }
 
+  void ResetClawEncoder()
+  {
+    clawEncoder->SetPosition(0.0);
+  }
+
   bool OpenClaw(double elapsedTime)
   {
-    return PIDClaw(-5, elapsedTime);
+    return PIDClaw(-20, elapsedTime);
   }
 
 };
