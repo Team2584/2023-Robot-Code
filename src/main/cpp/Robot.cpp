@@ -386,6 +386,7 @@ void Robot::AutonomousPeriodic()
 
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       bool clawDone = claw->PIDClaw(-3, elapsedTime);
+      bool wristDone = claw->PIDWrist(0, elapsedTime);
       swerveDrive->DriveSwervePercent(0,0,0);
 
       if (clawDone)
@@ -582,6 +583,7 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("Odometry Theta", pose.Rotation().Degrees().value());
   SmartDashboard::PutNumber("lift encoder", elevatorLift->winchEncoderReading());
   SmartDashboard::PutNumber("wrist encoder", claw->WristEncoderReading());
+  SmartDashboard::PutNumber("wrist encoder", claw->MagEncoderReading());
   SmartDashboard::PutNumber("claw encoder", claw->ClawEncoderReading());
 
   // LIMELIGHT CODE
