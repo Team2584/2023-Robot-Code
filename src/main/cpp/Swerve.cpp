@@ -741,7 +741,7 @@ public:
   void InitializeTrajectory(string trajectoryString)
   {
   // This will load the file "Example Path.path" and generate it with a max velocity of 3 m/s and a max acceleration of 5 m/s^2
-    trajectoryList.push(pathplanner::PathPlanner::loadPath(trajectoryString, pathplanner::PathConstraints(3_mps, 5_mps_sq)));
+    trajectoryList.push(pathplanner::PathPlanner::loadPath(trajectoryString, pathplanner::PathConstraints(0.5_mps, 5_mps_sq)));
   }
 
   /**
