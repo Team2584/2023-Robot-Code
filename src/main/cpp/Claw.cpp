@@ -102,14 +102,14 @@ public:
     }
 
     // calculate our I in PID and clamp it between our maximum I effects
-    double intendedI = std::clamp(KI * runningClawIntegral, -1 * KIMAX, KIMAX);
+    double intendedI = std::clamp(CLAWKI * runningClawIntegral, -1 * CLAWKIMAX, CLAWKIMAX);
 
     // Clamp our intended velocity to our maximum and minimum velocity to prevent the robot from going too fast
-    double intendedVelocity = std::clamp(KP * error + intendedI, -1 * MAX_SPEED, MAX_SPEED);
+    double intendedVelocity = std::clamp(CLAWKP * error + intendedI, -1 * CLAWMAX_SPEED, CLAWMAX_SPEED);
 
     // Make sure our change in velocity from the last loop is not going above our maximum acceleration
-    lastClawSpeed += std::clamp(intendedVelocity - lastClawSpeed, -1 * MAX_ACCELERATION * elapsedTime,
-                        MAX_ACCELERATION * elapsedTime);
+    lastClawSpeed += std::clamp(intendedVelocity - lastClawSpeed, -1 * CLAWMAX_ACCELERATION * elapsedTime,
+                        CLAWMAX_ACCELERATION * elapsedTime);
 
     SmartDashboard::PutNumber("error", error);
     MoveClawPercent(lastClawSpeed);

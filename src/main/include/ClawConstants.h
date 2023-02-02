@@ -1,9 +1,9 @@
-#define KP 0.14
-#define KI 0
-#define KIMAX 0.1
+#define CLAWKP 0.14
+#define CLAWKI 0
+#define CLAWKIMAX 0.1
 #define ALLOWABLE_ERROR_CLAW 0.5
-#define MAX_SPEED 0.7
-#define MAX_ACCELERATION 5
+#define CLAWMAX_SPEED 0.7
+#define CLAWMAX_ACCELERATION 5
 
 #define WRISTKP 1
 #define WRISTKI 0

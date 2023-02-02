@@ -75,7 +75,7 @@ public:
   {
     double error = height - winchEncoderReading();
 
-     if (fabs(error) < ALLOWABLE_ERROR_HEIGHT)
+     if (fabs(error) < ALLOWABLE_ERROR_ELEV)
     {
       runningIntegral = 0;
       MoveElevatorPercent(0);
@@ -83,18 +83,18 @@ public:
     }
 
     // calculate our I in PID and clamp it between our maximum I effects
-    double intendedI = std::clamp(KI * runningIntegral, -1 * KIMAX, KIMAX);
+    double intendedI = std::clamp(ELEVKI * runningIntegral, -1 * ELEVKIMAX, ELEVKIMAX);
 
     // Clamp our intended velocity to our maximum and minimum velocity to prevent the robot from going too fast
-    double intendedVelocity = std::clamp(KP * error + intendedI, -1 * MAX_SPEED, MAX_SPEED);
+    double intendedVelocity = std::clamp(ELEVKP * error + intendedI, -1 * ELEVMAX_SPEED, ELEVMAX_SPEED);
 
     // Make sure our change in velocity from the last loop is not going above our maximum acceleration
-    lastSpeed += std::clamp(intendedVelocity - lastSpeed, -1 * MAX_ACCELERATION * elapsedTime,
-                        MAX_ACCELERATION * elapsedTime);
+    lastSpeed += std::clamp(intendedVelocity - lastSpeed, -1 * ELEVMAX_ACCELERATION * elapsedTime,
+                        ELEVMAX_ACCELERATION * elapsedTime);
 
     runningIntegral += error;
 
-    MoveElevatorPercent(lastSpeed + HOLDFF);
+    MoveElevatorPercent(lastSpeed + ELEVHOLDFF);
     return false;
   }
 };
