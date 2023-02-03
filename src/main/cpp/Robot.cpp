@@ -45,6 +45,7 @@ double ELEVATOR_SPEED = 0.1;
 
 // Cringe Auto Values S**FF
 double splineSection = 0;
+//bool useVisionData = true;
 
 double lastSanity = 0;
 
@@ -53,6 +54,7 @@ void Robot::RobotInit()
   // Set all Values from Shuffleboard (Smartdashboard but cooler)
   frc::SmartDashboard::PutNumber("MAX DRIVE SPEED", 0.4);
   frc::SmartDashboard::PutNumber("ELEVATOR_SPEED", 0.1);
+  //frc::SmartDashboard::PutNumber("Use Vision Data", true);
 
   // Autonomous Choosing
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
@@ -151,6 +153,8 @@ void Robot::AutonomousInit()
   swerveDrive->SetNextTrajectory();
   splineSection = 0;
 
+  //useVisionData = SmartDashboard::GetNumber("Use Vision Data", true);
+
   // Start our match timer and reset our odometry to the robot's starting position
   lastTime = 0;
   timer.Reset();
@@ -159,15 +163,19 @@ void Robot::AutonomousInit()
 
 void Robot::AutonomousPeriodic()
 {
+  SmartDashboard::PutNumber("Spline Section", splineSection);
+
   double elapsedTime = timer.Get().value() - lastTime;
   swerveDrive->UpdateOdometry(timer.Get());
-  for (auto array : poseSub.ReadQueue())
-  {
-    Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
-    frc::SmartDashboard::PutNumber("Vision X", poseEst.X().value());
-    frc::SmartDashboard::PutNumber("Vision Y", poseEst.Y().value());
-    swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time - array.value[4]});
-  }
+  /*
+    for (auto array : poseSub.ReadQueue())
+    {
+      Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
+      frc::SmartDashboard::PutNumber("Vision X", poseEst.X().value());
+      frc::SmartDashboard::PutNumber("Vision Y", poseEst.Y().value());
+      swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time - array.value[4]});
+    }
+  */
 
   if (splineSection == 0)
   {
@@ -181,7 +189,7 @@ void Robot::AutonomousPeriodic()
   {
     claw->PIDWrist(0.6, elapsedTime);
     bool elevatorDone = false;
-    if (claw->MagEncoderReading() > 0.4)
+    if (claw->MagEncoderReading() > 0.5)
       elevatorDone = elevator->SetElevatorHeightPID(76, elapsedTime);
     if (elevatorDone)
     {
@@ -215,7 +223,7 @@ void Robot::AutonomousPeriodic()
     claw->PIDWrist(1, elapsedTime);
     claw->OpenClaw(elapsedTime);
     elevator->SetElevatorHeightPID(0, elapsedTime);
-    if (elevator->winchEncoderReading() < 30)
+    if (elevator->winchEncoderReading() < 40)
     {
       timer.Reset();
       lastTime = 0;
@@ -225,27 +233,29 @@ void Robot::AutonomousPeriodic()
 
   if (splineSection == 1)
   {
-    if (swerveDrive->GetPose().Y() > 5_m)
-    {
-      for (auto array : coneEntry.ReadQueue())
+    /*
+      if (swerveDrive->GetPose().Y() > 5_m)
       {
-        double angle = -1 * swerveDrive->GetPose().Rotation().Radians().value();
-        if (array.value[0] != 0 || array.value[1] != 0)
+        for (auto array : coneEntry.ReadQueue())
         {
-          double fieldOrientedX = -1 * (array.value[0] * cos(angle) - array.value[1] * sin(angle));
-          double fieldOrientedY = -1 * (array.value[0] * sin(angle) + array.value[1] * cos(angle));
-          Translation2d transEst = Translation2d(4.56_m + units::meter_t{fieldOrientedX}, 7_m + units::meter_t{fieldOrientedY});
-          frc::SmartDashboard::PutNumber("Cone X Final", transEst.X().value());
-          frc::SmartDashboard::PutNumber("Cone Y Final", transEst.Y().value());
-          swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
+          double angle = -1 * swerveDrive->GetPose().Rotation().Radians().value();
+          if (array.value[0] != 0 || array.value[1] != 0)
+          {
+            double fieldOrientedX = -1 * (array.value[0] * cos(angle) - array.value[1] * sin(angle));
+            double fieldOrientedY = -1 * (array.value[0] * sin(angle) + array.value[1] * cos(angle));
+            Translation2d transEst = Translation2d(4.56_m + units::meter_t{fieldOrientedX}, 7_m + units::meter_t{fieldOrientedY});
+            frc::SmartDashboard::PutNumber("Cone X Final", transEst.X().value());
+            frc::SmartDashboard::PutNumber("Cone Y Final", transEst.Y().value());
+            swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
+          }
         }
       }
-    }
-    else
-    {
-      coneEntry.ReadQueue();
-    }
-
+      else
+      {
+        coneEntry.ReadQueue();
+      }
+    */
+    
     elevator->SetElevatorHeightPID(0, elapsedTime);
     claw->OpenClaw(elapsedTime);
     claw->PIDWrist(2.2, elapsedTime);
