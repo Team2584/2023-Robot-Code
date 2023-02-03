@@ -10,6 +10,7 @@
 #include "Claw.cpp"
 
 #include <fmt/core.h>
+#include <frc/livewindow/LiveWindow.h>
 
 #include <frc/smartdashboard/SmartDashboard.h>
 
@@ -54,6 +55,8 @@ double lastSanity = 0;
 
 void Robot::RobotInit()
 {
+  frc::LiveWindow::DisableAllTelemetry();
+
   // Set all Values from Shuffleboard (Smartdashboard but cooler)
   frc::SmartDashboard::PutNumber("MAX DRIVE SPEED", 0.4);
   frc::SmartDashboard::PutNumber("ELEVATOR_SPEED", 0.1);
@@ -147,7 +150,7 @@ void Robot::AutonomousInit()
 
   elevatorLift->ResetElevatorEncoder();
   claw->ResetClawEncoder();
-  swerveDrive->ResetOdometry(Pose2d(5.22_m, 1.78_m, Rotation2d(3.14_rad)));
+  swerveDrive->ResetOdometry(Pose2d(5.11_m, 1.85_m, Rotation2d(3.14_rad)));
   swerveDrive->ResetTrajectoryList();
   swerveDrive->InitializeTrajectory("RedRight3GamePiece1");
   swerveDrive->InitializeTrajectory("RedRight3GamePiece2");
@@ -164,30 +167,37 @@ void Robot::AutonomousInit()
 
 void Robot::AutonomousPeriodic()
 {
+    Timer loopTime = Timer();
+    loopTime.Start();
+    SmartDashboard::PutNumber("Spline Section", splineSection);
+
   double elapsedTime = timer.Get().value() - lastTime;
   swerveDrive->UpdateOdometry(timer.Get());
-  for (auto array : poseSub.ReadQueue())
+  /*if (abs(swerveDrive->GetPose().Rotation().Degrees().value() - 180) < 8)
   {
-    Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
-    frc::SmartDashboard::PutNumber("Vision X", poseEst.X().value());
-    frc::SmartDashboard::PutNumber("Vision Y", poseEst.Y().value());
-    swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time - array.value[4]});
-  }
+    for (auto array : poseSub.ReadQueue())
+    {
+      Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
+      frc::SmartDashboard::PutNumber("Vision X", poseEst.X().value());
+      frc::SmartDashboard::PutNumber("Vision Y", poseEst.Y().value());
+      swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time - array.value[4]});
+    }
+  }*/
 
   if (splineSection == 0)
   {
     timer.Reset();
     lastTime = 0;
-    elevatorLift->StartPIDLoop();
-    splineSection = 0.25;
+    //elevatorLift->StartPIDLoop();
+    splineSection = 1;
   }
 
   if (splineSection == 0.25)
   {
     claw->PIDWrist(0.6, elapsedTime);
     bool elevatorDone = false;
-    if (claw->MagEncoderReading() > 0.4)
-      elevatorDone = elevatorLift->SetElevatorHeightPID(76, elapsedTime);
+    if (claw->MagEncoderReading() > 0.5)
+      elevatorDone = elevatorLift->SetElevatorHeightPID(78, elapsedTime);
     if (elevatorDone)
     {
       elevatorLift->StopElevator();
@@ -220,7 +230,7 @@ void Robot::AutonomousPeriodic()
     claw->PIDWrist(1, elapsedTime);
     claw->OpenClaw(elapsedTime);
     elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-    if (elevatorLift->winchEncoderReading() < 30)
+    if (elevatorLift->winchEncoderReading() < 40)
     {
       timer.Reset();
       lastTime = 0;
@@ -230,8 +240,9 @@ void Robot::AutonomousPeriodic()
 
   if (splineSection == 1)
   {
-    if (swerveDrive->GetPose().Y() > 5_m)
+    /*if (fabs(swerveDrive->GetPose().Rotation().Degrees().value()) < 7)
     {
+      SmartDashboard::PutNumber("Reading Cone", true);
       for (auto array : coneEntry.ReadQueue())
       {
         double angle = -1 * swerveDrive->GetPose().Rotation().Radians().value();
@@ -248,12 +259,13 @@ void Robot::AutonomousPeriodic()
     }
     else
     {
+      SmartDashboard::PutNumber("Reading Cone", false);
       coneEntry.ReadQueue();
-    }
+    }*/
 
-    elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+    //elevatorLift->SetElevatorHeightPID(0, elapsedTime);
     claw->OpenClaw(elapsedTime);
-    claw->PIDWrist(2.2, elapsedTime);
+    claw->PIDWrist(2, elapsedTime);
     bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
     if (splineDone)
     {
@@ -266,9 +278,9 @@ void Robot::AutonomousPeriodic()
 
   if (splineSection == 1.5)
   {
-    claw->PIDWrist(2.2, elapsedTime);
+    claw->PIDWrist(2, elapsedTime);
 
-    elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+    //elevatorLift->SetElevatorHeightPID(0, elapsedTime);
     bool clawDone = claw->PIDClaw(-2, elapsedTime);
     swerveDrive->DriveSwervePercent(0, 0, 0);
 
@@ -282,19 +294,24 @@ void Robot::AutonomousPeriodic()
 
   if (splineSection == 2)
   {
-    if (swerveDrive->GetPose().Y() < 3_m)
+    /*if (swerveDrive->GetPose().Y() < 3_m)
       elevatorLift->SetElevatorHeightPID(40, elapsedTime);
     else
-      elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+      elevatorLift->SetElevatorHeightPID(0, elapsedTime);*/
 
     claw->PIDClaw(-2, elapsedTime);
     claw->PIDWrist(0.6, elapsedTime);
     bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
     if (splineDone)
     {
-      splineSection = 2.1;
+      splineSection = 2.05;
       swerveDrive->SetNextTrajectory();
     }
+  }
+
+  if (splineSection == 2.05)
+  {
+    claw->PIDClaw(-7, elapsedTime);
   }
 
   if (splineSection == 2.1)
@@ -409,6 +426,8 @@ void Robot::AutonomousPeriodic()
   }*/
 
   lastTime = timer.Get().value();
+
+  SmartDashboard::PutNumber("loop time", loopTime.Get().value());
 }
 
 void Robot::TeleopInit()
@@ -416,8 +435,8 @@ void Robot::TeleopInit()
   // Prepare swerve drive odometry
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
-  swerveDrive->ResetOdometry(Pose2d(5.22_m, 1.78_m, Rotation2d(3.14_rad)));
-  elevatorLift->ResetElevatorEncoder();
+  swerveDrive->ResetOdometry(Pose2d(5.11_m, 1.85_m, Rotation2d(3.14_rad)));
+   elevatorLift->ResetElevatorEncoder();
   claw->ResetClawEncoder();
 
   // Reset all our values throughout the code
@@ -505,12 +524,16 @@ void Robot::TeleopPeriodic()
     double angle = -swerveDrive->GetPose().Rotation().Radians().value();
     if (array.value[0] != 0 || array.value[1] != 0)
     {
+      frc::SmartDashboard::PutNumber("Pre Rot Cone X Vision", array.value[0]);
+      frc::SmartDashboard::PutNumber("Pre Rot Cone Y Vision", array.value[1]);
       double fieldOrientedX = -1 * (array.value[0] * cos(angle) - array.value[1] * sin(angle));
       double fieldOrientedY = -1 * (array.value[0] * sin(angle) + array.value[1] * cos(angle));
-      Translation2d transEst = Translation2d(0_m + units::meter_t{fieldOrientedX}, 1.5_m + units::meter_t{fieldOrientedY});
+      frc::SmartDashboard::PutNumber("Almost Cone X Vision", fieldOrientedX);
+      frc::SmartDashboard::PutNumber("Almost Cone Y Vision", fieldOrientedY);
+      Translation2d transEst = Translation2d(4.56_m + units::meter_t{fieldOrientedX}, 7_m + units::meter_t{fieldOrientedY});
       frc::SmartDashboard::PutNumber("Cone X Vision", transEst.X().value());
       frc::SmartDashboard::PutNumber("Cone Y Vision", transEst.Y().value());
-      //swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
+      swerveDrive->AddPositionEstimate(transEst, units::microsecond_t{array.time - array.value[2]});
     }
   }
   for (auto array : poseSub.ReadQueue())
@@ -518,7 +541,10 @@ void Robot::TeleopPeriodic()
     Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
     frc::SmartDashboard::PutNumber("Vision X", poseEst.X().value());
     frc::SmartDashboard::PutNumber("Vision Y", poseEst.Y().value());
-    //swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time - array.value[4]});
+    SmartDashboard::PutNumber("time array offest", array.value[4]);
+    SmartDashboard::PutNumber("Time of mesurement", array.time);
+    SmartDashboard::PutNumber("system Time", microsecondTime);
+    swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time - array.value[4]});
   }
 
   Pose2d pose = swerveDrive->GetPose();
