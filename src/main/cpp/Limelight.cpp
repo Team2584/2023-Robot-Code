@@ -1,58 +1,53 @@
-#include "Robot.h"
-#include "LimelightConstants.h"
+#include "Limelight.h"
 
-class Limelight
+Limelight::Limelight(std::shared_ptr<nt::NetworkTable> limelightTable)
 {
+    // limelight table should be something like: nt::NetworkTableInstance::GetDefault().GetTable("limelight")
+    // change the table name from "limelight" to the network table name your limelight is putting values in (default is "limelight")
+    lemonTable = limelightTable;
+}
 
-private:
-    double tx = 0.0; double txDefault = 0.0;
-    double ty = 0.0; double tyDefault = 0.0;
-    double ta = 0.0; double taDefault = 0.0;
-    // nt::NetworkTableInstance::GetDefault().GetTable("limelight")
-    std::shared_ptr<nt::NetworkTable> lemonTable;
+void Limelight::updateLimelightValues()
+{
+tx = lemonTable->GetNumber("tx", txDefault)/(320/2) * 5; // get number and normalise :: reports -1 to 1
+ty = lemonTable->GetNumber("ty", tyDefault)/(240/2); // get number and normalise :: reports -1 to 1
+ta = lemonTable->GetNumber("ta", taDefault)/100;     // get number and normalise :: reports 0 to 1
+}
 
-public:
-    Limelight(std::shared_ptr<nt::NetworkTable> limelightTable){
-        // limelight table should be something like: nt::NetworkTableInstance::GetDefault().GetTable("limelight")
-        // change the table name from "limelight" to the network table name your limelight is putting values in (default is "limelight")
-        lemonTable = limelightTable;
-    }
+void Limelight::changeTargetDefaults(double txD, double tyD, double taD)
+{
+    txDefault = txD;
+    tyDefault = tyD;
+    taDefault = taD;
+}
 
-    void updateLimelightValues(){
-    tx = lemonTable->GetNumber("tx", txDefault)/(320/2) * 5; // get number and normalise :: reports -1 to 1
-    ty = lemonTable->GetNumber("ty", tyDefault)/(240/2); // get number and normalise :: reports -1 to 1
-    ta = lemonTable->GetNumber("ta", taDefault)/100;     // get number and normalise :: reports 0 to 1
-    }
+double Limelight::getTargetX()
+{
+    updateLimelightValues();
+    SmartDashboard::PutNumber("Limelight X", tx);
+    return tx;
+}
 
-    void changeTargetDefaults(double txD, double tyD, double taD){
-        txDefault = txD;
-        tyDefault = tyD;
-        taDefault = taD;
-    }
+double Limelight::getTargetY()
+{
+    updateLimelightValues();
+    return ty;
+}
 
-    double getTargetX(){
-        updateLimelightValues();
-        SmartDashboard::PutNumber("Limelight X", tx);
-        return tx;
-    }
+double Limelight::getTargetArea()
+{
+    updateLimelightValues();
+    return ta;
+}
 
-    double getTargetY(){
-        updateLimelightValues();
-        return ty;
-    }
+bool Limelight::TargetExists()
+{
+    return ta != 0.0;
+}
 
-    double getTargetArea(){
-        updateLimelightValues();
-        return ta;
-    }
-
-    bool TargetExists(){
-        return ta != 0.0;
-    }
-
-    void limelightToSmartDashboard(){
-        SmartDashboard::PutNumber("TargetX", getTargetX());
-        SmartDashboard::PutNumber("TargetY", getTargetY());
-        SmartDashboard::PutNumber("TargetArea", getTargetArea());
-    }
-};
+void Limelight::limelightToSmartDashboard()
+{
+    SmartDashboard::PutNumber("TargetX", getTargetX());
+    SmartDashboard::PutNumber("TargetY", getTargetY());
+    SmartDashboard::PutNumber("TargetArea", getTargetArea());
+}

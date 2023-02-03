@@ -4,6 +4,7 @@
 #include <frc/TimedRobot.h>
 #include <frc/RobotController.h>
 #include <frc/smartdashboard/SendableChooser.h>
+#include <frc/smartdashboard/SmartDashboard.h>
 
 #include "rev/CANSparkMax.h"
 #include "rev/AbsoluteEncoder.h"

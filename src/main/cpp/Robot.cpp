@@ -4,19 +4,15 @@
 
 #include "Setup.h"
 
-#include "Swerve.cpp"
-#include "Elevator.cpp"
-#include "Limelight.cpp"
-#include "Claw.cpp"
-
-#include <fmt/core.h>
-
-#include <frc/smartdashboard/SmartDashboard.h>
+#include "Swerve.h"
+#include "Elevator.H"
+#include "Limelight.h"
+#include "Claw.h"
 
 double pigeon_initial;
 // Our future subsystem objects
 SwerveDrive *swerveDrive;
-ElevatorLift *elevatorLift;
+Elevator *elevator;
 Limelight *limelight;
 Claw *claw;
 
@@ -89,11 +85,10 @@ void Robot::RobotInit()
   timer = Timer();
 
   // Initializing Subsystems
-  swerveDrive = new SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, FL_WHEEL_OFFSET, &driveFR, &swerveFR, &FRMagEnc,
-                                FR_WHEEL_OFFSET, &driveBR, &swerveBR, &BRMagEnc, BR_WHEEL_OFFSET, &driveBL,
-                                &swerveBL, &BLMagEnc, BL_WHEEL_OFFSET, &_pigeon, STARTING_DRIVE_HEADING);
+  swerveDrive = new SwerveDrive(&driveFL, &swerveFL, &FLMagEnc, &driveFR, &swerveFR, &FRMagEnc, &driveBR, &swerveBR, &BRMagEnc, &driveBL,
+                                &swerveBL, &BLMagEnc, &_pigeon);
 
-  elevatorLift = new ElevatorLift(&winchL, &winchR, &TOFSensor);
+  elevator = new Elevator(&winchL, &winchR, &TOFSensor);
   limelight = new Limelight(limelightTable);
   claw = new Claw(&wrist, &clawM1);
 }
@@ -145,7 +140,7 @@ void Robot::AutonomousInit()
     splineSection = 0;
   }*/
 
-  elevatorLift->ResetElevatorEncoder();
+  elevator->ResetElevatorEncoder();
   claw->ResetClawEncoder();
   swerveDrive->ResetOdometry(Pose2d(5.22_m, 1.78_m, Rotation2d(3.14_rad)));
   swerveDrive->ResetTrajectoryList();
@@ -178,7 +173,7 @@ void Robot::AutonomousPeriodic()
   {
     timer.Reset();
     lastTime = 0;
-    elevatorLift->StartPIDLoop();
+    elevator->StartPIDLoop();
     splineSection = 0.25;
   }
 
@@ -187,10 +182,10 @@ void Robot::AutonomousPeriodic()
     claw->PIDWrist(0.6, elapsedTime);
     bool elevatorDone = false;
     if (claw->MagEncoderReading() > 0.4)
-      elevatorDone = elevatorLift->SetElevatorHeightPID(76, elapsedTime);
+      elevatorDone = elevator->SetElevatorHeightPID(76, elapsedTime);
     if (elevatorDone)
     {
-      elevatorLift->StopElevator();
+      elevator->StopElevator();
       splineSection = 0.5;
     }
   }
@@ -219,8 +214,8 @@ void Robot::AutonomousPeriodic()
   {
     claw->PIDWrist(1, elapsedTime);
     claw->OpenClaw(elapsedTime);
-    elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-    if (elevatorLift->winchEncoderReading() < 30)
+    elevator->SetElevatorHeightPID(0, elapsedTime);
+    if (elevator->winchEncoderReading() < 30)
     {
       timer.Reset();
       lastTime = 0;
@@ -251,7 +246,7 @@ void Robot::AutonomousPeriodic()
       coneEntry.ReadQueue();
     }
 
-    elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+    elevator->SetElevatorHeightPID(0, elapsedTime);
     claw->OpenClaw(elapsedTime);
     claw->PIDWrist(2.2, elapsedTime);
     bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
@@ -268,7 +263,7 @@ void Robot::AutonomousPeriodic()
   {
     claw->PIDWrist(2.2, elapsedTime);
 
-    elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+    elevator->SetElevatorHeightPID(0, elapsedTime);
     bool clawDone = claw->PIDClaw(-2, elapsedTime);
     swerveDrive->DriveSwervePercent(0, 0, 0);
 
@@ -283,9 +278,9 @@ void Robot::AutonomousPeriodic()
   if (splineSection == 2)
   {
     if (swerveDrive->GetPose().Y() < 3_m)
-      elevatorLift->SetElevatorHeightPID(40, elapsedTime);
+      elevator->SetElevatorHeightPID(40, elapsedTime);
     else
-      elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+      elevator->SetElevatorHeightPID(0, elapsedTime);
 
     claw->PIDClaw(-2, elapsedTime);
     claw->PIDWrist(0.6, elapsedTime);
@@ -299,7 +294,7 @@ void Robot::AutonomousPeriodic()
 
   if (splineSection == 2.1)
   {
-    bool elevatorDone = elevatorLift->SetElevatorHeightPID(40, elapsedTime);
+    bool elevatorDone = elevator->SetElevatorHeightPID(40, elapsedTime);
     if (elevatorDone)
     {
       splineSection = 2.2;
@@ -330,8 +325,8 @@ void Robot::AutonomousPeriodic()
   {
     claw->PIDWrist(1, elapsedTime);
     claw->OpenClaw(elapsedTime);
-    elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-    /*if (elevatorLift->winchEncoderReading() < 30)
+    elevator->SetElevatorHeightPID(0, elapsedTime);
+    /*if (elevator->winchEncoderReading() < 30)
     {
       timer.Reset();
       lastTime = 0;
@@ -363,7 +358,7 @@ void Robot::AutonomousPeriodic()
       coneEntry.ReadQueue();
     }
 
-    elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+    elevator->SetElevatorHeightPID(0, elapsedTime);
     claw->OpenClaw(elapsedTime);
     claw->PIDWrist(2.2, elapsedTime);
     bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
@@ -378,7 +373,7 @@ void Robot::AutonomousPeriodic()
   {
     claw->PIDWrist(2.2, elapsedTime);
 
-    elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+    elevator->SetElevatorHeightPID(0, elapsedTime);
     bool clawDone = claw->PIDClaw(-2, elapsedTime);
     swerveDrive->DriveSwervePercent(0, 0, 0);
 
@@ -405,7 +400,7 @@ void Robot::AutonomousPeriodic()
   {
     claw->OpenClaw(elapsedTime);
     claw->PIDWrist(0.6, elapsedTime);
-    elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+    elevator->SetElevatorHeightPID(0, elapsedTime);
   }*/
 
   lastTime = timer.Get().value();
@@ -417,7 +412,7 @@ void Robot::TeleopInit()
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
   swerveDrive->ResetOdometry(Pose2d(5.22_m, 1.78_m, Rotation2d(3.14_rad)));
-  elevatorLift->ResetElevatorEncoder();
+  elevator->ResetElevatorEncoder();
   claw->ResetClawEncoder();
 
   // Reset all our values throughout the code
@@ -529,7 +524,7 @@ void Robot::TeleopPeriodic()
   frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
   frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
   frc::SmartDashboard::PutNumber("Odometry Theta", pose.Rotation().Degrees().value());
-  SmartDashboard::PutNumber("lift encoder", elevatorLift->winchEncoderReading());
+  SmartDashboard::PutNumber("lift encoder", elevator->winchEncoderReading());
   SmartDashboard::PutNumber("wrist encoder", claw->MagEncoderReading());
   SmartDashboard::PutNumber("claw encoder", claw->ClawEncoderReading());
 
@@ -544,18 +539,18 @@ void Robot::TeleopPeriodic()
 
   // BASIC ELEVATOR CODE
   if (xbox_Drive->GetBButtonPressed())
-    elevatorLift->StartPIDLoop();
+    elevator->StartPIDLoop();
 
   if (xbox_Drive->GetYButton())
-    elevatorLift->MoveElevatorPercent(0.2);
+    elevator->MoveElevatorPercent(0.2);
   else if (xbox_Drive->GetAButton())
-    elevatorLift->MoveElevatorPercent(-0.2);
+    elevator->MoveElevatorPercent(-0.2);
   else if (xbox_Drive->GetBButton())
-    elevatorLift->SetElevatorHeightPID(76, elapsedTime);
+    elevator->SetElevatorHeightPID(76, elapsedTime);
   else if (xbox_Drive->GetXButton())
-    elevatorLift->MoveElevatorPercent(0.05);
+    elevator->MoveElevatorPercent(0.05);
   else
-    elevatorLift->MoveElevatorPercent(0);
+    elevator->MoveElevatorPercent(0);
 
   if (xbox_Drive->GetRightBumper())
     claw->MoveClawPercent(-0.7);
