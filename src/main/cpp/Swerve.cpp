@@ -928,8 +928,8 @@ public:
     float gyroRot = pigeonIMU->GetRoll();//Pull roll angle from gyroscope
     frc::SmartDashboard::PutNumber("gyroRot", gyroRot); //on the dashboard, output the gyroRot number
     float deadZone = 2.5;                           //deadzone angle
-    float motorMaxSpeed = 0.2;                     //max speed of motor in %
-    float hardMotorCap = 0.2;
+    float motorMaxSpeed = frc::SmartDashboard::GetNumber("maxSpeed", 0.2);                     //max speed of motor in %
+    float hardMotorCap = frc::SmartDashboard::GetNumber("hardCap", 0.3);
     float motorVelocity;                            //final velocity of motor
     int direction = (gyroRot > 0) ? 1 : -1;         // if gyroRot is greater than 0, change direction to -1, vice versa. This is for correction, we want to move opposite direction from tilt
 
