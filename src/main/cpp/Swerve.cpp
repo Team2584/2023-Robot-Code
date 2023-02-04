@@ -927,8 +927,6 @@ public:
   void BalanceOnCharger(){
     float gyroRot = pigeonIMU->GetRoll();//Pull roll angle from gyroscope
     frc::SmartDashboard::PutNumber("gyroRot", gyroRot); //on the dashboard, output the gyroRot number
-    frc::SmartDashboard::PutNumber("gyroRot", gyroRot);
-    frc::SmartDashboard::PutNumber("gyroRot", gyroRot);
     float deadZone = 2.5;                           //deadzone angle
     float motorMaxSpeed = 0.2;                     //max speed of motor in %
     float hardMotorCap = 0.2;
@@ -937,9 +935,9 @@ public:
 
     if (abs(gyroRot) > deadZone)
         motorVelocity = direction * (abs(gyroRot) - deadZone) * motorMaxSpeed * 1 / 9; //when rotation of gyro exceeds the deadzone, set motor velocity (this is proportional to the gyro angle)
-    if (motorVelocity > hardMotorCap)   //if motorVelocity exceeds the hard cap, make the motor velocity equal the hard cap
+    if (motorVelocity > hardMotorCap)
         motorVelocity = hardMotorCap;
-    if (motorVelocity < -hardMotorCap)  //same in negative direction
+    if (motorVelocity < -hardMotorCap)
         motorVelocity = -hardMotorCap;
 
     frc::SmartDashboard::PutNumber("MotorVelocity", motorVelocity);
