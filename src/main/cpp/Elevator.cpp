@@ -59,8 +59,11 @@ public:
   /**
    * Moves the elevator at a percent speed, positive being upwards
    */
-  void MoveElevatorPercent(double percent)
+  void MoveElevatorPercent(double percent, double elapsedTime)
   {
+    lastSpeed += std::clamp(percent - lastSpeed, -1 * MAX_ELEV_ACCEL * elapsedTime,
+                             MAX_ELEV_ACCEL * elapsedTime);
+
     winchR->Set(percent);
     winchL->Set(percent);   
   }
