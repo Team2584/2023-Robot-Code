@@ -29,6 +29,11 @@ public:
     tofSensor = tofSensor_;
   }
 
+  void ResetElevatorEncoder()
+  {
+    winchEncoder->SetPosition(0.0);
+  }
+
   double winchEncoderReading()
   {
     return winchEncoder->GetPosition();
@@ -46,6 +51,11 @@ public:
     return ((tofSensor->GetRange() - 30) * 0.70710678 + 260) / 1000;
   }
 
+  void StopElevator()
+  {
+    MoveElevatorPercent(0);
+  }
+
   /**
    * Moves the elevator at a percent speed, positive being upwards
    */
@@ -53,6 +63,7 @@ public:
   {
     lastSpeed += std::clamp(percent - lastSpeed, -1 * MAX_ELEV_ACCEL * elapsedTime,
                              MAX_ELEV_ACCEL * elapsedTime);
+
     winchR->Set(percent);
     winchL->Set(percent);   
   }
@@ -67,19 +78,26 @@ public:
   {
     double error = height - winchEncoderReading();
 
-     if (fabs(error) < ALLOWABLE_ERROR_HEIGHT)
+     if (fabs(error) < ALLOWABLE_ERROR_ELEV)
     {
       runningIntegral = 0;
+      MoveElevatorPercent(0);
       return true;
     }
 
     // calculate our I in PID and clamp it between our maximum I effects
-    double intendedI = std::clamp(ELEV_KI * runningIntegral, -1 * ELEV_KIMAX, ELEV_KIMAX);
+    double intendedI = std::clamp(ELEVKI * runningIntegral, -1 * ELEVKIMAX, ELEVKIMAX);
 
     // Clamp our intended velocity to our maximum and minimum velocity to prevent the robot from going too fast
-    double intendedVelocity = std::clamp(ELEV_KP * error + intendedI, -1 * MAX_ELEV_SPEED, MAX_ELEV_SPEED);
+    double intendedVelocity = std::clamp(ELEVKP * error + intendedI, -1 * ELEVMAX_SPEED, ELEVMAX_SPEED);
 
-    MoveElevatorPercent(intendedVelocity + ELEV_HOLDFF, elapsedTime);
+    // Make sure our change in velocity from the last loop is not going above our maximum acceleration
+    lastSpeed += std::clamp(intendedVelocity - lastSpeed, -1 * ELEVMAX_ACCELERATION * elapsedTime,
+                        ELEVMAX_ACCELERATION * elapsedTime);
+
+    runningIntegral += error;
+
+    MoveElevatorPercent(lastSpeed + ELEVHOLDFF);
     return false;
   }
 };

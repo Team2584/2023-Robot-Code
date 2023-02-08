@@ -1,9 +1,11 @@
 #define MAX_ELEV_ACCEL 3
 
 //Holding Elevator at Position PID
-#define ELEV_HOLDFF 0
-#define ELEV_KP 0.12
-#define ELEV_KI 0
-#define ELEV_KIMAX 0.1
-#define ALLOWABLE_ERROR_HEIGHT 0.3
-#define MAX_ELEV_SPEED 0.8
+#define ELEVHOLDFF 0
+#define ELEVKP 0.15
+#define ELEVKI 0
+#define ELEVKIMAX 0.1
+#define ALLOWABLE_ERROR_ELEV 0.3
+#define ELEVMAX_SPEED 0.9
+#define ELEVMAX_ACCELERATION 8
+
