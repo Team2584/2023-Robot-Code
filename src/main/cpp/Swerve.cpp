@@ -435,6 +435,7 @@ public:
   {
     wpi::array<double, 3> stdDevs = {5.0, 5.0, 1000000000.0};
     odometry->SetVisionMeasurementStdDevs(stdDevs);
+    SmartDashboard::PutNumber("Time of Estimate in Swerve Fuction", timeOfEstimate.value());
     odometry->AddVisionMeasurement(Pose2d(poseEstimate.Y(), poseEstimate.X(), GetPose().Rotation()), timeOfEstimate);
   }
 

@@ -544,6 +544,7 @@ void Robot::TeleopPeriodic()
     SmartDashboard::PutNumber("time array offest", array.value[4]);
     SmartDashboard::PutNumber("Time of mesurement", array.time);
     SmartDashboard::PutNumber("system Time", microsecondTime);
+    SmartDashboard::PutNumber("position estimate time", units::microsecond_t{array.time - array.value[4]}.value());
     swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time - array.value[4]});
   }
 
