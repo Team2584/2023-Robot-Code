@@ -1,5 +1,3 @@
-#define MAX_ELEV_ACCEL 3
-
 //Holding Elevator at Position PID
 #define ELEVHOLDFF 0
 #define ELEVKP 0.15

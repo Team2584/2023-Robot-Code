@@ -42,6 +42,7 @@ double lastTime = 0;
 double lastFwdSpeed = 0;
 double lastStrafeSpeed = 0;
 double lastTurnSpeed = 0;
+double lastElevatorSpeed = 0;
 
 // Values to Set with ShuffleBoard
 double MAX_DRIVE_SPEED = 0.4;
@@ -435,7 +436,7 @@ void Robot::TeleopInit()
   // Prepare swerve drive odometry
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
-  swerveDrive->ResetOdometry(Pose2d(5.11_m, 1.85_m, Rotation2d(3.14_rad)));
+  swerveDrive->ResetOdometry(Pose2d(0_m, 1_m, Rotation2d(0_rad)));
    elevatorLift->ResetElevatorEncoder();
   claw->ResetClawEncoder();
 
@@ -447,6 +448,7 @@ void Robot::TeleopInit()
   lastFwdSpeed = 0;
   lastStrafeSpeed = 0;
   lastTurnSpeed = 0;
+  lastElevatorSpeed = 0;
 
   /*
     orchestra.LoadMusic("CHIRP");
@@ -516,9 +518,27 @@ void Robot::TeleopPeriodic()
   // Update our odometry
   double microsecondTime = (double)RobotController::GetFPGATime();
   swerveDrive->UpdateOdometry(units::microsecond_t{microsecondTime});
+  for (auto array : coneEntry.ReadQueue())
+  {
+    double angle = -swerveDrive->GetPose().Rotation().Radians().value();
+    if ((array.value[0] != 0 || array.value[1] != 0) && array.value[1] > 1)
+    {
+      frc::SmartDashboard::PutNumber("Pre Rot Cone X Vision", array.value[0]);
+      frc::SmartDashboard::PutNumber("Pre Rot Cone Y Vision", array.value[1]);
+      double fieldOrientedX = -1 * (array.value[0] * cos(angle) - array.value[1] * sin(angle));
+      double fieldOrientedY = -1 * (array.value[0] * sin(angle) + array.value[1] * cos(angle));
+      frc::SmartDashboard::PutNumber("Almost Cone X Vision", fieldOrientedX);
+      frc::SmartDashboard::PutNumber("Almost Cone Y Vision", fieldOrientedY);
+      Translation2d transEst = Translation2d(units::meter_t{fieldOrientedX}, units::meter_t{fieldOrientedY});
+      frc::SmartDashboard::PutNumber("Cone X Vision", transEst.X().value());
+      frc::SmartDashboard::PutNumber("Cone Y Vision", transEst.Y().value());
+      swerveDrive->ResetOdometry(Pose2d(transEst, swerveDrive->GetPose().Rotation()));
+    }
+  }
 
   // Update our odometry position based on cone data
 
+/*
   for (auto array : coneEntry.ReadQueue())
   {
     double angle = -swerveDrive->GetPose().Rotation().Radians().value();
@@ -547,7 +567,7 @@ void Robot::TeleopPeriodic()
     SmartDashboard::PutNumber("possible system time", Timer::GetFPGATimestamp().value());
     SmartDashboard::PutNumber("position estimate time", units::microsecond_t{array.time - array.value[4]}.value());
     swerveDrive->AddPositionEstimate(poseEst, units::microsecond_t{array.time - array.value[4]});
-  }
+  }*/
 
   Pose2d pose = swerveDrive->GetPose();
   double poseArray[] = {pose.X().value(), pose.Y().value(), 0.75, pose.Rotation().Radians().value(), 0};
@@ -574,23 +594,31 @@ void Robot::TeleopPeriodic()
   if (xbox_Drive->GetBButtonPressed())
     elevatorLift->StartPIDLoop();
 
+
+  double elevSpeed = 0;
   if (xbox_Drive->GetYButton())
-    elevatorLift->MoveElevatorPercent(0.8, elapsedTime);
+    elevSpeed = 0.8;
   else if (xbox_Drive->GetAButton())
-    elevatorLift->MoveElevatorPercent(-0.2);
-  else if (xbox_Drive->GetBButton())
+    elevSpeed = -0.2;
+  else
+    elevSpeed = 0;
+
+  lastElevatorSpeed += std::clamp(elevSpeed - lastElevatorSpeed, -1 * MAX_ELEV_ACCELERATION * elapsedTime,
+                            MAX_ELEV_ACCELERATION * elapsedTime);
+
+  SmartDashboard::PutNumber("ELEvator Speed", lastElevatorSpeed);
+
+  if (xbox_Drive->GetBButton())
     elevatorLift->SetElevatorHeightPID(76, elapsedTime);
   else if (xbox_Drive->GetXButton())
     elevatorLift->SetElevatorHeightPID(40, elapsedTime);
   else
-    elevatorLift->MoveElevatorPercent(0);
+    elevatorLift->MoveElevatorPercent(lastElevatorSpeed);
 
   if (xbox_Drive->GetRightBumper())
     claw->MoveClawPercent(-0.7);
   else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
     claw->MoveClawPercent(0.7);
-  else if (xbox_Drive->GetStartButton())
-    claw->OpenClaw(elapsedTime);
   else
     claw->MoveClawPercent(0);
 
@@ -602,6 +630,12 @@ void Robot::TeleopPeriodic()
     claw->PIDWrist(M_PI / 2, elapsedTime);
   else
     claw->MoveWristPercent(0.0);
+
+  if (xbox_Drive->GetStartButtonPressed())
+    swerveDrive->BeginPIDLoop();
+  if(xbox_Drive->GetStartButton())
+    swerveDrive->DriveToPose(Pose2d(0_m, -0.47_m, Rotation2d(0_deg)), elapsedTime);
+
 
   /*
   // Reset Pigion Heading
