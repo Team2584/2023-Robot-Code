@@ -123,7 +123,14 @@ public:
 
   bool OpenClaw(double elapsedTime)
   {
-    return PIDClaw(-20, elapsedTime);
+    MoveClawPercent(-0.8);
+    return true;
+  }
+
+  bool CloseClaw(double elapsedTime)
+  {
+    MoveClawPercent(0);
+    return true;
   }
 
 };

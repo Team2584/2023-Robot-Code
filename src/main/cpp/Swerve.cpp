@@ -576,9 +576,9 @@ public:
    * @param target the target Pose
    * @param elapsedTime the time since our last iteration of the pid loop
    */
-  void DriveToPose(Pose2d target, double elapsedTime)
+  bool DriveToPose(Pose2d target, double elapsedTime)
   {
-    DriveToPose(target, elapsedTime, O_TRANSLATION_MAX_SPEED, O_TRANSLATION_MAX_ACCEL, O_ALLOWABLE_ERROR_TRANSLATION,
+    return DriveToPose(target, elapsedTime, O_TRANSLATION_MAX_SPEED, O_TRANSLATION_MAX_ACCEL, O_ALLOWABLE_ERROR_TRANSLATION,
                 O_TRANSLATION_KP, O_TRANSLATION_KI, O_TRANSLATION_KI_MAX, O_SPIN_MAX_SPEED, O_SPIN_MAX_ACCEL, O_ALLOWABLE_ERROR_ROTATION,
                 O_SPIN_KP, O_SPIN_KI, O_SPIN_KI_MAX, false);
   }

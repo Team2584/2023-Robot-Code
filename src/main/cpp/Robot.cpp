@@ -151,13 +151,14 @@ void Robot::AutonomousInit()
 
   elevatorLift->ResetElevatorEncoder();
   claw->ResetClawEncoder();
-  swerveDrive->ResetOdometry(Pose2d(5.11_m, 1.85_m, Rotation2d(3.14_rad)));
+  /*swerveDrive->ResetOdometry(Pose2d(5.11_m, 1.85_m, Rotation2d(3.14_rad)));
   swerveDrive->ResetTrajectoryList();
   swerveDrive->InitializeTrajectory("RedRight3GamePiece1");
   swerveDrive->InitializeTrajectory("RedRight3GamePiece2");
   swerveDrive->InitializeTrajectory("RedRight3GamePiece3");
   swerveDrive->InitializeTrajectory("RedRight3GamePiece4");
-  swerveDrive->SetNextTrajectory();
+  swerveDrive->SetNextTrajectory();*/
+  swerveDrive->ResetOdometry(Pose2d(0_m, 1_m, Rotation2d(0_rad)));
   splineSection = 0;
 
   // Start our match timer and reset our odometry to the robot's starting position
@@ -168,12 +169,68 @@ void Robot::AutonomousInit()
 
 void Robot::AutonomousPeriodic()
 {
-    Timer loopTime = Timer();
-    loopTime.Start();
-    SmartDashboard::PutNumber("Spline Section", splineSection);
+  Timer loopTime = Timer();
+  loopTime.Start();
+  SmartDashboard::PutNumber("Spline Section", splineSection);
 
   double elapsedTime = timer.Get().value() - lastTime;
   swerveDrive->UpdateOdometry(timer.Get());
+  for (auto array : coneEntry.ReadQueue())
+  {
+    double angle = -swerveDrive->GetPose().Rotation().Radians().value();
+    if ((array.value[0] != 0 || array.value[1] != 0) && array.value[1] > 1)
+    {
+      frc::SmartDashboard::PutNumber("Pre Rot Cone X Vision", array.value[0]);
+      frc::SmartDashboard::PutNumber("Pre Rot Cone Y Vision", array.value[1]);
+      double fieldOrientedX = -1 * (array.value[0] * cos(angle) - array.value[1] * sin(angle));
+      double fieldOrientedY = -1 * (array.value[0] * sin(angle) + array.value[1] * cos(angle));
+      frc::SmartDashboard::PutNumber("Almost Cone X Vision", fieldOrientedX);
+      frc::SmartDashboard::PutNumber("Almost Cone Y Vision", fieldOrientedY);
+      Translation2d transEst = Translation2d(units::meter_t{fieldOrientedX}, units::meter_t{fieldOrientedY});
+      frc::SmartDashboard::PutNumber("Cone X Vision", transEst.X().value());
+      frc::SmartDashboard::PutNumber("Cone Y Vision", transEst.Y().value());
+      swerveDrive->ResetOdometry(Pose2d(transEst, swerveDrive->GetPose().Rotation()));
+    }
+  }
+
+  if (splineSection == 0)
+  {
+    timer.Reset();
+    lastTime = 0;
+    splineSection = 0.5;
+    swerveDrive->BeginPIDLoop();
+  }
+
+  if (splineSection == 0.5)
+  {
+    bool clawOpen = claw->OpenClaw(elapsedTime);
+    if (clawOpen)
+    {
+      splineSection = 1;
+    }
+  }
+
+  if (splineSection == 1)
+  {
+    claw->OpenClaw(elapsedTime);
+    bool splineDone = swerveDrive->DriveToPose(Pose2d(0_m, -0.47_m, Rotation2d(0_deg)), elapsedTime);
+    if (splineDone)
+    {
+      splineSection = 1.5;
+      swerveDrive->DriveSwervePercent(0,0,0);
+    }
+  }
+
+  if (splineSection == 1.5)
+  {
+    bool clawClosed = claw->CloseClaw(elapsedTime);
+    if (clawClosed)
+    {
+      splineSection = 2;
+      claw->MoveClawPercent(0);
+    }
+  }
+
   /*if (abs(swerveDrive->GetPose().Rotation().Degrees().value() - 180) < 8)
   {
     for (auto array : poseSub.ReadQueue())
@@ -185,6 +242,7 @@ void Robot::AutonomousPeriodic()
     }
   }*/
 
+  /*
   if (splineSection == 0)
   {
     timer.Reset();
@@ -241,7 +299,7 @@ void Robot::AutonomousPeriodic()
 
   if (splineSection == 1)
   {
-    /*if (fabs(swerveDrive->GetPose().Rotation().Degrees().value()) < 7)
+    if (fabs(swerveDrive->GetPose().Rotation().Degrees().value()) < 7)
     {
       SmartDashboard::PutNumber("Reading Cone", true);
       for (auto array : coneEntry.ReadQueue())
@@ -262,7 +320,7 @@ void Robot::AutonomousPeriodic()
     {
       SmartDashboard::PutNumber("Reading Cone", false);
       coneEntry.ReadQueue();
-    }*/
+    }
 
     //elevatorLift->SetElevatorHeightPID(0, elapsedTime);
     claw->OpenClaw(elapsedTime);
@@ -295,10 +353,10 @@ void Robot::AutonomousPeriodic()
 
   if (splineSection == 2)
   {
-    /*if (swerveDrive->GetPose().Y() < 3_m)
+    if (swerveDrive->GetPose().Y() < 3_m)
       elevatorLift->SetElevatorHeightPID(40, elapsedTime);
     else
-      elevatorLift->SetElevatorHeightPID(0, elapsedTime);*/
+      elevatorLift->SetElevatorHeightPID(0, elapsedTime);
 
     claw->PIDClaw(-2, elapsedTime);
     claw->PIDWrist(0.6, elapsedTime);
@@ -349,15 +407,15 @@ void Robot::AutonomousPeriodic()
     claw->PIDWrist(1, elapsedTime);
     claw->OpenClaw(elapsedTime);
     elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-    /*if (elevatorLift->winchEncoderReading() < 30)
+    if (elevatorLift->winchEncoderReading() < 30)
     {
       timer.Reset();
       lastTime = 0;
       splineSection = 3;
-    } */
+    } 
   }
 
-  /*
+  
   if (splineSection == 3)
   {
     if (swerveDrive->GetPose().Y() > 5_m)
@@ -437,7 +495,7 @@ void Robot::TeleopInit()
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
   swerveDrive->ResetOdometry(Pose2d(0_m, 1_m, Rotation2d(0_rad)));
-   elevatorLift->ResetElevatorEncoder();
+  elevatorLift->ResetElevatorEncoder();
   claw->ResetClawEncoder();
 
   // Reset all our values throughout the code
@@ -616,9 +674,9 @@ void Robot::TeleopPeriodic()
     elevatorLift->MoveElevatorPercent(lastElevatorSpeed);
 
   if (xbox_Drive->GetRightBumper())
-    claw->MoveClawPercent(-0.7);
+    claw->MoveClawPercent(-0.8);
   else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
-    claw->MoveClawPercent(0.7);
+    claw->MoveClawPercent(0.8);
   else
     claw->MoveClawPercent(0);
 
