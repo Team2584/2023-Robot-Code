@@ -687,7 +687,7 @@ void Robot::TeleopPeriodic()
   else if (xbox_Drive->GetBackButton())
     claw->PIDWrist(M_PI / 2, elapsedTime);
   else
-    claw->MoveWristPercent(0.0);
+    claw->MoveWristPercent(0);
 
   if (xbox_Drive->GetStartButtonPressed())
     swerveDrive->BeginPIDLoop();

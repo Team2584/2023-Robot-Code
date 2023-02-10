@@ -14,7 +14,7 @@ private:
 public:
     rev::CANSparkMax *wristMotor;
     rev::CANSparkMax *clawMotor;
-    rev::SparkMaxRelativeEncoder *clawEncoder, *wristEncoder;
+    rev::SparkMaxRelativeEncoder *wristEncoder; 
     rev::SparkMaxAbsoluteEncoder *magEncoder;
 
   /**
@@ -24,9 +24,9 @@ public:
   {
     wristMotor = wrist;
     clawMotor = claw;
-    wristMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
-    clawEncoder =  new rev::SparkMaxRelativeEncoder(clawMotor->GetEncoder());
-    clawEncoder->SetPosition(1.0);
+    wristMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
+    //clawEncoder =  new rev::SparkMaxRelativeEncoder(clawMotor->GetEncoder());
+    //clawEncoder->SetPosition(1.0);
     wristEncoder =  new rev::SparkMaxRelativeEncoder(wristMotor->GetEncoder());
     wristEncoder->SetPosition(0.0);
 
@@ -83,7 +83,8 @@ public:
 
   double ClawEncoderReading()
   {
-    return clawEncoder->GetPosition();
+    //return clawEncoder->GetPosition();
+    return 0;
   }
 
   void MoveClawPercent(double percent)
@@ -93,7 +94,7 @@ public:
 
   bool PIDClaw(double point, double elapsedTime)
   {
-    double error = point - ClawEncoderReading();
+    /*double error = point - ClawEncoderReading();
 
      if (fabs(error) < ALLOWABLE_ERROR_CLAW)
     {
@@ -112,13 +113,13 @@ public:
                         CLAWMAX_ACCELERATION * elapsedTime);
 
     SmartDashboard::PutNumber("error", error);
-    MoveClawPercent(lastClawSpeed);
+    MoveClawPercent(lastClawSpeed);*/
     return false;
   }
 
   void ResetClawEncoder()
   {
-    clawEncoder->SetPosition(0.0);
+    //clawEncoder->SetPosition(0.0);
   }
 
   bool OpenClaw(double elapsedTime)
