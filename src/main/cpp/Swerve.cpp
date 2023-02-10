@@ -255,6 +255,7 @@ private:
   Translation2d m_backLeft;
   Translation2d m_backRight;
   SwerveDriveKinematics<4> kinematics;
+  SwerveDriveOdometry<4> *coneOdometry;
   SwerveDrivePoseEstimator<4> *odometry;
   std::queue<pathplanner::PathPlannerTrajectory> trajectoryList; 
   pathplanner::PathPlannerTrajectory trajectory; 
@@ -295,7 +296,7 @@ public:
         m_backLeft{-DRIVE_LENGTH / 2, DRIVE_WIDTH / 2},
         m_backRight{-DRIVE_LENGTH / 2, DRIVE_WIDTH / 2},
         kinematics{m_frontLeft, m_frontRight, m_backLeft, m_backRight},
-        trajectoryList{}
+        trajectoryList{},
   {
     FLModule = new SwerveModule(_FLDriveMotor, _FLSpinMotor, _FLMagEncoder, _FLEncoderOffset);
     FRModule = new SwerveModule(_FRDriveMotor, _FRSpinMotor, _FRMagEncoder, _FREncoderOffset);
@@ -314,6 +315,11 @@ public:
                                           Rotation2d(units::radian_t{GetIMURadians()}),
                                           positions,
                                           frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
+    coneOdometry = new SwerveDriveOdometry<4>(kinematics,
+                                      Rotation2d(units::radian_t{GetIMURadians()}),
+                                      positions,
+                                      frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
+
 
     wpi::array<double, 3> stdDevs = {10.0, 10.0, 25.0};
     odometry->SetVisionMeasurementStdDevs(stdDevs);
@@ -410,6 +416,35 @@ public:
         frc::Pose2d(Pose2d(position.Y(), position.X(), position.Rotation())));
   }
 
+    /**
+   * Resets Odometry to (0,0) facing away from the driver
+   */
+  void ResetConeOdometry()
+  {
+    ResetConeOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));
+  }
+
+  /**
+   * Resets Odometry to a position
+   */
+  void ResetConeOdometry(Pose2d position)
+  {
+    FLModule->ResetEncoders();
+    FRModule->ResetEncoders();
+    BLModule->ResetEncoders();
+    BRModule->ResetEncoders();
+
+    wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
+                                                     FRModule->GetSwerveModulePosition(),
+                                                     BLModule->GetSwerveModulePosition(),
+                                                     BRModule->GetSwerveModulePosition()};
+
+    coneOdometry->ResetPosition(
+        Rotation2d(units::radian_t{GetIMURadians()}),
+        positions,
+        frc::Pose2d(Pose2d(position.Y(), position.X(), position.Rotation())));
+  }
+
   /**
    * Updates the odometry reading based on change in each swerve module's positions.
    * Must be called every periodic loop for accuracy (once every 20ms or less)
@@ -423,6 +458,15 @@ public:
                                                      BLModule->GetSwerveModulePosition(),
                                                      BRModule->GetSwerveModulePosition()};
     odometry->UpdateWithTime(currentTime, units::radian_t{GetIMURadians()}, positions);
+  }
+
+  void UpdateConeOdometry()
+  {
+    wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
+                                                  FRModule->GetSwerveModulePosition(),
+                                                  BLModule->GetSwerveModulePosition(),
+                                                  BRModule->GetSwerveModulePosition()};
+    coneOdometry->Update(units::radian_t{GetIMURadians()}, positions);
   }
 
   /**
@@ -462,6 +506,11 @@ public:
     return Pose2d(pose.Y(), pose.X(), pose.Rotation());  
   }
 
+  Pose2d GetConeOdometryPose()
+  {
+    Pose2d pose = coneOdometry->GetEstimatedPosition();
+    return Pose2d(pose.Y(), pose.X(), pose.Rotation());  
+  }
 
   /**
    * Sets the swerve module states to their respective values
@@ -578,11 +627,17 @@ public:
    */
   bool DriveToPose(Pose2d target, double elapsedTime)
   {
-    return DriveToPose(target, elapsedTime, O_TRANSLATION_MAX_SPEED, O_TRANSLATION_MAX_ACCEL, O_ALLOWABLE_ERROR_TRANSLATION,
+    return DriveToPose(GetPose(), target, elapsedTime, O_TRANSLATION_MAX_SPEED, O_TRANSLATION_MAX_ACCEL, O_ALLOWABLE_ERROR_TRANSLATION,
                 O_TRANSLATION_KP, O_TRANSLATION_KI, O_TRANSLATION_KI_MAX, O_SPIN_MAX_SPEED, O_SPIN_MAX_ACCEL, O_ALLOWABLE_ERROR_ROTATION,
                 O_SPIN_KP, O_SPIN_KI, O_SPIN_KI_MAX, false);
   }
 
+  bool DriveToPoseConeOdometry(Pose2d target, double elapsedTime)
+  {
+    return DriveToPose(GetConeOdometryPose(), target, elapsedTime, O_TRANSLATION_MAX_SPEED, O_TRANSLATION_MAX_ACCEL, O_ALLOWABLE_ERROR_TRANSLATION,
+                O_TRANSLATION_KP, O_TRANSLATION_KI, O_TRANSLATION_KI_MAX, O_SPIN_MAX_SPEED, O_SPIN_MAX_ACCEL, O_ALLOWABLE_ERROR_ROTATION,
+                O_SPIN_KP, O_SPIN_KI, O_SPIN_KI_MAX, false);
+  }
 
   /**
    * Drives the robot to a pose using a feedback PID loop
@@ -602,13 +657,12 @@ public:
    * @param rotationIMaxEffect the maximum effect our I constant can have on the system to prevent overshooting
    * @return If the robot has finished driving to Pose
    */
-  bool DriveToPose(Pose2d target, double elapsedTime,
+  bool DriveToPose(Pose2d current, Pose2d target, double elapsedTime,
                    double translationMaxSpeed, double translationMaxAccel, double allowableErrorTranslation,
                    double translationP, double translationI, double translationIMaxEffect,
                    double rotationMaxSpeed, double rotationMaxAccel, double allowableErrorRotation,
                    double rotationP, double rotationI, double rotationIMaxEffect, double useWeirdMinSpeedThing)
   {
-    Pose2d current = GetPose();
     double intendedVelocity;
     double intendedI;
 
