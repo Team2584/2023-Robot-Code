@@ -151,14 +151,11 @@ void Robot::AutonomousInit()
 
   elevatorLift->ResetElevatorEncoder();
   claw->ResetClawEncoder();
-  /*swerveDrive->ResetOdometry(Pose2d(5.11_m, 1.85_m, Rotation2d(3.14_rad)));
+  swerveDrive->ResetOdometry(Pose2d(4.98_m, 1.85_m, Rotation2d(3.14_rad)));
   swerveDrive->ResetTrajectoryList();
-  swerveDrive->InitializeTrajectory("RedRight3GamePiece1");
-  swerveDrive->InitializeTrajectory("RedRight3GamePiece2");
-  swerveDrive->InitializeTrajectory("RedRight3GamePiece3");
-  swerveDrive->InitializeTrajectory("RedRight3GamePiece4");
-  swerveDrive->SetNextTrajectory();*/
-  swerveDrive->ResetOdometry(Pose2d(0_m, 1_m, Rotation2d(0_rad)));
+  swerveDrive->InitializeTrajectory("RedRight2GamePiece1");
+  swerveDrive->InitializeTrajectory("RedRight2GamePiece2");
+  swerveDrive->SetNextTrajectory();
   splineSection = 0;
 
   // Start our match timer and reset our odometry to the robot's starting position
