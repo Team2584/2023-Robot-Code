@@ -6,53 +6,68 @@
 #include <functional>
 #include <frc2/command/CommandBase.h>
 #include <frc2/command/CommandHelper.h>
+#include <frc2/command/FunctionalCommand.h>
 #include "SystemManager.cpp"
 #include <frc/smartdashboard/SmartDashboard.h>
 
 
-class FunctionWrapper : public frc2::CommandHelper<frc2::CommandBase, FunctionWrapper>
+class FunctionWrapper
 {
     private:
     bool isFinished;
     std::function<bool()> function;
+    frc2::FunctionalCommand backingCommand;
 
     public:
 
-    FunctionWrapper(std::function<bool()> function)
-    :isFinished{false}, function{function}
-    {
-    }
+    // FunctionWrapper(std::function<bool()> function)
+    // :isFinished{false}, function{std::move(function)}
+    // {
+    //   backingCommand = FunctionalCommand();
+    // }
 
     FunctionWrapper(std::function<bool()> function, int requirementID)
-    :isFinished{false}, function{std::move(function)}
+    :isFinished{false}, function{std::move(function)}, backingCommand {
+        frc2::FunctionalCommand(
+        std::function<void()>([this](){Initialize();}), 
+        std::function<void()>([this](){Execute();}), 
+        std::function<void(bool)>([this](bool a){End(a);}), 
+        std::function<bool()>([this](){return IsFinished();}))
+    }
     {
-      AddRequirement(SystemManager::GetInstance().GetSystem(requirementID));
+        backingCommand.AddRequirements(SystemManager::GetInstance().GetSystem(requirementID));
     }
 
-    void AddRequirement(frc2::Subsystem* requirement)
+    void Schedule()
     {
-      frc2::CommandBase::AddRequirements(requirement);
+      backingCommand.Schedule();
     }
 
-    void Initialize() override
+    // void AddRequirement(frc2::Subsystem* requirement)
+    // {
+    //   frc2::CommandBase::AddRequirements(requirement);
+    // }
+
+private:
+    void Initialize()
     {
       frc::SmartDashboard::PutBoolean("Initialized",   true);
     }
 
-    void Execute() override
+    void Execute()
     {
       frc::SmartDashboard::PutBoolean("Executed",   true);
       isFinished = function();
     }
 
-    void End(bool interrupted) override
+    void End(bool interrupted)
     {
       frc::SmartDashboard::PutBoolean("Ended",   true);
     }
 
-     bool IsFinished() override
+     bool IsFinished()
     {
      frc::SmartDashboard::PutBoolean("Finished",   true);
-     return !isFinished;
+     return isFinished;
     }
 };

@@ -211,7 +211,7 @@ FunctionWrapper([](){SmartDashboard::PutBoolean("StageOneComplete", true); retur
 
 void Robot::AutonomousPeriodic()
 {
-  std::cout << "Testing...";
+  frc2::CommandScheduler::GetInstance().Run();
   /*
   if (m_autoSelected == kAutoNameCustom)
   {
