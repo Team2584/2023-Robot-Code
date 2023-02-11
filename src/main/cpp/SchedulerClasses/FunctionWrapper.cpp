@@ -6,6 +6,7 @@
 #include <functional>
 #include <frc2/command/CommandBase.h>
 #include <frc2/command/CommandHelper.h>
+#include "SystemManager.cpp"
 
 class FunctionWrapper : public frc2::CommandHelper<frc2::CommandBase, FunctionWrapper>
 {
@@ -20,11 +21,11 @@ class FunctionWrapper : public frc2::CommandHelper<frc2::CommandBase, FunctionWr
     {
     }
 
-    // FunctionWrapper(std::function<bool()> function, frc2::Subsystem* requirement)
-    // :isFinished{false}, function{function}
-    // {
-    //   AddRequirement(requirement);
-    // }
+    FunctionWrapper(std::function<bool()> function, int requirementID)
+    :isFinished{false}, function{std::move(function)}
+    {
+      AddRequirement(SystemManager::GetInstance().GetSystem(requirementID));
+    }
 
     void AddRequirement(frc2::Subsystem* requirement)
     {

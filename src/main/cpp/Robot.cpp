@@ -13,6 +13,7 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 
 #include "SchedulerClasses/Scheduler.cpp"
+#include "SchedulerClasses/FunctionWrapper.cpp"
 #include <exception>
 
 double pigeon_initial;
@@ -49,8 +50,6 @@ double MAX_SPIN_SPEED = 0.4;
 // Cringe Auto Values S**FF
 double splineSection = 1;
 bool limelightTracking = false;
-
-Scheduler scheduler;
 
 void Robot::RobotInit()
 {
@@ -112,7 +111,7 @@ int runCount = 0;
 void Robot::RobotPeriodic()
 {
   SmartDashboard::PutNumber("RunCount", runCount);
-  scheduler.Run();
+  frc2::CommandScheduler::GetInstance().Run();
   runCount++;
 }
 
@@ -176,12 +175,17 @@ SmartDashboard::PutBoolean("StageOneComplete",   false);
 // SmartDashboard::PutBoolean("StageFourComplete",  false);
 // SmartDashboard::PutBoolean("StageFiveComplete",  false);
 
-SequentialProgram autonomousTestProgram = SequentialProgram();
-autonomousTestProgram.AddFunction([](){SmartDashboard::PutBoolean("StageZeroComplete", true); return true;}, Systems::Chassis);
-autonomousTestProgram.AddFunction([](){return Update();}, Systems::Chassis);
-autonomousTestProgram.AddFunction([](){return swerveDrive->FollowTrajectory(timer);}, Systems::Chassis);
-autonomousTestProgram.AddFunction([](){SmartDashboard::PutBoolean("StageOneComplete", true); return true;}, Systems::Chassis);
-autonomousTestProgram.Schedule();
+CommandScheduler::GetInstance().Enable();
+
+FunctionWrapper([](){SmartDashboard::PutBoolean("StageOneComplete", true); return true;}, Systems::Chassis).Schedule();
+
+// SequentialProgram autonomousTestProgram = SequentialProgram();
+// autonomousTestProgram.AddFunction([](){SmartDashboard::PutBoolean("StageZeroComplete", true); return true;}, Systems::Chassis);
+// autonomousTestProgram.AddFunction([](){return Update();}, Systems::Chassis);
+// autonomousTestProgram.AddFunction([](){return swerveDrive->FollowTrajectory(timer);}, Systems::Chassis);
+// autonomousTestProgram.AddFunction([](){SmartDashboard::PutBoolean("StageOneComplete", true); return true;}, Systems::Chassis);
+// autonomousTestProgram.Start();
+
 
 //  new FunctionWrapper([](){return Update();}, Systems::Chassis),
 //  new FunctionWrapper([](){return swerveDrive->FollowTrajectory(timer);}, Systems::Chassis),
@@ -206,6 +210,7 @@ autonomousTestProgram.Schedule();
 
 void Robot::AutonomousPeriodic()
 {
+  std::cout << "Testing...";
   /*
   if (m_autoSelected == kAutoNameCustom)
   {
