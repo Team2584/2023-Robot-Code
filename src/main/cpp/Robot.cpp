@@ -170,10 +170,11 @@ void Robot::AutonomousInit()
 
 SmartDashboard::PutBoolean("StageZeroComplete",  false);
 SmartDashboard::PutBoolean("StageOneComplete",   false);
-// SmartDashboard::PutBoolean("StageTwoComplete",   false);
-// SmartDashboard::PutBoolean("StageThreeComplete", false);
-// SmartDashboard::PutBoolean("StageFourComplete",  false);
-// SmartDashboard::PutBoolean("StageFiveComplete",  false);
+
+SmartDashboard::PutBoolean("Initialized",   false);
+SmartDashboard::PutBoolean("Executed",   false);
+SmartDashboard::PutBoolean("Ended",   false);
+SmartDashboard::PutBoolean("Finished",   false);
 
 CommandScheduler::GetInstance().Enable();
 

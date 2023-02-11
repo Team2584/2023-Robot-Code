@@ -7,6 +7,8 @@
 #include <frc2/command/CommandBase.h>
 #include <frc2/command/CommandHelper.h>
 #include "SystemManager.cpp"
+#include <frc/smartdashboard/SmartDashboard.h>
+
 
 class FunctionWrapper : public frc2::CommandHelper<frc2::CommandBase, FunctionWrapper>
 {
@@ -34,21 +36,23 @@ class FunctionWrapper : public frc2::CommandHelper<frc2::CommandBase, FunctionWr
 
     void Initialize() override
     {
-
+      frc::SmartDashboard::PutBoolean("Initialized",   true);
     }
 
     void Execute() override
     {
+      frc::SmartDashboard::PutBoolean("Executed",   true);
       isFinished = function();
     }
 
     void End(bool interrupted) override
     {
-
+      frc::SmartDashboard::PutBoolean("Ended",   true);
     }
 
      bool IsFinished() override
     {
-     return isFinished;
+     frc::SmartDashboard::PutBoolean("Finished",   true);
+     return !isFinished;
     }
 };
