@@ -162,6 +162,12 @@ void Robot::AutonomousInit()
   lastTime = 0;
   timer.Reset();
   timer.Start();
+
+      SmartDashboard::PutBoolean("Spline Done", false);
+      SmartDashboard::PutBoolean("Didn't crash with cone odo", false);
+    SmartDashboard::PutBoolean("in 1.5", false);
+        SmartDashboard::PutBoolean("finished 1.5", false);
+
 }
 
 void Robot::AutonomousPeriodic()
@@ -187,7 +193,7 @@ void Robot::AutonomousPeriodic()
     claw->PIDWrist(0.6, elapsedTime);
     bool elevatorDone = false;
     if (claw->MagEncoderReading() > 0.5)
-      elevatorDone = elevatorLift->SetElevatorHeightPID(78, elapsedTime);
+      elevatorDone = elevatorLift->SetElevatorHeightPID(72, elapsedTime);
     if (elevatorDone)
     {
       elevatorLift->StopElevator();
@@ -217,9 +223,10 @@ void Robot::AutonomousPeriodic()
 
   if (splineSection == 0.9)
   {
-    claw->PIDWrist(1, elapsedTime);
+    claw->PIDWrist(0.5, elapsedTime);
     //claw->OpenClaw(elapsedTime);
-    elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+    if (claw->MagEncoderReading() < 0.75)
+      elevatorLift->SetElevatorHeightPID(0, elapsedTime);
     if (elevatorLift->winchEncoderReading() < 40)
     {
       timer.Reset();
@@ -232,13 +239,15 @@ void Robot::AutonomousPeriodic()
   {
     elevatorLift->SetElevatorHeightPID(0, elapsedTime);
     //claw->OpenClaw(elapsedTime);
-    claw->PIDWrist(2, elapsedTime);
+    claw->PIDWrist(1.9, elapsedTime);
     bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
     if (splineDone)
     {
+      SmartDashboard::PutBoolean("Spline Done", true);
       splineSection = 1.5;
       // swerveDrive->SetNextTrajectory();
       swerveDrive->ResetConeOdometry(Pose2d(0_m, -2.5_m, Rotation2d(0_deg)));
+      SmartDashboard::PutBoolean("Didn't crash with cone odo", true);
       timer.Reset();
       lastTime = 0;
     }
@@ -246,7 +255,8 @@ void Robot::AutonomousPeriodic()
 
   if (splineSection == 1.5)
   {
-    for (auto array : coneEntry.ReadQueue())
+    SmartDashboard::PutBoolean("in 1.5", true);
+    /*for (auto array : coneEntry.ReadQueue())
     {
       double angle = -swerveDrive->GetPose().Rotation().Radians().value();
       if ((array.value[0] != 0 || array.value[1] != 0) && array.value[1] > 1)
@@ -262,15 +272,16 @@ void Robot::AutonomousPeriodic()
         frc::SmartDashboard::PutNumber("Cone Y Vision", transEst.Y().value());
         swerveDrive->ResetConeOdometry(Pose2d(transEst, swerveDrive->GetPose().Rotation()));
       }
-    }
+    }*/
 
     //  claw->OpenClaw(elapsedTime);
     claw->PIDWrist(2, elapsedTime);
     bool atCone = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.47_m, Rotation2d(0_deg)), elapsedTime);
-    if (atCone)
+    /*if (atCone)
     {
       splineSection = 1.9;
-    }
+    }*/
+    SmartDashboard::PutBoolean("finished 1.5", true);
   }
 
   if (splineSection == 1.9)
@@ -610,7 +621,7 @@ void Robot::TeleopInit()
   // Prepare swerve drive odometry
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
-  swerveDrive->ResetOdometry(Pose2d(0_m, 1_m, Rotation2d(0_rad)));
+  swerveDrive->ResetOdometry(Pose2d(0_m, 1_m, Rotation2d(180_deg)));
   elevatorLift->ResetElevatorEncoder();
   claw->ResetClawEncoder();
 
@@ -788,41 +799,30 @@ void Robot::TeleopPeriodic()
   else
     elevatorLift->MoveElevatorPercent(lastElevatorSpeed);
 
-/*
+
   if (xbox_Drive->GetRightBumper())
-    claw->MoveClawPercent(-0.2);
+    claw->OpenClaw(elapsedTime);
   else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
-    claw->MoveClawPercent(0.6);
+    claw->CloseClaw(elapsedTime);
   else
     claw->MoveClawPercent(0);
-    */
+    
 
   if (xbox_Drive->GetLeftBumper())
     claw->MoveWristPercent(0.6);
   else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
     claw->MoveWristPercent(-0.6);
-  else if (xbox_Drive->GetBackButton())
-    claw->PIDWrist(M_PI / 2 + 0.5, elapsedTime);
   else
     claw->MoveWristPercent(0);
 
-  if (xbox_Drive->GetRightTriggerAxis() > 0.5)
+  if (xbox_Drive->GetStartButton())
   {
-    bool lifted = elevatorLift->SetElevatorHeightPID(40, elapsedTime);
+    bool lifted = elevatorLift->SetElevatorHeightPID(50, elapsedTime);
     bool centered = false;
-    if (elevatorLift->winchEncoderReading() > 30)
+    if (elevatorLift->winchEncoderReading() > 40)
     {
       double offset = limelight->getTargetX();
       centered = swerveDrive->StrafeToPole(offset, elapsedTime);
-    }
-
-    if (centered && lifted)
-    {
-      claw->PIDWrist(M_PI / 2 - 0.5, elapsedTime);
-    }
-    else
-    {
-      claw->PIDWrist(M_PI / 2 - 1, elapsedTime);
     }
   }
 
@@ -834,11 +834,14 @@ void Robot::TeleopPeriodic()
 
   if (xbox_Drive->GetBackButtonPressed())
     swerveDrive->BeginPIDLoop();
-  */ if (xbox_Drive->GetBackButton())
+  */ 
+  if (xbox_Drive->GetBackButton())
   {
-    // double offset = coneXEntry.Get(); for cones
-    double offset = limelight->getTargetX();
-    swerveDrive->StrafeToPole(offset, elapsedTime);
+    bool wristDone = claw->PIDWrist(M_PI / 2 - 0.5, elapsedTime);
+    if (wristDone)
+    {
+      claw->OpenClaw(elapsedTime);
+    }
   }
 
   /*
