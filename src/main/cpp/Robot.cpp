@@ -230,9 +230,9 @@ void Robot::AutonomousPeriodic()
 
   if (splineSection == 1)
   {
-    //elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+    elevatorLift->SetElevatorHeightPID(0, elapsedTime);
     //claw->OpenClaw(elapsedTime);
-    //claw->PIDWrist(2, elapsedTime);
+    claw->PIDWrist(2, elapsedTime);
     bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
     if (splineDone)
     {
@@ -264,9 +264,8 @@ void Robot::AutonomousPeriodic()
       }
     }
 
-    //claw->OpenClaw(elapsedTime);
-    //claw->PIDWrist(2, elapsedTime);
-    //elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+    //  claw->OpenClaw(elapsedTime);
+    claw->PIDWrist(2, elapsedTime);
     bool atCone = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.47_m, Rotation2d(0_deg)), elapsedTime);
     if (atCone)
     {
@@ -276,9 +275,7 @@ void Robot::AutonomousPeriodic()
 
   if (splineSection == 1.9)
   {
-    //claw->PIDWrist(2, elapsedTime);
-
-    // elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+    claw->PIDWrist(2, elapsedTime);
     bool clawDone = true; //claw->CloseClaw(elapsedTime);
     swerveDrive->DriveSwervePercent(0, 0, 0);
 
@@ -292,7 +289,7 @@ void Robot::AutonomousPeriodic()
 
   if (splineSection == 2)
   {
-    claw->CloseClaw(elapsedTime);
+    //claw->CloseClaw(elapsedTime);
     claw->PIDWrist(0.6, elapsedTime);
     bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
     if (splineDone)
@@ -792,19 +789,22 @@ void Robot::TeleopPeriodic()
     elevatorLift->MoveElevatorPercent(lastElevatorSpeed);
 
   if (xbox_Drive->GetRightBumper())
-    claw->MoveClawPercent(-0.8);
+    claw->MoveClawPercent(-0.2);
   else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
-    claw->MoveClawPercent(0.8);
+    claw->MoveClawPercent(0.6);
   else
     claw->MoveClawPercent(0);
 
   if (xbox_Drive->GetLeftBumper())
-    claw->MoveWristPercent(0.8);
+    claw->MoveWristPercent(0.6);
   else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
     claw->MoveWristPercent(-0.6);
+  else if (xbox_Drive->GetBackButton())
+    claw->PIDWrist(M_PI / 2 + 0.5, elapsedTime);
   else
     claw->MoveWristPercent(0);
 
+/*
   if (xbox_Drive->GetStartButtonPressed())
     swerveDrive->BeginPIDLoop();
   if (xbox_Drive->GetStartButton())
@@ -818,7 +818,7 @@ void Robot::TeleopPeriodic()
     double offset = limelight->getTargetX();
     swerveDrive->StrafeToPole(offset, elapsedTime);
   }
-
+*/
   /*
   // Reset Pigion Heading
   if (CONTROLLER_TYPE == 0 && cont_Driver->GetCircleButtonPressed())
