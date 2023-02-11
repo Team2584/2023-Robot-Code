@@ -162,6 +162,7 @@ void Robot::AutonomousInit()
   lastTime = 0;
   timer.Reset();
   timer.Start();
+    SmartDashboard::PutBoolean("in splinen 1", false);
 
       SmartDashboard::PutBoolean("Spline Done", false);
       SmartDashboard::PutBoolean("Didn't crash with cone odo", false);
@@ -172,9 +173,15 @@ void Robot::AutonomousInit()
 
 void Robot::AutonomousPeriodic()
 {
-  Timer loopTime = Timer();
-  loopTime.Start();
+    SmartDashboard::PutBoolean("finished loop", false);
   SmartDashboard::PutNumber("Spline Section", splineSection);
+  SmartDashboard::PutBoolean("hit follow trajectory", false);
+    SmartDashboard::PutBoolean("in splinen 1", false);
+
+      SmartDashboard::PutBoolean("Spline Done", false);
+      SmartDashboard::PutBoolean("Didn't crash with cone odo", false);
+    SmartDashboard::PutBoolean("in 1.5", false);
+        SmartDashboard::PutBoolean("finished 1.5", false);
 
   double elapsedTime = timer.Get().value() - lastTime;
   swerveDrive->UpdateOdometry(timer.Get());
@@ -192,8 +199,8 @@ void Robot::AutonomousPeriodic()
   {
     claw->PIDWrist(0.6, elapsedTime);
     bool elevatorDone = false;
-    if (claw->MagEncoderReading() > 0.5)
-      elevatorDone = elevatorLift->SetElevatorHeightPID(72, elapsedTime);
+    if (claw->MagEncoderReading() > 0.3)
+      elevatorDone = elevatorLift->SetElevatorHeightPID(50, elapsedTime);
     if (elevatorDone)
     {
       elevatorLift->StopElevator();
@@ -240,12 +247,14 @@ void Robot::AutonomousPeriodic()
     elevatorLift->SetElevatorHeightPID(0, elapsedTime);
     //claw->OpenClaw(elapsedTime);
     claw->PIDWrist(1.9, elapsedTime);
+    SmartDashboard::PutBoolean("in splinen 1", true);
     bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
+    SmartDashboard::PutBoolean("hit follow trajectory", true);
     if (splineDone)
     {
       SmartDashboard::PutBoolean("Spline Done", true);
       splineSection = 1.5;
-      // swerveDrive->SetNextTrajectory();
+      swerveDrive->SetNextTrajectory();
       swerveDrive->ResetConeOdometry(Pose2d(0_m, -2.5_m, Rotation2d(0_deg)));
       SmartDashboard::PutBoolean("Didn't crash with cone odo", true);
       timer.Reset();
@@ -612,8 +621,7 @@ void Robot::AutonomousPeriodic()
   }*/
 
   lastTime = timer.Get().value();
-
-  SmartDashboard::PutNumber("loop time", loopTime.Get().value());
+  SmartDashboard::PutBoolean("finished loop", true);
 }
 
 void Robot::TeleopInit()
@@ -645,6 +653,7 @@ void Robot::TeleopInit()
 
 void Robot::TeleopPeriodic()
 {
+  cout << "Test" << endl;
   // Take values from Smartdashboard
   MAX_DRIVE_SPEED = frc::SmartDashboard::GetNumber("MAX DRIVE SPEED", 0.4);
   ELEVATOR_SPEED = frc::SmartDashboard::GetNumber("ELEVATOR_SPEED", 0.1);
