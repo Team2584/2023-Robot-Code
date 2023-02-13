@@ -1,8 +1,8 @@
-#define CLAWKP 0.15
-#define CLAWKI 0
-#define CLAWKIMAX 0.1
+#define CLAWKP 0.1
+#define CLAWKI 0.1
+#define CLAWKIMAX 0.5
 #define ALLOWABLE_ERROR_CLAW 1
-#define CLAWMAX_SPEED 0.7
+#define CLAWMAX_SPEED 0.8
 #define CLAWMAX_ACCELERATION 5
 
 #define WRISTKP 1.3

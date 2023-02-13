@@ -255,7 +255,7 @@ private:
   Translation2d m_backRight;
   SwerveDriveKinematics<4> kinematics;
   SwerveDriveOdometry<4> *coneOdometry;
-  SwerveDrivePoseEstimator<4> *odometry;
+  SwerveDriveOdometry<4> *odometry;
   std::queue<pathplanner::PathPlannerTrajectory> trajectoryList;
   pathplanner::PathPlannerTrajectory trajectory;
 
@@ -310,7 +310,7 @@ public:
                                                      BRModule->GetSwerveModulePosition()};
 
     // Instantiates WPI's swerve odometry class so they can do math for me
-    odometry = new SwerveDrivePoseEstimator<4>(kinematics,
+    odometry = new SwerveDriveOdometry<4>(kinematics,
                                                Rotation2d(units::radian_t{GetIMURadians()}),
                                                positions,
                                                frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
@@ -319,8 +319,8 @@ public:
                                               positions,
                                               frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
 
-    wpi::array<double, 3> stdDevs = {10.0, 10.0, 25.0};
-    odometry->SetVisionMeasurementStdDevs(stdDevs);
+    // wpi::array<double, 3> stdDevs = {10.0, 10.0, 25.0};
+    // odometry->SetVisionMeasurementStdDevs(stdDevs);
   }
 
   /**
@@ -456,7 +456,8 @@ public:
                                                      FRModule->GetSwerveModulePosition(),
                                                      BLModule->GetSwerveModulePosition(),
                                                      BRModule->GetSwerveModulePosition()};
-    odometry->UpdateWithTime(currentTime, units::radian_t{GetIMURadians()}, positions);
+    //odometry->UpdateWithTime(currentTime, units::radian_t{GetIMURadians()}, positions);
+    odometry->Update(units::radian_t{GetIMURadians()}, positions);
   }
 
   void UpdateConeOdometry()
@@ -465,7 +466,7 @@ public:
                                                      FRModule->GetSwerveModulePosition(),
                                                      BLModule->GetSwerveModulePosition(),
                                                      BRModule->GetSwerveModulePosition()};
-    coneOdometry->Update(units::radian_t{GetIMURadians()}, positions);
+    coneOdometry->Update(units::radian_t{0_rad}, positions);
   }
 
   /**
@@ -476,10 +477,10 @@ public:
    */
   void AddPositionEstimate(Translation2d poseEstimate, units::second_t timeOfEstimate)
   {
-    wpi::array<double, 3> stdDevs = {5.0, 5.0, 1000000000.0};
-    odometry->SetVisionMeasurementStdDevs(stdDevs);
-    SmartDashboard::PutNumber("Time of Estimate in Swerve Fuction", timeOfEstimate.value());
-    odometry->AddVisionMeasurement(Pose2d(poseEstimate.Y(), poseEstimate.X(), GetPose().Rotation()), timeOfEstimate);
+    // wpi::array<double, 3> stdDevs = {5.0, 5.0, 1000000000.0};
+    // odometry->SetVisionMeasurementStdDevs(stdDevs);
+    // SmartDashboard::PutNumber("Time of Estimate in Swerve Fuction", timeOfEstimate.value());
+    // odometry->AddVisionMeasurement(Pose2d(poseEstimate.Y(), poseEstimate.X(), GetPose().Rotation()), timeOfEstimate);
   }
 
   /**
@@ -490,9 +491,9 @@ public:
    */
   void AddPositionEstimate(Pose2d poseEstimate, units::second_t timeOfEstimate)
   {
-    wpi::array<double, 3> stdDevs = {10.0, 10.0, 25.0};
-    odometry->SetVisionMeasurementStdDevs(stdDevs);
-    odometry->AddVisionMeasurement(Pose2d(poseEstimate.Y(), poseEstimate.X(), poseEstimate.Rotation()), timeOfEstimate);
+    // wpi::array<double, 3> stdDevs = {10.0, 10.0, 25.0};
+    // odometry->SetVisionMeasurementStdDevs(stdDevs);
+    // odometry->AddVisionMeasurement(Pose2d(poseEstimate.Y(), poseEstimate.X(), poseEstimate.Rotation()), timeOfEstimate);
   }
 
   /**
@@ -501,7 +502,8 @@ public:
    */
   Pose2d GetPose()
   {
-    Pose2d pose = odometry->GetEstimatedPosition();
+    // Pose2d pose = odometry->GetEstimatedPosition();
+    Pose2d pose = odometry->GetPose();
     return Pose2d(pose.Y(), pose.X(), pose.Rotation());
   }
 
@@ -522,20 +524,8 @@ public:
     BLModule->DriveSwerveModuleMeters(states[3].speed.value(), states[3].angle.Degrees().value());
   }
 
-  /**
-   * Drives the swerve drive, field oriented (in relation to the driver's pov) with an x y and spin.
-   *
-   * @param STRAFE_Drive_Speed The speed the robot should move left and right, positive being right, in percentage (0 - 1.0)
-   * @param FWD_Drive_Speed The speed the robot should move forward and back, positive being forward, in percentage (0 - 1.0)
-   * @param Turn_Speed The speed the robot should turn left and right, positive being clockwise, in percentage (0 - 1.0)
-   */
-  void DriveSwervePercent(double STRAFE_Drive_Speed, double FWD_Drive_Speed, double Turn_Speed)
+  void DriveSwervePercentNonFieldOriented(double STRAFE_Drive_Speed, double FWD_Drive_Speed, double Turn_Speed)
   {
-    // Converts our field oriented speeds to robot oriented, by using trig with the current robot angle.
-    double angle = GetPose().Rotation().Radians().value();
-    double oldFwd = FWD_Drive_Speed;
-    FWD_Drive_Speed = FWD_Drive_Speed * cos(angle) + STRAFE_Drive_Speed * sin(angle);
-    STRAFE_Drive_Speed = -1 * oldFwd * sin(angle) + STRAFE_Drive_Speed * cos(angle);
 
     // If there is no drive input, don't drive the robot and just end the function
     if (FWD_Drive_Speed == 0 && STRAFE_Drive_Speed == 0 && Turn_Speed == 0)
@@ -599,6 +589,24 @@ public:
   /**
    * Drives the swerve drive, field oriented (in relation to the driver's pov) with an x y and spin.
    *
+   * @param STRAFE_Drive_Speed The speed the robot should move left and right, positive being right, in percentage (0 - 1.0)
+   * @param FWD_Drive_Speed The speed the robot should move forward and back, positive being forward, in percentage (0 - 1.0)
+   * @param Turn_Speed The speed the robot should turn left and right, positive being clockwise, in percentage (0 - 1.0)
+   */
+  void DriveSwervePercent(double STRAFE_Drive_Speed, double FWD_Drive_Speed, double Turn_Speed)
+  {
+    // Converts our field oriented speeds to robot oriented, by using trig with the current robot angle.
+    double angle = GetPose().Rotation().Radians().value();
+    double oldFwd = FWD_Drive_Speed;
+    FWD_Drive_Speed = FWD_Drive_Speed * cos(angle) + STRAFE_Drive_Speed * sin(angle);
+    STRAFE_Drive_Speed = -1 * oldFwd * sin(angle) + STRAFE_Drive_Speed * cos(angle);
+
+    DriveSwervePercentNonFieldOriented(STRAFE_Drive_Speed, FWD_Drive_Speed, Turn_Speed);
+  }
+
+  /**
+   * Drives the swerve drive, field oriented (in relation to the driver's pov) with an x y and spin.
+   *
    * @param STRAFE_Drive_Speed The speed the robot should move left and right, positive being right, in meters per second
    * @param FWD_Drive_Speed The speed the robot should move forward and back, positive being forward, in meters per second
    * @param Turn_Speed The speed the robot should turn left and right, positive being clockwise, in radians per second
@@ -633,9 +641,84 @@ public:
 
   bool DriveToPoseConeOdometry(Pose2d target, double elapsedTime)
   {
-    return DriveToPose(GetConeOdometryPose(), target, elapsedTime, O_TRANSLATION_MAX_SPEED, O_TRANSLATION_MAX_ACCEL, O_ALLOWABLE_ERROR_TRANSLATION,
-                       O_TRANSLATION_KP, O_TRANSLATION_KI, O_TRANSLATION_KI_MAX, O_SPIN_MAX_SPEED, O_SPIN_MAX_ACCEL, O_ALLOWABLE_ERROR_ROTATION,
-                       O_SPIN_KP, O_SPIN_KI, O_SPIN_KI_MAX, false);
+    Pose2d current = GetConeOdometryPose();
+    double intendedVelocity;
+    double intendedI;
+
+    double xSpeed;
+    // Our current error in the x direction
+    double xDistance = target.X().value() - current.X().value();
+
+    // If we are within our allowable error, stop moving in the x direction
+    if (fabs(xDistance) < O_ALLOWABLE_ERROR_TRANSLATION)
+    {
+      xDistance = 0;
+      runningIntegralX = 0;
+    }
+
+    // calculate our I in PID and clamp it between our maximum I effects
+    intendedI = std::clamp(O_TRANSLATION_KI * runningIntegralX, -1 * O_TRANSLATION_KI_MAX, O_TRANSLATION_KI_MAX);
+
+    // Clamp our intended velocity to our maximum and minimum velocity to prevent the robot from going too fast
+    intendedVelocity = std::clamp(O_TRANSLATION_KP * xDistance + intendedI, -1 * O_TRANSLATION_MAX_SPEED, O_TRANSLATION_MAX_SPEED);
+
+    // Make sure our change in velocity from the last loop is not going above our maximum acceleration
+    lastX += std::clamp(intendedVelocity - lastX, -1 * O_TRANSLATION_MAX_ACCEL * elapsedTime,
+                        O_TRANSLATION_MAX_ACCEL * elapsedTime);
+    xSpeed = lastX;
+
+    // Repeat with the Y direction
+    double ySpeed;
+    double yDistance = target.Y().value() - current.Y().value();
+    if (fabs(yDistance) < O_ALLOWABLE_ERROR_TRANSLATION)
+    {
+      yDistance = 0;
+      runningIntegralY = 0;
+    }
+    intendedI = std::clamp(O_TRANSLATION_KI * runningIntegralY, -1 * O_TRANSLATION_KI_MAX, O_TRANSLATION_KI_MAX);
+    intendedVelocity = std::clamp(O_TRANSLATION_KP * yDistance + intendedI, -1 * O_TRANSLATION_MAX_SPEED, O_TRANSLATION_MAX_SPEED);
+    lastY += std::clamp(intendedVelocity - lastY, -1 * O_TRANSLATION_MAX_ACCEL * elapsedTime,
+                        O_TRANSLATION_MAX_ACCEL * elapsedTime);
+    ySpeed = lastY;
+
+
+    // Repeat for spinning
+    double spinSpeed;
+    double thetaDistance = target.RelativeTo(GetPose()).Rotation().Radians().value();
+    if (thetaDistance > 180)
+      thetaDistance = thetaDistance - 360;
+    if (fabs(thetaDistance) < O_ALLOWABLE_ERROR_ROTATION)
+    {
+      thetaDistance = 0;
+      runningIntegralSpin = 0;
+    }
+    intendedI = std::clamp(O_SPIN_KI * runningIntegralSpin, -1 * O_SPIN_KI_MAX, O_SPIN_KI_MAX);
+    intendedVelocity = std::clamp(O_SPIN_KP * thetaDistance + intendedI, -1 * O_SPIN_MAX_SPEED, O_SPIN_MAX_SPEED);
+    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * O_SPIN_MAX_ACCEL * elapsedTime,
+                           O_SPIN_MAX_ACCEL * elapsedTime);
+    spinSpeed = lastSpin;
+
+
+    // Add to our running integral error count
+    runningIntegralX += xDistance;
+    runningIntegralY += yDistance;
+    runningIntegralSpin += thetaDistance;
+
+    // Debugging info
+    // SmartDashboard::PutNumber("XDistance", xDistance);
+    // SmartDashboard::PutNumber("YDistance", yDistance);
+    // SmartDashboard::PutNumber("ThetaDistance", thetaDistance);
+
+    // SmartDashboard::PutNumber("Drive X", lastX);
+    // SmartDashboard::PutNumber("Drive Y", lastY);
+    // SmartDashboard::PutNumber("Drive Spin", lastSpin);
+
+    if (xSpeed == 0 && ySpeed == 0 && spinSpeed == 0)
+      return true;
+
+    // Drive swerve at desired speeds
+    DriveSwervePercentNonFieldOriented(xSpeed, ySpeed, spinSpeed);
+    return false;
   }
 
   /**
@@ -933,7 +1016,7 @@ public:
    * @param offset The position of the limelight, from -1 to 1 with -1 meaning turn counterclockwise
    * @param elapsedTime time since function last called
    */
-  bool StrafeToPole(double offset, double elapsedTime)
+  bool StrafeToPole(double offsetX, double offsetY, double xGoal, double yGoal, double elapsedTime)
   {
     // TODO fix this because it sucks
     Pose2d thetaGoal = Pose2d(0_m, 0_m, Rotation2d(180_deg));
@@ -949,18 +1032,33 @@ public:
                            O_SPIN_MAX_ACCEL * elapsedTime);
 
     // Use PID  to determine our desired spin speed
-    if (fabs(offset) < P_ALLOWABLE_ERROR_STRAFE)
+    offsetX -= xGoal;
+    if (fabs(offsetX) < P_ALLOWABLE_ERROR_STRAFE)
     {
       lastX = 0;
       runningIntegralX = 0;
       return true;
     }
-    runningIntegralX += offset;
+    runningIntegralX += offsetX;
     intendedI = std::clamp(P_STRAFE_KI * runningIntegralX, -1 * P_STRAFE_KI_MAX, P_STRAFE_KI_MAX);
-    intendedVelocity = std::clamp(P_STRAFE_KP * offset + intendedI, -1 * P_STRAFE_MAX_SPEED, P_STRAFE_MAX_SPEED);
+    intendedVelocity = std::clamp(P_STRAFE_KP * offsetX + intendedI, -1 * P_STRAFE_MAX_SPEED, P_STRAFE_MAX_SPEED);
     lastX += std::clamp(intendedVelocity - lastX, -1 * P_STRAFE_MAX_ACCEL * elapsedTime,
                         P_STRAFE_MAX_ACCEL * elapsedTime);
-    DriveSwervePercent(-lastX, 0, lastSpin);
+
+    offsetY -= yGoal;
+    if (fabs(offsetY) < P_ALLOWABLE_ERROR_TRANS)
+    {
+      lastY = 0;
+      runningIntegralY = 0;
+      return true;
+    }
+    runningIntegralY += offsetY;
+    intendedI = std::clamp(P_TRANS_KI * runningIntegralY, -1 * P_TRANS_KI_MAX, P_TRANS_KI_MAX);
+    intendedVelocity = std::clamp(P_TRANS_KP * offsetY + intendedI, -1 * P_TRANS_MAX_SPEED, P_TRANS_MAX_SPEED);
+    lastY += std::clamp(intendedVelocity - lastY, -1 * P_TRANS_MAX_ACCEL * elapsedTime,
+                        P_TRANS_MAX_ACCEL * elapsedTime);
+
+    DriveSwervePercent(-lastX, lastY, lastSpin);
 
     SmartDashboard::PutNumber("Strafe X", lastX);
     return false;

@@ -55,11 +55,17 @@
 
 //PID VALUES FOR TURN TO PIXEL WITH LIMELIGHT
 #define P_STRAFE_KP 0.75
-#define P_STRAFE_KI 0.02
+#define P_STRAFE_KI 0.05
 #define P_STRAFE_KI_MAX 0.05
 #define P_STRAFE_MAX_SPEED 0.4
-#define P_STRAFE_MAX_ACCEL 0.8
+#define P_STRAFE_MAX_ACCEL 3
 #define P_ALLOWABLE_ERROR_STRAFE 0.01 // in pixel values from -1 to 1
+#define P_TRANS_KP 0.75
+#define P_TRANS_KI 0.05
+#define P_TRANS_KI_MAX 0.05
+#define P_TRANS_MAX_SPEED 0.2
+#define P_TRANS_MAX_ACCEL 3
+#define P_ALLOWABLE_ERROR_TRANS 0.01 
 #define P_SPIN_KP 2.7
 #define P_SPIN_KI 0
 #define P_SPIN_KI_MAX 0.1

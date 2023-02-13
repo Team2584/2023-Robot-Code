@@ -99,12 +99,14 @@ public:
      if (fabs(error) < ALLOWABLE_ERROR_CLAW)
     {
       MoveClawPercent(0);
+      runningClawIntegral = 0;
       return true;
     }
 
     // calculate our I in PID and clamp it between our maximum I effects
     double intendedI = std::clamp(CLAWKI * runningClawIntegral, -1 * CLAWKIMAX, CLAWKIMAX);
-
+    runningClawIntegral += error;
+    
     // Clamp our intended velocity to our maximum and minimum velocity to prevent the robot from going too fast
     double intendedVelocity = std::clamp(CLAWKP * error + intendedI, -1 * CLAWMAX_SPEED, CLAWMAX_SPEED);
 
@@ -124,14 +126,12 @@ public:
 
   bool OpenClaw(double elapsedTime)
   {
-    MoveClawPercent(0.35);
-    return ClawEncoderReading() > 2;
+    return PIDClaw(10, elapsedTime);
   }
 
   bool CloseClaw(double elapsedTime)
   {
-    MoveClawPercent(0);
-    return ClawEncoderReading() < 0.2;
+    return PIDClaw(0.3, elapsedTime);
   }
 
 };
