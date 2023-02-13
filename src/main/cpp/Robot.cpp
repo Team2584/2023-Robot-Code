@@ -55,6 +55,7 @@ double ELEVATOR_SPEED = 0.1;
 double splineSection = 0;
 Rotation2d goalConeGrabAngle;
 bool turnt;
+bool doneWithPoleAlignment;
 
 double lastSanity = 0;
 
@@ -637,7 +638,7 @@ void Robot::TeleopInit()
   // Prepare swerve drive odometry
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
-  swerveDrive->ResetOdometry(Pose2d(0_m, 1_m, Rotation2d(0_deg)));
+  swerveDrive->ResetOdometry(Pose2d(0_m, 1_m, Rotation2d(180_deg)));
   elevatorLift->ResetElevatorEncoder();
   claw->ResetClawEncoder();
 
@@ -807,9 +808,9 @@ void Robot::TeleopPeriodic()
 
 
   if (xbox_Drive->GetRightBumper())
-    claw->MoveClawPercent(0.5);
+    claw->MoveClawPercent(0.7);
   else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
-    claw->MoveClawPercent(-0.5);
+    claw->MoveClawPercent(-0.7);
   else
     claw->MoveClawPercent(0);
     
@@ -848,16 +849,31 @@ void Robot::TeleopPeriodic()
     
   }
 
+  limelight->getTargetX();
+  limelight->getTargetY();
 
+  if (xbox_Drive->GetBackButtonPressed())
+    doneWithPoleAlignment = false;
   if (xbox_Drive->GetBackButton())
   {
-    bool lifted = elevatorLift->SetElevatorHeightPID(50, elapsedTime);
-    bool centered = false;
-    if (elevatorLift->winchEncoderReading() > 40)
+    SmartDashboard::PutBoolean("done with pole Alignee", doneWithPoleAlignment);
+    if (!doneWithPoleAlignment)
     {
-      double offsetX = limelight->getTargetX();
-      double offsetY = limelight->getTargetY();
-      centered = swerveDrive->StrafeToPole(offsetX, offsetY, 0.0, 0.0, elapsedTime);
+      bool lifted = elevatorLift->SetElevatorHeightPID(38, elapsedTime);
+      claw->PIDWrist(0.9, elapsedTime);
+      bool centered = false;
+      if (elevatorLift->winchEncoderReading() > 35)
+      {
+        double offsetX = limelight->getTargetX();
+        double offsetY = limelight->getTargetY();
+        centered = swerveDrive->StrafeToPole(offsetX, offsetY, 0.27, 0.149, elapsedTime);
+      }
+      if (centered && lifted)
+        doneWithPoleAlignment = true;
+    }
+    else
+    {
+      claw->OpenClaw(elapsedTime);
     }
   }
 

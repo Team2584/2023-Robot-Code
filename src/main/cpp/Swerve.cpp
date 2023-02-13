@@ -1053,7 +1053,6 @@ public:
     {
       lastX = 0;
       runningIntegralX = 0;
-      return true;
     }
     runningIntegralX += offsetX;
     intendedI = std::clamp(P_STRAFE_KI * runningIntegralX, -1 * P_STRAFE_KI_MAX, P_STRAFE_KI_MAX);
@@ -1066,7 +1065,6 @@ public:
     {
       lastY = 0;
       runningIntegralY = 0;
-      return true;
     }
     runningIntegralY += offsetY;
     intendedI = std::clamp(P_TRANS_KI * runningIntegralY, -1 * P_TRANS_KI_MAX, P_TRANS_KI_MAX);
@@ -1076,7 +1074,10 @@ public:
 
     DriveSwervePercent(-lastX, lastY, lastSpin);
 
-    SmartDashboard::PutNumber("Strafe X", lastX);
-    return false;
+    SmartDashboard::PutNumber("Strafe X", -lastX);
+    SmartDashboard::PutNumber("Strafe Y", lastY);
+        SmartDashboard::PutNumber("Intented I", intendedI);
+    SmartDashboard::PutNumber("Intented Y", intendedVelocity);
+    return (lastX == 0 && lastY == 0 && lastSpin == 0);
   }
 };
