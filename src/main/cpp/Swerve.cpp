@@ -650,35 +650,35 @@ public:
     double xDistance = target.X().value() - current.X().value();
 
     // If we are within our allowable error, stop moving in the x direction
-    if (fabs(xDistance) < O_ALLOWABLE_ERROR_TRANSLATION)
+    if (fabs(xDistance) < C_ALLOWABLE_ERROR_TRANSLATION)
     {
       xDistance = 0;
       runningIntegralX = 0;
     }
 
     // calculate our I in PID and clamp it between our maximum I effects
-    intendedI = std::clamp(O_TRANSLATION_KI * runningIntegralX, -1 * O_TRANSLATION_KI_MAX, O_TRANSLATION_KI_MAX);
+    intendedI = std::clamp(C_TRANSLATION_KI * runningIntegralX, -1 * C_TRANSLATION_KI_MAX, C_TRANSLATION_KI_MAX);
 
     // Clamp our intended velocity to our maximum and minimum velocity to prevent the robot from going too fast
-    intendedVelocity = std::clamp(O_TRANSLATION_KP * xDistance + intendedI, -1 * O_TRANSLATION_MAX_SPEED, O_TRANSLATION_MAX_SPEED);
+    intendedVelocity = std::clamp(C_TRANSLATION_KP * xDistance + intendedI, -1 * C_TRANSLATION_MAX_SPEED, C_TRANSLATION_MAX_SPEED);
 
     // Make sure our change in velocity from the last loop is not going above our maximum acceleration
-    lastX += std::clamp(intendedVelocity - lastX, -1 * O_TRANSLATION_MAX_ACCEL * elapsedTime,
-                        O_TRANSLATION_MAX_ACCEL * elapsedTime);
+    lastX += std::clamp(intendedVelocity - lastX, -1 * C_TRANSLATION_MAX_ACCEL * elapsedTime,
+                        C_TRANSLATION_MAX_ACCEL * elapsedTime);
     xSpeed = lastX;
 
     // Repeat with the Y direction
     double ySpeed;
     double yDistance = target.Y().value() - current.Y().value();
-    if (fabs(yDistance) < O_ALLOWABLE_ERROR_TRANSLATION)
+    if (fabs(yDistance) < C_ALLOWABLE_ERROR_TRANSLATION)
     {
       yDistance = 0;
       runningIntegralY = 0;
     }
-    intendedI = std::clamp(O_TRANSLATION_KI * runningIntegralY, -1 * O_TRANSLATION_KI_MAX, O_TRANSLATION_KI_MAX);
-    intendedVelocity = std::clamp(O_TRANSLATION_KP * yDistance + intendedI, -1 * O_TRANSLATION_MAX_SPEED, O_TRANSLATION_MAX_SPEED);
-    lastY += std::clamp(intendedVelocity - lastY, -1 * O_TRANSLATION_MAX_ACCEL * elapsedTime,
-                        O_TRANSLATION_MAX_ACCEL * elapsedTime);
+    intendedI = std::clamp(C_TRANSLATION_KI * runningIntegralY, -1 * C_TRANSLATION_KI_MAX, C_TRANSLATION_KI_MAX);
+    intendedVelocity = std::clamp(C_TRANSLATION_KP * yDistance + intendedI, -1 * C_TRANSLATION_MAX_SPEED, C_TRANSLATION_MAX_SPEED);
+    lastY += std::clamp(intendedVelocity - lastY, -1 * C_TRANSLATION_MAX_ACCEL * elapsedTime,
+                        C_TRANSLATION_MAX_ACCEL * elapsedTime);
     ySpeed = lastY;
 
 
@@ -1007,6 +1007,22 @@ public:
     double intendedVelocity = std::clamp(P_SPIN_KP * offset, -1 * P_SPIN_MAX_SPEED, P_SPIN_MAX_SPEED);
     lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * P_SPIN_MAX_ACCEL * elapsedTime,
                            P_SPIN_MAX_ACCEL * elapsedTime);
+    DriveSwervePercent(0, 0, lastSpin);
+    return false;
+  }
+
+  bool TurnToPixelCone(double offset, double elapsedTime)
+  {
+    // Use PID  to determine our desired spin speed
+    if (fabs(offset) < C_ALLOWABLE_ERROR_ROTATION)
+    {
+      lastSpin = 0;
+      DriveSwervePercent(0, 0, lastSpin);
+      return true;
+    }
+    double intendedVelocity = std::clamp(C_SPIN_KP * offset, -1 * C_SPIN_MAX_SPEED, C_SPIN_MAX_SPEED);
+    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * C_SPIN_MAX_ACCEL * elapsedTime,
+                           C_SPIN_MAX_ACCEL * elapsedTime);
     DriveSwervePercent(0, 0, lastSpin);
     return false;
   }

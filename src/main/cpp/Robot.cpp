@@ -27,12 +27,14 @@ shared_ptr<nt::NetworkTable> visionTable;
 shared_ptr<nt::NetworkTable> limelightTable;
 nt::DoubleArrayTopic poseTopic;
 nt::DoubleTopic sanityTopic;
+nt::IntegerTopic connectedTopic;
 nt::DoubleArrayTopic curPoseTopic;
 nt::DoubleArraySubscriber poseSub;
 nt::DoubleEntry sanityEntry;
 nt::DoubleArrayEntry curPoseEntry;
 nt::DoubleTopic polePixelTopic;
 nt::DoubleEntry polePixelEntry;
+nt::IntegerEntry connectedEntry;
 nt::DoubleArrayTopic coneTopic;
 nt::DoubleArraySubscriber coneEntry;
 
@@ -52,6 +54,7 @@ double ELEVATOR_SPEED = 0.1;
 // Cringe Auto Values S**FF
 double splineSection = 0;
 Rotation2d goalConeGrabAngle;
+bool turnt;
 
 double lastSanity = 0;
 
@@ -81,14 +84,18 @@ void Robot::RobotInit()
   limelightTable = inst.GetTable("limelight");
   poseTopic = visionTable->GetDoubleArrayTopic("poseArray");
   sanityTopic = visionTable->GetDoubleTopic("sanitycheck");
+  connectedTopic = visionTable->GetIntegerTopic("connected");
   curPoseTopic = visionTable->GetDoubleArrayTopic("curPose");
   polePixelTopic = limelightTable->GetDoubleTopic("polePixel");
   coneTopic = visionTable->GetDoubleArrayTopic("conePos");
   poseSub = poseTopic.Subscribe({});
   sanityEntry = sanityTopic.GetEntry(10000);
+  connectedEntry = connectedTopic.GetEntry(0);
   curPoseEntry = curPoseTopic.GetEntry({});
   polePixelEntry = polePixelTopic.GetEntry(1000);
   coneEntry = coneTopic.Subscribe({});
+
+  connectedEntry.Set(connectedEntry.Get() + 1);
 
   // Initializing things
   timer = Timer();
@@ -816,18 +823,29 @@ void Robot::TeleopPeriodic()
 
 
   if (xbox_Drive->GetStartButtonPressed())
-    goalConeGrabAngle = swerveDrive->GetPose().Rotation();
+  {
+    turnt = false;
+  }
   if (xbox_Drive->GetStartButton())
   {
-    bool atCone = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.53_m, goalConeGrabAngle), elapsedTime);
-    SmartDashboard::PutBoolean("actual atcone", atCone);
-            SmartDashboard::PutBoolean("at coneE", false);
-
+    SmartDashboard::PutBoolean("turnt", turnt);
+    if (!turnt)
+    {
+      double angleGoal = atan2(-swerveDrive->GetConeOdometryPose().X().value(), -swerveDrive->GetConeOdometryPose().Y().value());
+      SmartDashboard::PutNumber("cone angle", angleGoal);
+      turnt = swerveDrive->TurnToPixelCone(angleGoal, elapsedTime);
+      goalConeGrabAngle = swerveDrive->GetPose().Rotation();
+    }
+    bool atCone = false;  
+    if (turnt)
+      atCone = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.53_m, goalConeGrabAngle), elapsedTime);
     if (atCone)
     {
-          SmartDashboard::PutBoolean("at coneE", true);
-      claw->CloseClaw(elapsedTime);
+      bool closed = claw->CloseClaw(elapsedTime);
+      if (claw->ClawEncoderReading() < 2.5)
+        claw->PIDWrist(M_PI/2 - 0.5, elapsedTime);
     }
+    
   }
 
 

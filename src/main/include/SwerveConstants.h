@@ -73,3 +73,16 @@
 #define P_SPIN_MAX_ACCEL 0.6
 #define P_ALLOWABLE_ERROR_ROTATION 0.05 // in pixel values from -1 to 1
 
+
+#define C_ALLOWABLE_ERROR_TRANSLATION 0.05
+#define C_TRANSLATION_KP 1.1
+#define C_TRANSLATION_KI 0.02
+#define C_TRANSLATION_KI_MAX 0.03
+#define C_TRANSLATION_MAX_SPEED 0.3
+#define C_TRANSLATION_MAX_ACCEL 3
+#define C_SPIN_KP 0.5   
+#define C_SPIN_KI 0
+#define C_SPIN_KI_MAX 0.1
+#define C_SPIN_MAX_SPEED 0.7
+#define C_SPIN_MAX_ACCEL 5
+#define C_ALLOWABLE_ERROR_ROTATION 0.05 // in pixel values from -1 to 1
