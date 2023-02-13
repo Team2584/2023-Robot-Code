@@ -853,16 +853,23 @@ void Robot::TeleopPeriodic()
   limelight->getTargetY();
 
   if (xbox_Drive->GetBackButtonPressed())
+  {
     doneWithPoleAlignment = false;
+    turnt = false;
+    swerveDrive->BeginPIDLoop();
+  }
   if (xbox_Drive->GetBackButton())
   {
     SmartDashboard::PutBoolean("done with pole Alignee", doneWithPoleAlignment);
     if (!doneWithPoleAlignment)
     {
-      bool lifted = elevatorLift->SetElevatorHeightPID(38, elapsedTime);
+      bool lifted = true;// elevatorLift->SetElevatorHeightPID(38, elapsedTime);
       claw->PIDWrist(0.9, elapsedTime);
       bool centered = false;
-      if (elevatorLift->winchEncoderReading() > 35)
+      if (!turnt)
+        turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(180_deg)), elapsedTime);
+      SmartDashboard::PutBoolean("turnt", turnt);
+      if (turnt)//elevatorLift->winchEncoderReading() > 35)
       {
         double offsetX = limelight->getTargetX();
         double offsetY = limelight->getTargetY();

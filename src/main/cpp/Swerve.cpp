@@ -1078,6 +1078,7 @@ public:
     SmartDashboard::PutNumber("Strafe Y", lastY);
         SmartDashboard::PutNumber("Intented I", intendedI);
     SmartDashboard::PutNumber("Intented Y", intendedVelocity);
+    SmartDashboard::PutNumber("offset Y", offsetY);
     return (lastX == 0 && lastY == 0 && lastSpin == 0);
   }
 };
