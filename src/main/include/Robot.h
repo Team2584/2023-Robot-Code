@@ -41,6 +41,7 @@
 #include <frc/DoubleSolenoid.h>
 #include <frc/DutyCycleEncoder.h>
 #include <frc/PWM.h>
+#include <frc/AnalogInput.h>
 
 #include <pathplanner/lib/PathPlanner.h>
 

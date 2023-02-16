@@ -14,7 +14,7 @@ private:
 public:
     rev::CANSparkMax *wristMotor;
     rev::CANSparkMax *clawMotor;
-    rev::SparkMaxRelativeEncoder *clawEncoder, *wristEncoder;
+    rev::SparkMaxRelativeEncoder *wristEncoder;//, *clawEncoder; 
     rev::SparkMaxAbsoluteEncoder *magEncoder;
 
   /**
@@ -25,8 +25,9 @@ public:
     wristMotor = wrist;
     clawMotor = claw;
     wristMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
-    clawEncoder =  new rev::SparkMaxRelativeEncoder(clawMotor->GetEncoder());
-    clawEncoder->SetPosition(1.0);
+    clawMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
+    /*clawEncoder =  new rev::SparkMaxRelativeEncoder(clawMotor->GetEncoder());
+    clawEncoder->SetPosition(1.0);*/
     wristEncoder =  new rev::SparkMaxRelativeEncoder(wristMotor->GetEncoder());
     wristEncoder->SetPosition(0.0);
 
@@ -83,7 +84,8 @@ public:
 
   double ClawEncoderReading()
   {
-    return clawEncoder->GetPosition();
+  //  return clawEncoder->GetPosition();
+    return 0.0;
   }
 
   void MoveClawPercent(double percent)
@@ -98,11 +100,13 @@ public:
      if (fabs(error) < ALLOWABLE_ERROR_CLAW)
     {
       MoveClawPercent(0);
+      runningClawIntegral = 0;
       return true;
     }
 
-    // calculate our I in PID and clamp it between our maximum I effects
+    // calculate our I in PID and clamp it   between our maximum I effects
     double intendedI = std::clamp(CLAWKI * runningClawIntegral, -1 * CLAWKIMAX, CLAWKIMAX);
+    runningClawIntegral += error;
 
     // Clamp our intended velocity to our maximum and minimum velocity to prevent the robot from going too fast
     double intendedVelocity = std::clamp(CLAWKP * error + intendedI, -1 * CLAWMAX_SPEED, CLAWMAX_SPEED);
@@ -118,12 +122,17 @@ public:
 
   void ResetClawEncoder()
   {
-    clawEncoder->SetPosition(0.0);
+   // clawEncoder->SetPosition(0.0);
   }
 
   bool OpenClaw(double elapsedTime)
   {
-    return PIDClaw(-20, elapsedTime);
+    return PIDClaw(10, elapsedTime);
+  }
+
+  bool CloseClaw(double elapsedTime)
+  {
+    return PIDClaw(0.3, elapsedTime);
   }
 
 };

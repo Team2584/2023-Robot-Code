@@ -38,6 +38,7 @@ public:
 
     double getTargetY(){
         updateLimelightValues();
+        SmartDashboard::PutNumber("Limelight Y", ty);
         return ty;
     }
 

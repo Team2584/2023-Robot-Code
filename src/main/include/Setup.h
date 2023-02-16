@@ -22,7 +22,7 @@ TalonFX driveBR{04};
 rev::CANSparkMax winchR{5, rev::CANSparkMax::MotorType::kBrushless};
 rev::CANSparkMax winchL{6, rev::CANSparkMax::MotorType::kBrushless};
 rev::CANSparkMax wrist{7, rev::CANSparkMax::MotorType::kBrushless};
-rev::CANSparkMax clawM1{9, rev::CANSparkMax::MotorType::kBrushless};
+rev::CANSparkMax clawM1{9, rev::CANSparkMax::MotorType::kBrushed};
 
 DutyCycleEncoder FLMagEnc(8);
 DutyCycleEncoder FRMagEnc(6);
@@ -32,6 +32,8 @@ DutyCycleEncoder BRMagEnc(7);
 Pigeon2 _pigeon(6);
 
 TimeOfFlight TOFSensor(0);
+AnalogInput distanceSensor{3};
+
 
 double thetaInit;
 
@@ -39,6 +41,7 @@ double thetaInit;
 #define CONTROLLER_DEADBAND 0.2
 #define MAX_DRIVE_ACCELERATION 1    //max change in percent per second
 #define MAX_SPIN_ACCELERATION 1
+#define MAX_ELEV_ACCELERATION 3
 #define STARTING_DRIVE_HEADING 0
 #define CONTROLLER_TYPE 1
 
