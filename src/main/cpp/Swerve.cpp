@@ -653,18 +653,19 @@ public:
     if (fabs(xDistance) < C_ALLOWABLE_ERROR_TRANSLATION)
     {
       xDistance = 0;
+      lastX = 0;
       runningIntegralX = 0;
     }
 
     // calculate our I in PID and clamp it between our maximum I effects
-    intendedI = std::clamp(C_TRANSLATION_KI * runningIntegralX, -1 * C_TRANSLATION_KI_MAX, C_TRANSLATION_KI_MAX);
+    intendedI = std::clamp(C_STRAFE_KI * runningIntegralX, -1 * C_STRAFE_KI_MAX, C_STRAFE_KI_MAX);
 
     // Clamp our intended velocity to our maximum and minimum velocity to prevent the robot from going too fast
-    intendedVelocity = std::clamp(C_TRANSLATION_KP * xDistance + intendedI, -1 * C_TRANSLATION_MAX_SPEED, C_TRANSLATION_MAX_SPEED);
+    intendedVelocity = std::clamp(C_STRAFE_KP * xDistance + intendedI, -1 * C_STRAFE_MAX_SPEED, C_STRAFE_MAX_SPEED);
 
     // Make sure our change in velocity from the last loop is not going above our maximum acceleration
-    lastX += std::clamp(intendedVelocity - lastX, -1 * C_TRANSLATION_MAX_ACCEL * elapsedTime,
-                        C_TRANSLATION_MAX_ACCEL * elapsedTime);
+    lastX += std::clamp(intendedVelocity - lastX, -1 * C_STRAFE_MAX_ACCEL * elapsedTime,
+                        C_STRAFE_MAX_ACCEL * elapsedTime);
     xSpeed = lastX;
 
     // Repeat with the Y direction
@@ -673,6 +674,7 @@ public:
     if (fabs(yDistance) < C_ALLOWABLE_ERROR_TRANSLATION)
     {
       yDistance = 0;
+      lastY = 0;
       runningIntegralY = 0;
     }
     intendedI = std::clamp(C_TRANSLATION_KI * runningIntegralY, -1 * C_TRANSLATION_KI_MAX, C_TRANSLATION_KI_MAX);
@@ -690,6 +692,7 @@ public:
     if (fabs(thetaDistance) < O_ALLOWABLE_ERROR_ROTATION)
     {
       thetaDistance = 0;
+      lastSpin = 0;
       runningIntegralSpin = 0;
     }
     intendedI = std::clamp(O_SPIN_KI * runningIntegralSpin, -1 * O_SPIN_KI_MAX, O_SPIN_KI_MAX);
@@ -1020,14 +1023,22 @@ public:
     if (fabs(offset) < C_ALLOWABLE_ERROR_ROTATION)
     {
       lastSpin = 0;
-      DriveSwervePercent(0, 0, lastSpin);
-      return true;
+      runningIntegralSpin = 0;
+      offset = 0;
     }
-    double intendedVelocity = std::clamp(C_SPIN_KP * offset, -1 * C_SPIN_MAX_SPEED, C_SPIN_MAX_SPEED);
+    double intendedI = std::clamp(C_SPIN_KI * runningIntegralSpin, -1 * C_SPIN_KI_MAX, C_SPIN_KI_MAX);
+    double intendedVelocity = std::clamp(C_SPIN_KP * offset + intendedI, -1 * C_SPIN_MAX_SPEED, C_SPIN_MAX_SPEED);
     lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * C_SPIN_MAX_ACCEL * elapsedTime,
                            C_SPIN_MAX_ACCEL * elapsedTime);
+    runningIntegralSpin += offset;
+
+     SmartDashboard::PutNumber("ThetaDistance", offset);
+      SmartDashboard::PutNumber("Theta I", intendedI);
+    SmartDashboard::PutNumber("Intended Vel", intendedVelocity);
+     SmartDashboard::PutNumber("Drive Spin", lastSpin);
+
     DriveSwervePercent(0, 0, lastSpin);
-    return false;
+    return lastSpin == 0;
   }
 
   /**

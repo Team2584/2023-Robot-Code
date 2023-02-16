@@ -37,6 +37,8 @@ nt::DoubleEntry polePixelEntry;
 nt::IntegerEntry connectedEntry;
 nt::DoubleArrayTopic coneTopic;
 nt::DoubleArraySubscriber coneEntry;
+double currentConeX;
+double currentConeY;
 
 // To track time for slew rate and pid controll
 frc::Timer timer;
@@ -638,7 +640,7 @@ void Robot::TeleopInit()
   // Prepare swerve drive odometry
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
-  swerveDrive->ResetOdometry(Pose2d(0_m, 1_m, Rotation2d(180_deg)));
+  swerveDrive->ResetOdometry(Pose2d(0_m, 1_m, Rotation2d(0_deg)));
   elevatorLift->ResetElevatorEncoder();
   claw->ResetClawEncoder();
 
@@ -737,6 +739,8 @@ void Robot::TeleopPeriodic()
       frc::SmartDashboard::PutNumber("Cone X Vision", transEst.X().value());
       frc::SmartDashboard::PutNumber("Cone Y Vision", transEst.Y().value());
       swerveDrive->ResetConeOdometry(Pose2d(transEst, swerveDrive->GetPose().Rotation()));
+      currentConeX = -1 * array.value[0];
+      currentConeY = -1 * array.value[1];
     }
   }
 
@@ -778,8 +782,8 @@ void Robot::TeleopPeriodic()
   curPoseEntry.Set(poseArray);
 
   // DEBUG INFO
-  frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
-  frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
+  frc::SmartDashboard::PutNumber("Cone Odometry X", pose.X().value());
+  frc::SmartDashboard::PutNumber("Cone Odometry Y", pose.Y().value());
   frc::SmartDashboard::PutNumber("Odometry Theta", swerveDrive->GetPose().Rotation().Degrees().value());
   SmartDashboard::PutNumber("lift encoder", elevatorLift->winchEncoderReading());
   SmartDashboard::PutNumber("wrist encoder", claw->MagEncoderReading());
@@ -826,30 +830,25 @@ void Robot::TeleopPeriodic()
     claw->MoveWristPercent(0);
 
 
+
+  double angleGoal2 = atan2(-currentConeX, -currentConeY);
+  SmartDashboard::PutNumber("cone angle", angleGoal2);
   if (xbox_Drive->GetStartButtonPressed())
   {
     turnt = false;
   }
   if (xbox_Drive->GetStartButton())
   {
+    claw->MoveClawPercent(-0.8);
     SmartDashboard::PutBoolean("turnt", turnt);
     if (!turnt)
     {
-      double angleGoal = atan2(-swerveDrive->GetConeOdometryPose().X().value(), -swerveDrive->GetConeOdometryPose().Y().value());
-      SmartDashboard::PutNumber("cone angle", angleGoal);
+      double angleGoal = atan2(-currentConeX, -currentConeY);
       turnt = swerveDrive->TurnToPixelCone(angleGoal, elapsedTime);
       goalConeGrabAngle = swerveDrive->GetPose().Rotation();
     }
-    bool atCone = false;  
     if (turnt)
-      atCone = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.53_m, goalConeGrabAngle), elapsedTime);
-    if (atCone)
-    {
-      bool closed = claw->CloseClaw(elapsedTime);
-      if (claw->ClawEncoderReading() < 2.5)
-        claw->PIDWrist(M_PI/2 - 0.5, elapsedTime);
-    }
-    
+      swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.58_m, goalConeGrabAngle), elapsedTime);
   }
 
   limelight->getTargetX();
