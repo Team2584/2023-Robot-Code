@@ -14,7 +14,7 @@ private:
 public:
     rev::CANSparkMax *wristMotor;
     rev::CANSparkMax *clawMotor;
-    rev::SparkMaxRelativeEncoder *wristEncoder, *clawEncoder; 
+    rev::SparkMaxRelativeEncoder *wristEncoder;//, *clawEncoder; 
     rev::SparkMaxAbsoluteEncoder *magEncoder;
 
   /**
@@ -26,8 +26,8 @@ public:
     clawMotor = claw;
     wristMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
     clawMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
-    clawEncoder =  new rev::SparkMaxRelativeEncoder(clawMotor->GetEncoder());
-    clawEncoder->SetPosition(1.0);
+    /*clawEncoder =  new rev::SparkMaxRelativeEncoder(clawMotor->GetEncoder());
+    clawEncoder->SetPosition(1.0);*/
     wristEncoder =  new rev::SparkMaxRelativeEncoder(wristMotor->GetEncoder());
     wristEncoder->SetPosition(0.0);
 
@@ -84,7 +84,8 @@ public:
 
   double ClawEncoderReading()
   {
-    return clawEncoder->GetPosition();
+  //  return clawEncoder->GetPosition();
+    return 0.0;
   }
 
   void MoveClawPercent(double percent)
@@ -121,7 +122,7 @@ public:
 
   void ResetClawEncoder()
   {
-    clawEncoder->SetPosition(0.0);
+   // clawEncoder->SetPosition(0.0);
   }
 
   bool OpenClaw(double elapsedTime)

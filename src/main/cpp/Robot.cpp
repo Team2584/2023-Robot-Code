@@ -662,7 +662,10 @@ void Robot::TeleopInit()
 
 void Robot::TeleopPeriodic()
 {
-  cout << "Test" << endl;
+  //distanceSensor.SetOversampleBits(8);
+  ///SmartDashboard::PutNumber("real distance value", distanceSensor.GetValue());
+  // SmartDashboard::PutNumber("average distance value", distanceSensor.GetAverageValue() / 8);
+
   // Take values from Smartdashboard
   MAX_DRIVE_SPEED = frc::SmartDashboard::GetNumber("MAX DRIVE SPEED", 0.4);
   ELEVATOR_SPEED = frc::SmartDashboard::GetNumber("ELEVATOR_SPEED", 0.1);
@@ -777,7 +780,7 @@ void Robot::TeleopPeriodic()
   // DEBUG INFO
   frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
   frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
-  frc::SmartDashboard::PutNumber("Odometry Theta", pose.Rotation().Degrees().value());
+  frc::SmartDashboard::PutNumber("Odometry Theta", swerveDrive->GetPose().Rotation().Degrees().value());
   SmartDashboard::PutNumber("lift encoder", elevatorLift->winchEncoderReading());
   SmartDashboard::PutNumber("wrist encoder", claw->MagEncoderReading());
   SmartDashboard::PutNumber("claw encoder", claw->ClawEncoderReading());
@@ -808,9 +811,9 @@ void Robot::TeleopPeriodic()
 
 
   if (xbox_Drive->GetRightBumper())
-    claw->MoveClawPercent(0.7);
+    claw->MoveClawPercent(1);
   else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
-    claw->MoveClawPercent(-0.7);
+    claw->MoveClawPercent(-1);
   else
     claw->MoveClawPercent(0);
     
@@ -864,19 +867,19 @@ void Robot::TeleopPeriodic()
     if (!doneWithPoleAlignment)
     {
       bool lifted = true;// elevatorLift->SetElevatorHeightPID(38, elapsedTime);
-      claw->PIDWrist(0.9, elapsedTime);
+      //claw->PIDWrist(0.9, elapsedTime);
       bool centered = false;
       if (!turnt)
         turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(180_deg)), elapsedTime);
       SmartDashboard::PutBoolean("turnt", turnt);
-      if (turnt)//elevatorLift->winchEncoderReading() > 35)
+      if (turnt)//&& elevatorLift->winchEncoderReading() > 35)
       {
         double offsetX = limelight->getTargetX();
         double offsetY = limelight->getTargetY();
-        centered = swerveDrive->StrafeToPole(offsetX, offsetY, 0.27, 0.149, elapsedTime);
+        centered = swerveDrive->StrafeToPole(offsetX, offsetY, 0, 0.149, elapsedTime);  //0.27, 0.149
       }
-      if (centered && lifted)
-        doneWithPoleAlignment = true;
+      /*if (centered && lifted)
+        doneWithPoleAlignment = true;*/
     }
     else
     {

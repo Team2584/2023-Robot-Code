@@ -29,11 +29,11 @@
 #define O_TRANSLATION_KI_MAX 0.03
 #define O_TRANSLATION_MAX_SPEED 0.2
 #define O_TRANSLATION_MAX_ACCEL 3
-#define O_SPIN_KP 0.53
+#define O_SPIN_KP 0.5
 #define O_SPIN_KI 0.01
 #define O_SPIN_KI_MAX 0.05
-#define O_SPIN_MAX_SPEED 0.2
-#define O_SPIN_MAX_ACCEL 0.6  
+#define O_SPIN_MAX_SPEED 0.4
+#define O_SPIN_MAX_ACCEL 1.5  
 #define O_ALLOWABLE_ERROR_TRANSLATION 0.05
 #define O_ALLOWABLE_ERROR_ROTATION 0.05
 
@@ -54,18 +54,18 @@
 #define S_ALLOWABLE_ERROR_ROTATION 0.1
 
 //PID VALUES FOR TURN TO PIXEL WITH LIMELIGHT
-#define P_STRAFE_KP 0.7
-#define P_STRAFE_KI 0.05
+#define P_STRAFE_KP 0.6
+#define P_STRAFE_KI 0.007
 #define P_STRAFE_KI_MAX 0.05
 #define P_STRAFE_MAX_SPEED 0.4
 #define P_STRAFE_MAX_ACCEL 3
-#define P_ALLOWABLE_ERROR_STRAFE 0.1 // in pixel values from -1 to 1
-#define P_TRANS_KP 1.5
+#define P_ALLOWABLE_ERROR_STRAFE 0.05 // in pixel values from -1 to 1
+#define P_TRANS_KP 3.5
 #define P_TRANS_KI 0.05 
 #define P_TRANS_KI_MAX 0.05
 #define P_TRANS_MAX_SPEED 0.2
-#define P_TRANS_MAX_ACCEL 3
-#define P_ALLOWABLE_ERROR_TRANS 0.1
+#define P_TRANS_MAX_ACCEL 3 
+#define P_ALLOWABLE_ERROR_TRANS 0.01
 #define P_SPIN_KP 2.7
 #define P_SPIN_KI 0
 #define P_SPIN_KI_MAX 0.1
