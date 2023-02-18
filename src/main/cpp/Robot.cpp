@@ -13,7 +13,7 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 
 #include "SchedulerClasses/Scheduler.cpp"
-#include "SchedulerClasses/FunctionWrapper.cpp"
+#include "SchedulerClasses/SequentialProgram.cpp"
 #include <exception>
 
 double pigeon_initial;
@@ -135,6 +135,9 @@ bool Update()
   return true;
 }
 
+FunctionWrapper* testFunction;
+SequentialProgram* testProgram;
+
 void Robot::AutonomousInit()
 {
   /*
@@ -168,8 +171,8 @@ void Robot::AutonomousInit()
  limelightTracking = false;
  timer.Start();
 
-SmartDashboard::PutBoolean("StageZeroComplete",  false);
 SmartDashboard::PutBoolean("StageOneComplete",   false);
+SmartDashboard::PutBoolean("StageTwoComplete",  false);
 
 SmartDashboard::PutBoolean("Initialized",   false);
 SmartDashboard::PutBoolean("Executed",   false);
@@ -178,7 +181,13 @@ SmartDashboard::PutBoolean("Finished",   false);
 
 CommandScheduler::GetInstance().Enable();
 
-FunctionWrapper([](){SmartDashboard::PutBoolean("StageOneComplete", true); return true;}, Systems::Chassis).Schedule();
+testFunction = new FunctionWrapper([](){SmartDashboard::PutBoolean("StageOneComplete", true); return true;}, Systems::Chassis);
+testFunction->Schedule();
+
+// testProgram = new SequentialProgram();
+// testProgram->AddFunction([](){SmartDashboard::PutBoolean("StageOneComplete", true); return true;}, Systems::Chassis);
+// testProgram->AddFunction([](){SmartDashboard::PutBoolean("StageTwoComplete", true); return true;}, Systems::Chassis);
+// testProgram->Schedule();
 
 // SequentialProgram autonomousTestProgram = SequentialProgram();
 // autonomousTestProgram.AddFunction([](){SmartDashboard::PutBoolean("StageZeroComplete", true); return true;}, Systems::Chassis);
