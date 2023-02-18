@@ -47,6 +47,7 @@ double lastFwdSpeed = 0;
 double lastStrafeSpeed = 0;
 double lastTurnSpeed = 0;
 double lastElevatorSpeed = 0;
+double lastWristSpeed = 0;
 
 // Values to Set with ShuffleBoard
 double MAX_DRIVE_SPEED = 0.4;
@@ -637,6 +638,17 @@ void Robot::AutonomousPeriodic()
 
 void Robot::TeleopInit()
 {
+  // LOWEST POSSIBLE WRIST ALLOWED:
+  // LOWEST WRIST ALLOWED WHEN ELEVATOR IS DOWN:
+  // HIHGEST WRIST ALLOWED:
+  // HIGHEST WRIST ALLOWED WHEN ELEVATOR IS GOING UP:
+  // HIGHEST ELEVATOR:
+  // LOWEST ELEVATOR: 
+  // HIGHEST CLAW : maybe not a great idea
+  // LOWEST CLAW: maybe not a great idea
+  // Slew rate limiting for drive: maybe not a great idea
+
+
   // Prepare swerve drive odometry
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
@@ -653,6 +665,7 @@ void Robot::TeleopInit()
   lastStrafeSpeed = 0;
   lastTurnSpeed = 0;
   lastElevatorSpeed = 0;
+  lastWristSpeed = 0;
 
   /*
     orchestra.LoadMusic("CHIRP");
@@ -672,11 +685,11 @@ void Robot::TeleopPeriodic()
   MAX_DRIVE_SPEED = frc::SmartDashboard::GetNumber("MAX DRIVE SPEED", 0.4);
   ELEVATOR_SPEED = frc::SmartDashboard::GetNumber("ELEVATOR_SPEED", 0.1);
 
-  SmartDashboard::PutNumber("FL Mag", swerveDrive->FLModule->magEncoder->GetAbsolutePosition());
-  SmartDashboard::PutNumber("FR Mag", swerveDrive->FRModule->magEncoder->GetAbsolutePosition());
-  SmartDashboard::PutNumber("BL Mag", swerveDrive->BLModule->magEncoder->GetAbsolutePosition());
-  SmartDashboard::PutNumber("BR Mag", swerveDrive->BRModule->magEncoder->GetAbsolutePosition());
-  SmartDashboard::PutNumber("Pigeon", _pigeon.GetYaw());
+  // SmartDashboard::PutNumber("FL Mag", swerveDrive->FLModule->magEncoder->GetAbsolutePosition());
+  // SmartDashboard::PutNumber("FR Mag", swerveDrive->FRModule->magEncoder->GetAbsolutePosition());
+  // SmartDashboard::PutNumber("BL Mag", swerveDrive->BLModule->magEncoder->GetAbsolutePosition());
+  // SmartDashboard::PutNumber("BR Mag", swerveDrive->BRModule->magEncoder->GetAbsolutePosition());
+  // SmartDashboard::PutNumber("Pigeon", _pigeon.GetYaw());
 
   double joy_lStick_Y, joy_lStick_X, joy_rStick_X;
   // Find controller input
@@ -810,8 +823,6 @@ void Robot::TeleopPeriodic()
   lastElevatorSpeed += std::clamp(elevSpeed - lastElevatorSpeed, -1 * MAX_ELEV_ACCELERATION * elapsedTime,
                                   MAX_ELEV_ACCELERATION * elapsedTime);
 
-  SmartDashboard::PutNumber("ELEvator Speed", lastElevatorSpeed);
-
   if (xbox_Drive->GetBButton())
     elevatorLift->SetElevatorHeightPID(76, elapsedTime);
   else if (xbox_Drive->GetXButton())
@@ -820,25 +831,36 @@ void Robot::TeleopPeriodic()
     elevatorLift->MoveElevatorPercent(lastElevatorSpeed);
 
 
+  double wristSpeed = 0;
+  if (xbox_Drive->GetLeftBumper())
+    wristSpeed = 0.2;
+  else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
+    wristSpeed = -0.2;
+  else
+    wristSpeed = 0;
+
+  lastWristSpeed += std::clamp(wristSpeed - lastWristSpeed, -1 * MAX_WRIST_ACCELERATION * elapsedTime,
+                                  MAX_WRIST_ACCELERATION * elapsedTime);
+  claw->MoveWristPercent(lastWristSpeed);
+
   if (xbox_Drive->GetRightBumper())
     claw->MoveClawPercent(0.2);
   else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
     claw->MoveClawPercent(-0.2);
   else
     claw->MoveClawPercent(0);
-    
 
-  if (xbox_Drive->GetLeftBumper())
-    claw->MoveWristPercent(0.2);
-  else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
-    claw->MoveWristPercent(-0.2);
-  else
-    claw->MoveWristPercent(0);
+  if (xbox_Drive->GetStartButton())
+  {
+    claw->PIDWrist(M_PI / 2, elapsedTime);
+  }
 
+  if (xbox_Drive->GetBackButton())
+  {
+    claw->OpenClaw(elapsedTime);
+  }
 
-
-  double angleGoal2 = atan2(-currentConeX, -currentConeY);
-  SmartDashboard::PutNumber("cone angle", angleGoal2);
+/*
   if (xbox_Drive->GetStartButtonPressed())
   {
     turnt = false;
@@ -868,7 +890,7 @@ void Robot::TeleopPeriodic()
   }
   if (xbox_Drive->GetBackButton())
   {
-    SmartDashboard::PutBoolean("done with pole Alignee", doneWithPoleAlignment);
+    SmartDashboard::PutBoolean("done with pole Align", doneWithPoleAlignment);
     if (!doneWithPoleAlignment)
     {
       bool lifted = true;// elevatorLift->SetElevatorHeightPID(38, elapsedTime);
@@ -890,7 +912,7 @@ void Robot::TeleopPeriodic()
     {
       claw->OpenClaw(elapsedTime);
     }
-  }
+  }*/
 
 /*
   if (xbox_Drive->GetStartButtonPressed())
