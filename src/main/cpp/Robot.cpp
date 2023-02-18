@@ -166,11 +166,13 @@ void Robot::AutonomousInit()
 
   elevatorLift->ResetElevatorEncoder();
   claw->ResetClawEncoder();
-  swerveDrive->ResetOdometry(Pose2d(4.98_m, 1.85_m, Rotation2d(3.14_rad)));
+  swerveDrive->ResetOdometry(Pose2d(2.42_m, 1.85_m, Rotation2d(3.14_rad)));
+  //swerveDrive->ResetOdometry(Pose2d(4.98_m, 1.85_m, Rotation2d(3.14_rad)));
   swerveDrive->ResetTrajectoryList();
-  swerveDrive->InitializeTrajectory("RedRight2GamePiece1");
-  swerveDrive->InitializeTrajectory("RedRight2GamePiece2");
-  swerveDrive->SetNextTrajectory();
+  //swerveDrive->InitializeTrajectory("RedRight2GamePiece1");
+  //swerveDrive->InitializeTrajectory("RedRight2GamePiece2");
+  swerveDrive->InitializeTrajectory("Red1GamePieceBalance");
+  swerveDrive->SetNextTrajectory();  
   splineSection = 0;
 
   // Start our match timer and reset our odometry to the robot's starting position
@@ -188,6 +190,53 @@ void Robot::AutonomousInit()
 
 void Robot::AutonomousPeriodic()
 {
+  double elapsedTime = timer.Get().value() - lastTime;
+  swerveDrive->UpdateOdometry(timer.Get());
+
+
+  //Reset Timer and prepare to lift elevator
+  if (splineSection == 0)
+  {
+    timer.Reset();
+    lastTime = 0;
+    splineSection = 1;
+  }
+
+  //Drive onto the platform using a spline (basically a path to drive) in pathplanner
+  // If you want to edit the spline go into pathplanner.exe on the driver station's desktop or download it yourself from github
+  // https://github.com/mjansen4857/pathplanner
+  if (splineSection == 1)
+  {
+    bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
+    if (splineDone)
+    {
+      splineSection = 1.5;
+      timer.Reset();
+      lastTime = 0;
+    }
+  }
+
+  // When you are done with the spline, balance using your code
+  if (splineSection == 1.5)
+  {
+    elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+    claw->PIDWrist(1, elapsedTime);
+    claw->OpenClaw(elapsedTime);
+    bool balanced = swerveDrive->BalanceOnCharger(elapsedTime);
+    // Uncomment code below if you think you want it, otherwise your robot will continue to balance until autonomous ends
+    /*
+    if (balanced)
+    {
+      //When you are balanced, stop driving  
+      //    If you need your wheels to spin to face left and right here to make sure the robot stays parked we I'll add the code when I show up for the lunch break
+      swerveDrive->DriveSwervePercent(0,0,0);
+      splineSection = 100;
+      timer.Reset();
+      lastTime = 0;
+    }*/
+  }
+
+  /*
     SmartDashboard::PutBoolean("finished loop", false);
   SmartDashboard::PutNumber("Spline Section", splineSection);
   SmartDashboard::PutBoolean("hit follow trajectory", false);
