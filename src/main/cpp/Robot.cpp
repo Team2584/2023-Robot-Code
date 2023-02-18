@@ -873,12 +873,14 @@ void Robot::TeleopPeriodic()
 
   if (xbox_Drive->GetBButtonPressed())
   {
+    //Low Post
     conePlaceXLimelightGoal = 0.19; 
     conePlacYLimelightGoal = -0.0288;
     conePlaceElevatorGoal = 44;  
   }
   else if (xbox_Drive->GetXButtonPressed())
   {
+    //High Post
     conePlaceXLimelightGoal = 0.19; 
     conePlacYLimelightGoal = -0.0288;
     conePlaceElevatorGoal = 78;  
