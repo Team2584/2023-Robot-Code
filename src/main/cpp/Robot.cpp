@@ -181,13 +181,13 @@ SmartDashboard::PutBoolean("Finished",   false);
 
 CommandScheduler::GetInstance().Enable();
 
-testFunction = new FunctionWrapper([](){SmartDashboard::PutBoolean("StageOneComplete", true); return true;}, Systems::Chassis);
-testFunction->Schedule();
+// testFunction = new FunctionWrapper([](){SmartDashboard::PutBoolean("StageOneComplete", true); return true;}, Systems::Chassis);
+// testFunction->Schedule();
 
-// testProgram = new SequentialProgram();
-// testProgram->AddFunction([](){SmartDashboard::PutBoolean("StageOneComplete", true); return true;}, Systems::Chassis);
-// testProgram->AddFunction([](){SmartDashboard::PutBoolean("StageTwoComplete", true); return true;}, Systems::Chassis);
-// testProgram->Schedule();
+testProgram = new SequentialProgram();
+testProgram->AddFunction([](){SmartDashboard::PutBoolean("StageOneComplete", true); return false;}, Systems::Chassis);
+testProgram->AddFunction([](){SmartDashboard::PutBoolean("StageTwoComplete", true); return true;}, Systems::Chassis);
+testProgram->Schedule();
 
 // SequentialProgram autonomousTestProgram = SequentialProgram();
 // autonomousTestProgram.AddFunction([](){SmartDashboard::PutBoolean("StageZeroComplete", true); return true;}, Systems::Chassis);
