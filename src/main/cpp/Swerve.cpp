@@ -10,7 +10,6 @@ private:
   ctre::phoenix::motorcontrol::can::TalonFX *driveMotor;
   rev::CANSparkMax *spinMotor;
   rev::SparkMaxRelativeEncoder *spinEncoder;
-  frc::DutyCycleEncoder *magEncoder;
   double encoderOffset;       /* Offset in magnetic encoder from 0 facing the front of the robot */
   double driveEncoderInitial; /* Used to computer the change in encoder tics, aka motor rotation */
   double spinEncoderInitialHeading;
@@ -18,6 +17,8 @@ private:
   double runningIntegral = 0; /* Running sum of errors for integral in PID */
 
 public:
+  frc::DutyCycleEncoder *magEncoder;
+
   /**
    * Constructor for a Swerve Module: One of the four 2-motor systems in a swerve drive.
    *

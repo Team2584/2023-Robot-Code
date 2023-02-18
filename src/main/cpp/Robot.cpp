@@ -640,7 +640,7 @@ void Robot::TeleopInit()
   // Prepare swerve drive odometry
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
-  swerveDrive->ResetOdometry(Pose2d(0_m, 1_m, Rotation2d(0_deg)));
+  swerveDrive->ResetOdometry(Pose2d(0_m, 0_m, Rotation2d(0_deg)));
   elevatorLift->ResetElevatorEncoder();
   claw->ResetClawEncoder();
 
@@ -671,6 +671,12 @@ void Robot::TeleopPeriodic()
   // Take values from Smartdashboard
   MAX_DRIVE_SPEED = frc::SmartDashboard::GetNumber("MAX DRIVE SPEED", 0.4);
   ELEVATOR_SPEED = frc::SmartDashboard::GetNumber("ELEVATOR_SPEED", 0.1);
+
+  SmartDashboard::PutNumber("FL Mag", swerveDrive->FLModule->magEncoder->GetAbsolutePosition());
+  SmartDashboard::PutNumber("FR Mag", swerveDrive->FRModule->magEncoder->GetAbsolutePosition());
+  SmartDashboard::PutNumber("BL Mag", swerveDrive->BLModule->magEncoder->GetAbsolutePosition());
+  SmartDashboard::PutNumber("BR Mag", swerveDrive->BRModule->magEncoder->GetAbsolutePosition());
+  SmartDashboard::PutNumber("Pigeon", _pigeon.GetYaw());
 
   double joy_lStick_Y, joy_lStick_X, joy_rStick_X;
   // Find controller input
@@ -795,7 +801,7 @@ void Robot::TeleopPeriodic()
 
   double elevSpeed = 0;
   if (xbox_Drive->GetYButton())
-    elevSpeed = 0.8;
+    elevSpeed = 0.4;
   else if (xbox_Drive->GetAButton())
     elevSpeed = -0.2;
   else
@@ -815,17 +821,17 @@ void Robot::TeleopPeriodic()
 
 
   if (xbox_Drive->GetRightBumper())
-    claw->MoveClawPercent(1);
+    claw->MoveClawPercent(0.2);
   else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
-    claw->MoveClawPercent(-1);
+    claw->MoveClawPercent(-0.2);
   else
     claw->MoveClawPercent(0);
     
 
   if (xbox_Drive->GetLeftBumper())
-    claw->MoveWristPercent(0.6);
+    claw->MoveWristPercent(0.2);
   else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
-    claw->MoveWristPercent(-0.6);
+    claw->MoveWristPercent(-0.2);
   else
     claw->MoveWristPercent(0);
 

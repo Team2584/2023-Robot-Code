@@ -14,7 +14,7 @@ private:
 public:
     rev::CANSparkMax *wristMotor;
     rev::CANSparkMax *clawMotor;
-    rev::SparkMaxRelativeEncoder *wristEncoder;//, *clawEncoder; 
+    rev::SparkMaxRelativeEncoder *wristEncoder, *clawEncoder; 
     rev::SparkMaxAbsoluteEncoder *magEncoder;
 
   /**
@@ -24,10 +24,10 @@ public:
   {
     wristMotor = wrist;
     clawMotor = claw;
-    wristMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
+    wristMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
     clawMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
-    /*clawEncoder =  new rev::SparkMaxRelativeEncoder(clawMotor->GetEncoder());
-    clawEncoder->SetPosition(1.0);*/
+    clawEncoder =  new rev::SparkMaxRelativeEncoder(clawMotor->GetEncoder());
+    clawEncoder->SetPosition(1.0);
     wristEncoder =  new rev::SparkMaxRelativeEncoder(wristMotor->GetEncoder());
     wristEncoder->SetPosition(0.0);
 
@@ -59,8 +59,6 @@ public:
   {
     double error = MagEncoderReading() - point;
 
-    SmartDashboard::PutNumber("error", error);
-
     if (fabs(error) < ALLOWABLE_ERROR_WRIST)
     {
       MoveWristPercent(0);
@@ -77,15 +75,13 @@ public:
     lastWristSpeed += std::clamp(intendedVelocity - lastWristSpeed, -1 * WRISTMAX_ACCELERATION * elapsedTime,
                         WRISTMAX_ACCELERATION * elapsedTime);
 
-    SmartDashboard::PutNumber("error", error);
     MoveWristPercent(lastWristSpeed);
     return false;
   }
 
   double ClawEncoderReading()
   {
-  //  return clawEncoder->GetPosition();
-    return 0.0;
+    return clawEncoder->GetPosition();
   }
 
   void MoveClawPercent(double percent)
@@ -115,14 +111,13 @@ public:
     lastClawSpeed += std::clamp(intendedVelocity - lastClawSpeed, -1 * CLAWMAX_ACCELERATION * elapsedTime,
                         CLAWMAX_ACCELERATION * elapsedTime);
 
-    SmartDashboard::PutNumber("error", error);
     MoveClawPercent(lastClawSpeed);
     return false;
   }
 
   void ResetClawEncoder()
   {
-   // clawEncoder->SetPosition(0.0);
+    clawEncoder->SetPosition(0.0);
   }
 
   bool OpenClaw(double elapsedTime)

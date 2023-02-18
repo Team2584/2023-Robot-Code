@@ -62,7 +62,7 @@ public:
   void MoveElevatorPercent(double percent)
   {
     winchR->Set(percent);
-    winchL->Set(percent);   
+    winchL->Set(-percent);   
   }
 
   void StartPIDLoop()
