@@ -36,7 +36,7 @@ public:
 
   double winchEncoderReading()
   {
-    return winchEncoder->GetPosition();
+    return -winchEncoder->GetPosition();
   }
 
   double TOFSReading()

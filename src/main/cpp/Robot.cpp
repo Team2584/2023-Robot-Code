@@ -59,6 +59,9 @@ double splineSection = 0;
 Rotation2d goalConeGrabAngle;
 bool turnt;
 bool doneWithPoleAlignment;
+double conePlaceXLimelightGoal = 0.19; 
+double conePlacYLimelightGoal = -0.0288;
+double conePlaceElevatorGoal = 44;
 
 double lastSanity = 0;
 
@@ -638,12 +641,12 @@ void Robot::AutonomousPeriodic()
 
 void Robot::TeleopInit()
 {
-  // LOWEST POSSIBLE WRIST ALLOWED:
-  // LOWEST WRIST ALLOWED WHEN ELEVATOR IS DOWN:
-  // HIHGEST WRIST ALLOWED:
-  // HIGHEST WRIST ALLOWED WHEN ELEVATOR IS GOING UP:
-  // HIGHEST ELEVATOR:
-  // LOWEST ELEVATOR: 
+  // LOWEST POSSIBLE WRIST ALLOWED: M_PI 
+  // LOWEST WRIST ALLOWED WHEN ELEVATOR IS DOWN:2.17
+  // HIHGEST WRIST ALLOWED: -0.005
+  // HIGHEST WRIST ALLOWED WHEN ELEVATOR IS GOING UP: 0.0028
+  // HIGHEST ELEVATOR: 82.5
+  // LOWEST ELEVATOR: -1
   // HIGHEST CLAW : maybe not a great idea
   // LOWEST CLAW: maybe not a great idea
   // Slew rate limiting for drive: maybe not a great idea
@@ -652,7 +655,7 @@ void Robot::TeleopInit()
   // Prepare swerve drive odometry
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
-  swerveDrive->ResetOdometry(Pose2d(0_m, 0_m, Rotation2d(0_deg)));
+  swerveDrive->ResetOdometry(Pose2d(0_m, 0_m, Rotation2d(180_deg)));
   elevatorLift->ResetElevatorEncoder();
   claw->ResetClawEncoder();
 
@@ -822,13 +825,7 @@ void Robot::TeleopPeriodic()
 
   lastElevatorSpeed += std::clamp(elevSpeed - lastElevatorSpeed, -1 * MAX_ELEV_ACCELERATION * elapsedTime,
                                   MAX_ELEV_ACCELERATION * elapsedTime);
-
-  if (xbox_Drive->GetBButton())
-    elevatorLift->SetElevatorHeightPID(76, elapsedTime);
-  else if (xbox_Drive->GetXButton())
-    elevatorLift->SetElevatorHeightPID(40, elapsedTime);
-  else
-    elevatorLift->MoveElevatorPercent(lastElevatorSpeed);
+  elevatorLift->MoveElevatorPercent(lastElevatorSpeed);
 
 
   double wristSpeed = 0;
@@ -850,17 +847,7 @@ void Robot::TeleopPeriodic()
   else
     claw->MoveClawPercent(0);
 
-  if (xbox_Drive->GetStartButton())
-  {
-    claw->PIDWrist(M_PI / 2, elapsedTime);
-  }
-
-  if (xbox_Drive->GetBackButton())
-  {
-    claw->OpenClaw(elapsedTime);
-  }
-
-/*
+  /*
   if (xbox_Drive->GetStartButtonPressed())
   {
     turnt = false;
@@ -877,10 +864,25 @@ void Robot::TeleopPeriodic()
     }
     if (turnt)
       swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.58_m, goalConeGrabAngle), elapsedTime);
-  }
+  }*/
 
   limelight->getTargetX();
   limelight->getTargetY();
+
+
+
+  if (xbox_Drive->GetBButtonPressed())
+  {
+    conePlaceXLimelightGoal = 0.19; 
+    conePlacYLimelightGoal = -0.0288;
+    conePlaceElevatorGoal = 44;  
+  }
+  else if (xbox_Drive->GetXButtonPressed())
+  {
+    conePlaceXLimelightGoal = 0.19; 
+    conePlacYLimelightGoal = -0.0288;
+    conePlaceElevatorGoal = 78;  
+  }
 
   if (xbox_Drive->GetBackButtonPressed())
   {
@@ -893,26 +895,27 @@ void Robot::TeleopPeriodic()
     SmartDashboard::PutBoolean("done with pole Align", doneWithPoleAlignment);
     if (!doneWithPoleAlignment)
     {
-      bool lifted = true;// elevatorLift->SetElevatorHeightPID(38, elapsedTime);
-      //claw->PIDWrist(0.9, elapsedTime);
+      bool lifted = elevatorLift->SetElevatorHeightPID(conePlaceElevatorGoal, elapsedTime);
+      claw->PIDWrist(0.9, elapsedTime);
       bool centered = false;
       if (!turnt)
         turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(180_deg)), elapsedTime);
       SmartDashboard::PutBoolean("turnt", turnt);
-      if (turnt)//&& elevatorLift->winchEncoderReading() > 35)
+      if (turnt && elevatorLift->winchEncoderReading() > 30)
       {
         double offsetX = limelight->getTargetX();
         double offsetY = limelight->getTargetY();
-        centered = swerveDrive->StrafeToPole(offsetX, offsetY, 0, 0.149, elapsedTime);  //0.27, 0.149
+        centered = swerveDrive->StrafeToPole(offsetX, offsetY, conePlaceXLimelightGoal, conePlacYLimelightGoal, elapsedTime);  //0.27, 0.149
       }
-      /*if (centered && lifted)
-        doneWithPoleAlignment = true;*/
+      if (centered && lifted)
+        doneWithPoleAlignment = true;
     }
+    
     else
     {
       claw->OpenClaw(elapsedTime);
     }
-  }*/
+  }
 
 /*
   if (xbox_Drive->GetStartButtonPressed())
