@@ -11,37 +11,37 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 
 
-class FunctionWrapper
+class FunctionWrapper : public frc2::CommandHelper<frc2::CommandBase, FunctionWrapper>
 {
     private:
     bool isFinished;
     std::function<bool()> function;
-    frc2::FunctionalCommand backingCommand;
+    //frc2::FunctionalCommand backingCommand;
 
     public:
 
-    // FunctionWrapper(std::function<bool()> function)
-    // :isFinished{false}, function{std::move(function)}
+    FunctionWrapper(std::function<bool()> function, int requirementID)
+    :isFinished{false}, function{function}
+    {
+      AddRequirements(SystemManager::GetInstance().GetSystem(requirementID));
+    }
+
+    // FunctionWrapper(std::function<bool()> function, int requirementID)
+    // :isFinished{false}, function{function}, backingCommand {
+    //     frc2::FunctionalCommand(
+    //     std::function<void()>([this](){Initialize();}), 
+    //     std::function<void()>([this](){Execute();}), 
+    //     std::function<void(bool)>([this](bool a){End(a);}), 
+    //     std::function<bool()>([this](){return IsFinished();}))
+    // }
     // {
-    //   backingCommand = FunctionalCommand();
+    //     backingCommand.AddRequirements(SystemManager::GetInstance().GetSystem(requirementID));
     // }
 
-    FunctionWrapper(std::function<bool()> function, int requirementID)
-    :isFinished{false}, function{std::move(function)}, backingCommand {
-        frc2::FunctionalCommand(
-        std::function<void()>([this](){Initialize();}), 
-        std::function<void()>([this](){Execute();}), 
-        std::function<void(bool)>([this](bool a){End(a);}), 
-        std::function<bool()>([this](){return IsFinished();}))
-    }
-    {
-        backingCommand.AddRequirements(SystemManager::GetInstance().GetSystem(requirementID));
-    }
-
-    void Schedule()
-    {
-      backingCommand.Schedule();
-    }
+    // void Schedule()
+    // {
+    //   backingCommand.Schedule();
+    // }
 
     // void AddRequirement(frc2::Subsystem* requirement)
     // {
