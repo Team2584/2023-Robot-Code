@@ -49,6 +49,9 @@ double lastTurnSpeed = 0;
 double lastElevatorSpeed = 0;
 double lastWristSpeed = 0;
 
+// Driver Control Variables
+bool manualControlling = false;
+
 // Values to Set with ShuffleBoard
 double MAX_DRIVE_SPEED = 0.4;
 double MAX_SPIN_SPEED = 0.4;
@@ -693,9 +696,6 @@ void Robot::TeleopInit()
   // LOWEST POSSIBLE WRIST ALLOWED: M_PI 
   // LOWEST WRIST ALLOWED WHEN ELEVATOR IS DOWN:2.17
   // HIHGEST WRIST ALLOWED: -0.005
-  // HIGHEST WRIST ALLOWED WHEN ELEVATOR IS GOING UP: 0.0028
-  // HIGHEST ELEVATOR: 82.5
-  // LOWEST ELEVATOR: -1
   // HIGHEST CLAW : maybe not a great idea
   // LOWEST CLAW: maybe not a great idea
   // Slew rate limiting for drive: maybe not a great idea
@@ -718,6 +718,8 @@ void Robot::TeleopInit()
   lastTurnSpeed = 0;
   lastElevatorSpeed = 0;
   lastWristSpeed = 0;
+
+  manualControlling = false;
 
   /*
     orchestra.LoadMusic("CHIRP");
@@ -859,43 +861,161 @@ void Robot::TeleopPeriodic()
   SmartDashboard::PutNumber("lift encoder", elevatorLift->winchEncoderReading());
   SmartDashboard::PutNumber("wrist encoder", claw->MagEncoderReading());
   SmartDashboard::PutNumber("claw encoder", claw->ClawEncoderReading());
+  SmartDashboard::PutBoolean("Manual Control On", manualControlling);
 
-  // BASIC ELEVATOR CODE
-  if (xbox_Drive->GetBButtonPressed())
-    elevatorLift->StartPIDLoop();
+  if (xbox_Drive->GetStartButtonPressed())
+    manualControlling = !manualControlling;
 
-  double elevSpeed = 0;
-  if (xbox_Drive->GetYButton())
-    elevSpeed = 0.4;
-  else if (xbox_Drive->GetAButton())
-    elevSpeed = -0.2;
+  if (manualControlling)
+  {
+    double elevSpeed = 0;
+    if (xbox_Drive->GetYButton())
+      elevSpeed = 0.4;
+    else if (xbox_Drive->GetAButton())
+      elevSpeed = -0.2;
+    else
+      elevSpeed = 0;
+
+    lastElevatorSpeed += std::clamp(elevSpeed - lastElevatorSpeed, -1 * MAX_ELEV_ACCELERATION * elapsedTime,
+                                    MAX_ELEV_ACCELERATION * elapsedTime);
+    elevatorLift->MoveElevatorPercent(lastElevatorSpeed);
+
+
+    double wristSpeed = 0;
+    if (xbox_Drive->GetLeftBumper())
+      wristSpeed = 0.2;
+    else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
+      wristSpeed = -0.2;
+    else
+      wristSpeed = 0;
+
+    lastWristSpeed += std::clamp(wristSpeed - lastWristSpeed, -1 * MAX_WRIST_ACCELERATION * elapsedTime,
+                                    MAX_WRIST_ACCELERATION * elapsedTime);
+    claw->MoveWristPercent(lastWristSpeed);
+
+    if (xbox_Drive->GetRightBumper())
+      claw->MoveClawPercent(0.2);
+    else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
+      claw->MoveClawPercent(-0.2);
+    else
+      claw->MoveClawPercent(0);
+  }
   else
-    elevSpeed = 0;
+  {
+    double elevSpeed = 0;
+    if (xbox_Drive->GetYButton())
+      elevSpeed = 0.4;
+    else if (xbox_Drive->GetAButton())
+      elevSpeed = -0.2;
+    else
+      elevSpeed = 0;
+      
+    lastElevatorSpeed += std::clamp(elevSpeed - lastElevatorSpeed, -1 * MAX_ELEV_ACCELERATION * elapsedTime,
+                                    MAX_ELEV_ACCELERATION * elapsedTime);
 
-  lastElevatorSpeed += std::clamp(elevSpeed - lastElevatorSpeed, -1 * MAX_ELEV_ACCELERATION * elapsedTime,
-                                  MAX_ELEV_ACCELERATION * elapsedTime);
-  elevatorLift->MoveElevatorPercent(lastElevatorSpeed);
+    if (elevatorLift->winchEncoderReading() < 20 && lastElevatorSpeed > 0 && claw->MagEncoderReading() < 0.0028)
+    {
+      lastElevatorSpeed = 0;
+      claw->PIDWrist(0.1, elapsedTime);
+    }    
+    else if (elevatorLift->winchEncoderReading() < 30 && lastElevatorSpeed < 0 && claw->MagEncoderReading() < 0.0028)
+    {
+      lastElevatorSpeed = 0;
+      claw->PIDWrist(0.1, elapsedTime);
+    }
+    else if (elevatorLift->winchEncoderReading() < 30 && lastElevatorSpeed < 0 && claw->MagEncoderReading() > 2.2)
+    {
+      lastElevatorSpeed = 0;
+      claw->PIDWrist(2.1, elapsedTime);
+    }
+    else if (elevatorLift->winchEncoderReading() > 82.5 && lastElevatorSpeed > 0)
+    {
+      lastElevatorSpeed = 0;
+      elevatorLift->MoveElevatorPercent(0);
+    }
+    else if (elevatorLift->winchEncoderReading() < -1 && lastElevatorSpeed < 0)
+    {
+      lastElevatorSpeed = 0;
+      elevatorLift->MoveElevatorPercent(0);
+    }
+    elevatorLift->MoveElevatorPercent(lastElevatorSpeed);
 
 
-  double wristSpeed = 0;
-  if (xbox_Drive->GetLeftBumper())
-    wristSpeed = 0.2;
-  else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
-    wristSpeed = -0.2;
-  else
-    wristSpeed = 0;
+    double wristSpeed = 0;
+    if (xbox_Drive->GetLeftBumper())
+      wristSpeed = 0.2;
+    else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
+      wristSpeed = -0.2;
+    else
+      wristSpeed = 0;
 
-  lastWristSpeed += std::clamp(wristSpeed - lastWristSpeed, -1 * MAX_WRIST_ACCELERATION * elapsedTime,
-                                  MAX_WRIST_ACCELERATION * elapsedTime);
-  claw->MoveWristPercent(lastWristSpeed);
+    lastWristSpeed += std::clamp(wristSpeed - lastWristSpeed, -1 * MAX_WRIST_ACCELERATION * elapsedTime,
+                                    MAX_WRIST_ACCELERATION * elapsedTime);
+  
 
-  if (xbox_Drive->GetRightBumper())
-    claw->MoveClawPercent(0.2);
-  else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
-    claw->MoveClawPercent(-0.2);
-  else
-    claw->MoveClawPercent(0);
+    if (claw->MagEncoderReading() > -0.005 && lastWristSpeed > 0)
+      lastWristSpeed = 0;
+    else if (elevatorLift->winchEncoderReading() < 5 && claw->MagEncoderReading() > 2.17 && lastWristSpeed < 0)
+      lastWristSpeed = 0;
+    else if (claw->MagEncoderReading() < -M_PI / 2 && lastWristSpeed < 0)
+      lastWristSpeed = 0;
+    
+    claw->MoveWristPercent(lastWristSpeed);
 
+    if (xbox_Drive->GetRightBumper() && claw->ClawEncoderReading() < 12)
+      claw->MoveClawPercent(0.2);
+    else if (xbox_Drive->GetRightTriggerAxis() > 0.5 && claw->ClawEncoderReading() > 0)
+      claw->MoveClawPercent(-0.2);
+    else
+      claw->MoveClawPercent(0);
+
+
+    if (xbox_Drive->GetBButtonPressed())
+    {
+      //Low Post
+      conePlaceXLimelightGoal = 0.19; 
+      conePlacYLimelightGoal = -0.0288;
+      conePlaceElevatorGoal = 44;  
+    }
+    else if (xbox_Drive->GetXButtonPressed())
+    {
+      //High Post
+      conePlaceXLimelightGoal = 0.19; 
+      conePlacYLimelightGoal = -0.0288;
+      conePlaceElevatorGoal = 78;  
+    }
+
+    if (xbox_Drive->GetBackButtonPressed())
+    {
+      doneWithPoleAlignment = false;
+      turnt = false;
+      swerveDrive->BeginPIDLoop();
+    }
+    if (xbox_Drive->GetBackButton())
+    {
+      if (!doneWithPoleAlignment)
+      {
+        bool lifted = elevatorLift->SetElevatorHeightPID(conePlaceElevatorGoal, elapsedTime);
+        claw->PIDWrist(0.9, elapsedTime);
+        bool centered = false;
+        if (!turnt)
+          turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(180_deg)), elapsedTime);
+        if (turnt && elevatorLift->winchEncoderReading() > 30)
+        {
+          double offsetX = limelight->getTargetX();
+          double offsetY = limelight->getTargetY();
+          centered = swerveDrive->StrafeToPole(offsetX, offsetY, conePlaceXLimelightGoal, conePlacYLimelightGoal, elapsedTime);  //0.27, 0.149
+        }
+        if (centered && lifted)
+          doneWithPoleAlignment = true;
+      }
+      
+      else
+      {
+        claw->OpenClaw(elapsedTime);
+      }
+    }
+  }
   /*
   if (xbox_Drive->GetStartButtonPressed())
   {
@@ -918,55 +1038,6 @@ void Robot::TeleopPeriodic()
   limelight->getTargetX();
   limelight->getTargetY();
 
-
-
-  if (xbox_Drive->GetBButtonPressed())
-  {
-    //Low Post
-    conePlaceXLimelightGoal = 0.19; 
-    conePlacYLimelightGoal = -0.0288;
-    conePlaceElevatorGoal = 44;  
-  }
-  else if (xbox_Drive->GetXButtonPressed())
-  {
-    //High Post
-    conePlaceXLimelightGoal = 0.19; 
-    conePlacYLimelightGoal = -0.0288;
-    conePlaceElevatorGoal = 78;  
-  }
-
-  if (xbox_Drive->GetBackButtonPressed())
-  {
-    doneWithPoleAlignment = false;
-    turnt = false;
-    swerveDrive->BeginPIDLoop();
-  }
-  if (xbox_Drive->GetBackButton())
-  {
-    SmartDashboard::PutBoolean("done with pole Align", doneWithPoleAlignment);
-    if (!doneWithPoleAlignment)
-    {
-      bool lifted = elevatorLift->SetElevatorHeightPID(conePlaceElevatorGoal, elapsedTime);
-      claw->PIDWrist(0.9, elapsedTime);
-      bool centered = false;
-      if (!turnt)
-        turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(180_deg)), elapsedTime);
-      SmartDashboard::PutBoolean("turnt", turnt);
-      if (turnt && elevatorLift->winchEncoderReading() > 30)
-      {
-        double offsetX = limelight->getTargetX();
-        double offsetY = limelight->getTargetY();
-        centered = swerveDrive->StrafeToPole(offsetX, offsetY, conePlaceXLimelightGoal, conePlacYLimelightGoal, elapsedTime);  //0.27, 0.149
-      }
-      if (centered && lifted)
-        doneWithPoleAlignment = true;
-    }
-    
-    else
-    {
-      claw->OpenClaw(elapsedTime);
-    }
-  }
 
 /*
   if (xbox_Drive->GetStartButtonPressed())
