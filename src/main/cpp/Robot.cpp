@@ -65,6 +65,7 @@ bool doneWithPoleAlignment;
 double conePlaceXLimelightGoal = 0.19; 
 double conePlacYLimelightGoal = -0.0288;
 double conePlaceElevatorGoal = 44;
+bool queuePlacingCone = true;
 
 double lastSanity = 0;
 
@@ -983,6 +984,7 @@ void Robot::TeleopPeriodic()
       conePlaceXLimelightGoal = 0.19; 
       conePlacYLimelightGoal = -0.0288;
       conePlaceElevatorGoal = 44;  
+      queuePlacingCone = true;
     }
     else if (xbox_Drive->GetXButtonPressed())
     {
@@ -990,7 +992,10 @@ void Robot::TeleopPeriodic()
       conePlaceXLimelightGoal = 0.19; 
       conePlacYLimelightGoal = -0.0288;
       conePlaceElevatorGoal = 78;  
+      queuePlacingCone = true;
     }
+
+    SmartDashboard::PutNumber("xbox POV", xbox_Drive->GetPOV());
 
     if (xbox_Drive->GetBackButtonPressed())
     {
@@ -1000,28 +1005,55 @@ void Robot::TeleopPeriodic()
     }
     if (xbox_Drive->GetBackButton())
     {
-      if (!doneWithPoleAlignment)
+      if (queuePlacingCone)
       {
-        bool lifted = elevatorLift->SetElevatorHeightPID(conePlaceElevatorGoal, elapsedTime);
-        claw->PIDWrist(0.9, elapsedTime);
-        bool centered = false;
-        if (!turnt)
-          turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(180_deg)), elapsedTime);
-        if (turnt && elevatorLift->winchEncoderReading() > 30)
+        if (!doneWithPoleAlignment)
         {
-          double offsetX = limelight->getTargetX();
-          double offsetY = limelight->getTargetY();
-          centered = swerveDrive->StrafeToPole(offsetX, offsetY, conePlaceXLimelightGoal, conePlacYLimelightGoal, elapsedTime);  //0.27, 0.149
+          bool lifted = elevatorLift->SetElevatorHeightPID(conePlaceElevatorGoal, elapsedTime);
+          claw->PIDWrist(0.9, elapsedTime);
+          bool centered = false;
+          if (!turnt)
+            turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(180_deg)), elapsedTime);
+          if (turnt && elevatorLift->winchEncoderReading() > 30)
+          {
+            double offsetX = limelight->getTargetX();
+            double offsetY = limelight->getTargetY();
+            centered = swerveDrive->StrafeToPole(offsetX, offsetY, conePlaceXLimelightGoal, conePlacYLimelightGoal, elapsedTime);  //0.27, 0.149
+          }
+          if (centered && lifted)
+            doneWithPoleAlignment = true;
         }
-        if (centered && lifted)
-          doneWithPoleAlignment = true;
+        else
+        {
+          claw->OpenClaw(elapsedTime);
+        }
       }
-      
       else
       {
-        claw->OpenClaw(elapsedTime);
+        if (!doneWithPoleAlignment)
+        {
+          bool lifted = elevatorLift->SetElevatorHeightPID(10, elapsedTime);
+          claw->PIDWrist(0.9, elapsedTime);
+          bool centered = false;
+          if (!turnt)
+            turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(180_deg)), elapsedTime);
+          if (turnt && elevatorLift->winchEncoderReading() > 30)
+          {
+            double offsetX = limelight->getTargetX();
+            double offsetY = limelight->getTargetY();
+            centered = swerveDrive->StrafeToPole(offsetX, offsetY, conePlaceXLimelightGoal, conePlacYLimelightGoal, elapsedTime);  //0.27, 0.149
+          }
+          if (centered && lifted)
+            doneWithPoleAlignment = true;
+        }
+        else
+        {
+          claw->OpenClaw(elapsedTime);
+        }
       }
     }
+
+
   }
   /*
   if (xbox_Drive->GetStartButtonPressed())

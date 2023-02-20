@@ -255,7 +255,7 @@ private:
   Translation2d m_backLeft;
   Translation2d m_backRight;
   SwerveDriveKinematics<4> kinematics;
-  SwerveDriveOdometry<4> *coneOdometry;
+  SwerveDriveOdometry<4> *coneOdometry, *tagOdometry;
   SwerveDriveOdometry<4> *odometry;
   std::queue<pathplanner::PathPlannerTrajectory> trajectoryList;
   pathplanner::PathPlannerTrajectory trajectory;
@@ -316,6 +316,10 @@ public:
                                                positions,
                                                frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
     coneOdometry = new SwerveDriveOdometry<4>(kinematics,
+                                              Rotation2d(units::radian_t{GetIMURadians()}),
+                                              positions,
+                                              frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
+    tagOdometry = new SwerveDriveOdometry<4>(kinematics,
                                               Rotation2d(units::radian_t{GetIMURadians()}),
                                               positions,
                                               frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
@@ -445,6 +449,33 @@ public:
         frc::Pose2d(Pose2d(position.Y(), position.X(), position.Rotation())));
   }
 
+  void ResetTagOdometry()
+  {
+    ResetTagOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));
+  }
+
+  /**
+   * Resets Odometry to a position
+   */
+  void ResetTagOdometry(Pose2d position)
+  {
+    FLModule->ResetEncoders();
+    FRModule->ResetEncoders();
+    BLModule->ResetEncoders();
+    BRModule->ResetEncoders();
+
+    wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
+                                                     FRModule->GetSwerveModulePosition(),
+                                                     BLModule->GetSwerveModulePosition(),
+                                                     BRModule->GetSwerveModulePosition()};
+
+    tagOdometry->ResetPosition(
+        Rotation2d(units::radian_t{GetIMURadians()}),
+        positions,
+        frc::Pose2d(Pose2d(position.Y(), position.X(), position.Rotation())));
+  }
+
+
   /**
    * Updates the odometry reading based on change in each swerve module's positions.
    * Must be called every periodic loop for accuracy (once every 20ms or less)
@@ -469,6 +500,16 @@ public:
                                                      BRModule->GetSwerveModulePosition()};
     coneOdometry->Update(units::radian_t{0_rad}, positions);
   }
+
+  void UpdateTagOdometry()
+  {
+    wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
+                                                     FRModule->GetSwerveModulePosition(),
+                                                     BLModule->GetSwerveModulePosition(),
+                                                     BRModule->GetSwerveModulePosition()};
+    tagOdometry->Update(units::radian_t{0_rad}, positions);
+  }
+
 
   /**
    * Updates the Estimated Position of the robot with an estimate from non-odometry sensors, usually using vision and april-tags
@@ -511,6 +552,12 @@ public:
   Pose2d GetConeOdometryPose()
   {
     Pose2d pose = coneOdometry->GetPose();
+    return Pose2d(pose.Y(), pose.X(), pose.Rotation());
+  }
+
+  Pose2d GetTagOdometryPose()
+  {
+    Pose2d pose = tagOdometry->GetPose();
     return Pose2d(pose.Y(), pose.X(), pose.Rotation());
   }
 
@@ -639,6 +686,14 @@ public:
                        O_TRANSLATION_KP, O_TRANSLATION_KI, O_TRANSLATION_KI_MAX, O_SPIN_MAX_SPEED, O_SPIN_MAX_ACCEL, O_ALLOWABLE_ERROR_ROTATION,
                        O_SPIN_KP, O_SPIN_KI, O_SPIN_KI_MAX, false);
   }
+
+  bool DriveToPoseTag(Pose2d target, double elapsedTime)
+  {
+    return DriveToPose(GetTagOdometryPose(), target, elapsedTime, A_TRANSLATION_MAX_SPEED, A_TRANSLATION_MAX_ACCEL, A_ALLOWABLE_ERROR_TRANSLATION,
+                       A_TRANSLATION_KP, A_TRANSLATION_KI, A_TRANSLATION_KI_MAX, O_SPIN_MAX_SPEED, O_SPIN_MAX_ACCEL, O_ALLOWABLE_ERROR_ROTATION,
+                       O_SPIN_KP, O_SPIN_KI, O_SPIN_KI_MAX, false);
+  }
+
 
   bool DriveToPoseConeOdometry(Pose2d target, double elapsedTime)
   {
