@@ -913,19 +913,25 @@ void Robot::TeleopPeriodic()
     lastElevatorSpeed += std::clamp(elevSpeed - lastElevatorSpeed, -1 * MAX_ELEV_ACCELERATION * elapsedTime,
                                     MAX_ELEV_ACCELERATION * elapsedTime);
 
+
+    bool elevatorPIDWrist = false;
+
     if (elevatorLift->winchEncoderReading() < 20 && lastElevatorSpeed > 0 && claw->MagEncoderReading() < 0.0028)
     {
       lastElevatorSpeed = 0;
+      elevatorPIDWrist = true;
       claw->PIDWrist(0.1, elapsedTime);
     }    
     else if (elevatorLift->winchEncoderReading() < 30 && lastElevatorSpeed < 0 && claw->MagEncoderReading() < 0.0028)
     {
       lastElevatorSpeed = 0;
+      elevatorPIDWrist = true;
       claw->PIDWrist(0.1, elapsedTime);
     }
     else if (elevatorLift->winchEncoderReading() < 30 && lastElevatorSpeed < 0 && claw->MagEncoderReading() > 2.2)
     {
       lastElevatorSpeed = 0;
+      elevatorPIDWrist = true;
       claw->PIDWrist(2.1, elapsedTime);
     }
     else if (elevatorLift->winchEncoderReading() > 82.5 && lastElevatorSpeed > 0)
@@ -953,14 +959,15 @@ void Robot::TeleopPeriodic()
                                     MAX_WRIST_ACCELERATION * elapsedTime);
   
 
-    if (claw->MagEncoderReading() > -0.005 && lastWristSpeed > 0)
+    if (claw->MagEncoderReading() < 0.3 && lastWristSpeed > 0)
       lastWristSpeed = 0;
-    else if (elevatorLift->winchEncoderReading() < 5 && claw->MagEncoderReading() > 2.17 && lastWristSpeed < 0)
+    else if (elevatorLift->winchEncoderReading() < 20 && claw->MagEncoderReading() > 2.17 && lastWristSpeed < 0)
       lastWristSpeed = 0;
-    else if (claw->MagEncoderReading() < -M_PI / 2 && lastWristSpeed < 0)
+    else if (claw->MagEncoderReading() > 2.75 && lastWristSpeed < 0)
       lastWristSpeed = 0;
     
-    claw->MoveWristPercent(lastWristSpeed);
+    if (!elevatorPIDWrist)
+      claw->MoveWristPercent(lastWristSpeed); 
 
     if (xbox_Drive->GetRightBumper() && claw->ClawEncoderReading() < 12)
       claw->MoveClawPercent(0.2);
