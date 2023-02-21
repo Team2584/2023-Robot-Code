@@ -76,7 +76,7 @@
 
 // Going to an April Tag
 #define A_ALLOWABLE_ERROR_TRANSLATION 0.05
-#define A_TRANSLATION_KP 1.1
+#define A_TRANSLATION_KP 0.85
 #define A_TRANSLATION_KI 0.02
 #define A_TRANSLATION_KI_MAX 0.03
 #define A_TRANSLATION_MAX_SPEED 0.3
@@ -99,7 +99,7 @@
 #define C_STRAFE_KI_MAX 0.03
 #define C_STRAFE_MAX_SPEED 0.2
 #define C_STRAFE_MAX_ACCEL 3
-#define C_SPIN_KP 0.6
+#define C_SPIN_KP 0.56
 #define C_SPIN_KI 0.01
 #define C_SPIN_KD 0.01
 #define C_SPIN_KI_MAX 0.05

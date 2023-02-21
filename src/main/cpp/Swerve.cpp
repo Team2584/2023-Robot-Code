@@ -318,7 +318,7 @@ public:
     coneOdometry = new SwerveDriveOdometry<4>(kinematics,
                                               Rotation2d(units::radian_t{GetIMURadians()}),
                                               positions,
-                                              frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
+                                              frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{0_deg})));
     tagOdometry = new SwerveDriveOdometry<4>(kinematics,
                                               Rotation2d(units::radian_t{GetIMURadians()}),
                                               positions,
@@ -433,11 +433,6 @@ public:
    */
   void ResetConeOdometry(Pose2d position)
   {
-    FLModule->ResetEncoders();
-    FRModule->ResetEncoders();
-    BLModule->ResetEncoders();
-    BRModule->ResetEncoders();
-
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
                                                      FRModule->GetSwerveModulePosition(),
                                                      BLModule->GetSwerveModulePosition(),
@@ -446,7 +441,7 @@ public:
     coneOdometry->ResetPosition(
         Rotation2d(units::radian_t{GetIMURadians()}),
         positions,
-        frc::Pose2d(Pose2d(position.Y(), position.X(), position.Rotation())));
+        frc::Pose2d(Pose2d(position.Y(), position.X(), Rotation2d(0_rad))));
   }
 
   void ResetTagOdometry()
@@ -459,11 +454,6 @@ public:
    */
   void ResetTagOdometry(Pose2d position)
   {
-    FLModule->ResetEncoders();
-    FRModule->ResetEncoders();
-    BLModule->ResetEncoders();
-    BRModule->ResetEncoders();
-
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
                                                      FRModule->GetSwerveModulePosition(),
                                                      BLModule->GetSwerveModulePosition(),
@@ -689,7 +679,7 @@ public:
 
   bool DriveToPoseTag(Pose2d target, double elapsedTime)
   {
-    return DriveToPose(GetTagOdometryPose(), target, elapsedTime, A_TRANSLATION_MAX_SPEED, A_TRANSLATION_MAX_ACCEL, A_ALLOWABLE_ERROR_TRANSLATION,
+    return DriveToPose(Pose2d(GetTagOdometryPose().Translation(), GetPose().Rotation()), target, elapsedTime, A_TRANSLATION_MAX_SPEED, A_TRANSLATION_MAX_ACCEL, A_ALLOWABLE_ERROR_TRANSLATION,
                        A_TRANSLATION_KP, A_TRANSLATION_KI, A_TRANSLATION_KI_MAX, O_SPIN_MAX_SPEED, O_SPIN_MAX_ACCEL, O_ALLOWABLE_ERROR_ROTATION,
                        O_SPIN_KP, O_SPIN_KI, O_SPIN_KI_MAX, false);
   }
@@ -1160,6 +1150,7 @@ public:
     runningIntegralY += offsetY;
 
     DriveSwervePercent(-lastX, lastY, lastSpin);
+
 
 //  SmartDashboard::PutNumber("YDistance", offsetY);
 // SmartDashboard::PutNumber("Y I", intendedI);
