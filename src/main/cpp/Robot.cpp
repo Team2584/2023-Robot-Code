@@ -146,6 +146,7 @@ void Robot::RobotPeriodic()
   // else if (sanityEntry.Get() > startingSanity + 5)
   //   connectedEntry.Set(false);
   connectedEntry.Set(true);
+  frc2::CommandScheduler::GetInstance().Run();
 }
 
 /**
@@ -169,7 +170,7 @@ bool Update()
 }
 
 FunctionWrapper* testFunction;
-SequentialProgram* testProgram;
+SequentialProgram* testAutonomous;
 
 void Robot::AutonomousInit()
 {
@@ -195,6 +196,28 @@ void Robot::AutonomousInit()
     splineSection = 0;
   }*/
 
+SmartDashboard::PutBoolean("StageOneComplete",   false);
+SmartDashboard::PutBoolean("StageTwoComplete",  false);
+
+SmartDashboard::PutBoolean("Initialized",   false);
+SmartDashboard::PutBoolean("Executed",   false);
+SmartDashboard::PutBoolean("Ended",   false);
+SmartDashboard::PutBoolean("Finished",   false);
+
+CommandScheduler::GetInstance().Enable();
+
+// testFunction = new FunctionWrapper([](){SmartDashboard::PutBoolean("StageOneComplete", true); return true;}, Systems::Chassis);
+// testFunction->Schedule();
+
+// testProgram = new SequentialProgram();
+// testProgram->AddFunction([](){SmartDashboard::PutBoolean("StageOneComplete", true); return false;}, Systems::Chassis);
+// testProgram->AddFunction([](){SmartDashboard::PutBoolean("StageTwoComplete", true); return true;}, Systems::Chassis);
+// testProgram->Schedule();
+
+  testAutonomous = new SequentialProgram();
+  testAutonomous->AddFunction([]()
+  {
+
   elevatorLift->ResetElevatorEncoder();
   claw->ResetClawEncoder();
   //swerveDrive->ResetOdometry(Pose2d(2.42_m, 1.85_m, Rotation2d(3.14_rad)));
@@ -210,6 +233,17 @@ void Robot::AutonomousInit()
   lastTime = 0;
   timer.Reset();
   timer.Start();
+  return true;
+  }, ChassisSystem);
+  testAutonomous->AddFunction([](){return Section0();}, ChassisSystem);
+  testAutonomous->AddFunction([](){return Section1();}, ChassisSystem);
+  testAutonomous->AddFunction([](){return Section2();}, ChassisSystem);
+  testAutonomous->AddFunction([](){return Section3();}, ChassisSystem);
+  testAutonomous->AddFunction([](){return Section4();}, ChassisSystem);
+  testAutonomous->AddFunction([](){return Section5();}, ChassisSystem);
+  testAutonomous->AddFunction([](){return Section6();}, ChassisSystem);
+
+
     // SmartDashboard::PutBoolean("in splinen 1", false);
 
     //   SmartDashboard::PutBoolean("Spline Done", false);
@@ -221,7 +255,7 @@ void Robot::AutonomousInit()
 
 void Robot::AutonomousPeriodic()
 {
-  frc2::CommandScheduler::GetInstance().Run();
+}
   /*
   double elapsedTime = timer.Get().value() - lastTime;
   swerveDrive->UpdateOdometry(timer.Get());
@@ -268,7 +302,10 @@ void Robot::AutonomousPeriodic()
     }
   }*/
 
-  
+  double elapsedTime;
+
+  void Setup()
+  {
   //   SmartDashboard::PutBoolean("finished loop", false);
    SmartDashboard::PutNumber("Spline Section", splineSection);
   // SmartDashboard::PutBoolean("hit follow trajectory", false);
@@ -279,7 +316,7 @@ void Robot::AutonomousPeriodic()
   //   SmartDashboard::PutBoolean("in 1.5", false);
   //       SmartDashboard::PutBoolean("finished 1.5", false);
 
-  double elapsedTime = timer.Get().value() - lastTime;
+  elapsedTime = timer.Get().value() - lastTime;
   swerveDrive->UpdateOdometry(timer.Get());
   swerveDrive->UpdateConeOdometry();
   for (auto array : coneEntry.ReadQueue())
@@ -297,17 +334,22 @@ void Robot::AutonomousPeriodic()
       currentConeY = -1 * array.value[1];
     }
   }
+  }
 
-  if (splineSection == 0)
+  bool Section0()
   {
+    Setup();
     doneWithPoleAlignment = false;
     turnt = false;
     swerveDrive->BeginPIDLoop();
-    splineSection = 0.5; 
+    splineSection = 1;
+    Wrapup();
+    return true;
   }
 
-  if (splineSection == 0.5)
+  bool Section1()
   {
+    Setup();
     if (!doneWithPoleAlignment)
     {
       claw->PIDWrist(0.9, elapsedTime);
@@ -331,12 +373,19 @@ void Robot::AutonomousPeriodic()
       if (claw->MagEncoderReading() > M_PI / 2 - 0.05)
         claw->OpenClaw(elapsedTime);
       if (claw->ClawEncoderReading() > 5)
-        splineSection = 0.9;
+      {
+        splineSection = 2;
+        Wrapup();
+        return true;
+      }
     }
+    Wrapup();
+    return false;
   }
 
-  if (splineSection == 0.9)
+  bool Section2()
   {
+    Setup();
     claw->PIDWrist(0.5, elapsedTime);
     claw->OpenClaw(elapsedTime);
     if (claw->MagEncoderReading() < 0.75)
@@ -345,12 +394,17 @@ void Robot::AutonomousPeriodic()
     {
       timer.Reset();
       lastTime = 0;
-      splineSection = 1;
+      splineSection = 3;
+      Wrapup();
+      return true;
     }
+    Wrapup();
+    return false;
   }
 
-  if (splineSection == 1)
+  bool Section3()
   {
+    Setup();
     elevatorLift->SetElevatorHeightPID(0, elapsedTime);
     claw->OpenClaw(elapsedTime);
     claw->PIDWrist(2.1, elapsedTime);
@@ -358,16 +412,21 @@ void Robot::AutonomousPeriodic()
     SmartDashboard::PutBoolean("spline done", splineDone);
     if (splineDone)
     {
-      splineSection = 1.5;
       swerveDrive->SetNextTrajectory();
       swerveDrive->DriveSwervePercent(0,0,0);
       swerveDrive->ResetConeOdometry(Pose2d(0_m, -1_m, Rotation2d(0_deg)));
       turnt = false;
+      splineSection = 4;
+      Wrapup();
+      return true;
     }
+    Wrapup();
+    return false;
   }
 
-  if (splineSection == 1.5)
+  bool Section4()
   {
+    Setup();
     elevatorLift->SetElevatorHeightPID(0, elapsedTime);
     claw->PIDWrist(2.1, elapsedTime);
     if (!turnt)
@@ -388,29 +447,39 @@ void Robot::AutonomousPeriodic()
       claw->OpenClaw(elapsedTime);
 
     if (claw->ClawEncoderReading() < 2)
-    {
-      splineSection = 2; 
+    { 
       timer.Reset();
       lastTime = 0;
+      splineSection = 5;
+      Wrapup();
+      return true;
     }
+    Wrapup();
+    return false;
   }
 
-  if (splineSection == 2)
+  bool Section5()
   {
+    Setup();
     //claw->CloseClaw(elapsedTime);
     claw->PIDWrist(0.6, elapsedTime);
     bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
     if (splineDone)
     {
-      splineSection = 2.5;
       doneWithPoleAlignment = false;
       turnt = false;
       swerveDrive->BeginPIDLoop();
+      splineSection = 6;
+      Wrapup();
+      return true;
     }
+    Wrapup();
+    return false;
   }
 
-  if (splineSection == 2.5)
+  bool Section6()
   {
+    Setup();
     if (!doneWithPoleAlignment)
     {
       claw->PIDWrist(0.9, elapsedTime);
@@ -434,13 +503,17 @@ void Robot::AutonomousPeriodic()
         claw->OpenClaw(elapsedTime);
       if (claw->ClawEncoderReading() > 5)
       {
-        splineSection = 100;
         swerveDrive->DriveSwervePercent(0,0,0);
         claw->MoveClawPercent(0);
         elevatorLift->MoveElevatorPercent(0);
         claw->MoveWristPercent(0);
+        splineSection = 7;
+        Wrapup();
+        return true;
       }
     }
+    Wrapup();
+    return false;
   }
 
   /*
@@ -744,6 +817,8 @@ void Robot::AutonomousPeriodic()
     elevatorLift->SetElevatorHeightPID(0, elapsedTime);
   }*/
 
+void Wrapup()
+{
   lastTime = timer.Get().value();
   SmartDashboard::PutBoolean("finished loop", true);
 }

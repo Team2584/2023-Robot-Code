@@ -7,8 +7,8 @@
 
 enum Systems
 {
-    Chassis,
-    Claw,
+    ChassisSystem,
+    ClawSystem,
 };
 
 class SystemManager
