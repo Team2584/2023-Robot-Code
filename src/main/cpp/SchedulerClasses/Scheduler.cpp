@@ -7,6 +7,25 @@
 // #include <frc2/command/CommandScheduler.h>
 // #include "SequentialProgram.cpp"
 
+/*
+SmartDashboard::PutBoolean("StageOneComplete",   false);
+SmartDashboard::PutBoolean("StageTwoComplete",  false);
+
+SmartDashboard::PutBoolean("Initialized",   false);
+SmartDashboard::PutBoolean("Executed",   false);
+SmartDashboard::PutBoolean("Ended",   false);
+SmartDashboard::PutBoolean("Finished",   false);
+
+CommandScheduler::GetInstance().Enable();
+
+testFunction = new FunctionWrapper([](){SmartDashboard::PutBoolean("StageOneComplete", true); return true;}, Systems::Chassis);
+testFunction->Schedule();
+
+testProgram = new SequentialProgram();
+testProgram->AddFunction([](){SmartDashboard::PutBoolean("StageOneComplete", true); return false;}, Systems::Chassis);
+testProgram->AddFunction([](){SmartDashboard::PutBoolean("StageTwoComplete", true); return true;}, Systems::Chassis);
+testProgram->Schedule();
+*/
 
 // class Scheduler
 // {
