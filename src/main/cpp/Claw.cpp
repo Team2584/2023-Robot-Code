@@ -136,6 +136,7 @@ public:
   bool CloseClaw(double elapsedTime)
   {
     SmartDashboard::PutNumber("claw speed", clawEncoder->GetVelocity());
+    //Grab til it stops or we hit limit switch
     return PIDClaw(0.3, elapsedTime);
   }
 
