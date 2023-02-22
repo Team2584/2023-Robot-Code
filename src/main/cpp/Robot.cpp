@@ -63,7 +63,8 @@ enum DriverSection
   GROUNDINTAKING = 3,
   SUBSTATIONINTAKING = 4,
   SCORINGCONE = 5,
-  SCORINGCUBE = 6
+  SCORINGCUBE = 6,
+  UNTIPCONE = 7
 };
 
 // Values to Set with ShuffleBoard
@@ -162,7 +163,7 @@ void Robot::RobotPeriodic()
  * if-else structure below with additional strings. If using the SendableChooser
  * make sure to add them to the chooser code above as well.
  */
-void Robot::AutonomousInit()
+void Robot::AutonomousInit()  
 {
   /*m_autoSelected = m_chooser.GetSelected();
   m_autoSelected = SmartDashboard::GetString("Auto Selector",
@@ -650,15 +651,15 @@ void Robot::TeleopPeriodic()
       }
       else if (elevatorLift->winchEncoderReading() < -1 && lastElevatorSpeed < 0)
       {
-        lastElevatorSpeed = 0;
+        //lastElevatorSpeed = 0;
       }
       elevatorLift->MoveElevatorPercent(lastElevatorSpeed);
 
 
       double wristSpeed = 0;
-      if (xbox_Drive2->GetLeftBumper())
+      if (xbox_Drive2->GetRightBumper())
         wristSpeed = 0.2;
-      else if (xbox_Drive2->GetRightBumper())
+      else if (xbox_Drive2->GetLeftBumper())
         wristSpeed = -0.2;
       else
         wristSpeed = 0;
@@ -693,7 +694,7 @@ void Robot::TeleopPeriodic()
       }
 
       // Trigger Autonomous Commands
-      if (xbox_Drive2->GetYButtonPressed())
+      if (xbox_Drive2->GetBButtonPressed())
       {
         // Low Post
         conePlaceXLimelightGoal = 0.19; 
@@ -704,7 +705,7 @@ void Robot::TeleopPeriodic()
         swerveDrive->BeginPIDLoop();
         currentDriverSection = SCORINGCONE;
       } 
-      else if (xbox_Drive2->GetBButtonPressed())
+      else if (xbox_Drive2->GetYButtonPressed())
       {
         //High Post
         conePlaceXLimelightGoal = 0.19; 
@@ -756,6 +757,10 @@ void Robot::TeleopPeriodic()
       else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
       {
         currentDriverSection = GROUNDPREPAREDTOGRAB;
+      }
+      else if (xbox_Drive2->GetRightStickButtonPressed())
+      {
+        currentDriverSection = UNTIPCONE;
       }
       break;
     }
@@ -870,11 +875,22 @@ void Robot::TeleopPeriodic()
     {
       swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
       elevatorLift->SetElevatorHeightPID(50, elapsedTime);
-      claw->PIDWrist(M_PI, elapsedTime);
+      claw->PIDWrist(M_PI / 2, elapsedTime);
       claw->OpenClaw(elapsedTime);
       
       if (xbox_Drive2->GetPOV() == 0)
         currentDriverSection = RESUMEDRIVING; // BEGIN DRIVING once using april tags to align
+      break;
+    }
+
+    case UNTIPCONE:
+    {
+      swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
+      elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+      claw->PIDWrist(1.866, elapsedTime);
+      claw->OpenClaw(elapsedTime);
+      if (xbox_Drive2->GetRightStickButtonReleased())
+        currentDriverSection = RESUMEDRIVING;  
       break;
     }
   } 
