@@ -169,6 +169,18 @@ bool Update()
   return true;
 }
 
+  double elapsedTime;
+
+void Setup();
+void Wrapup();
+bool Section0();
+bool Section1();
+bool Section2();
+bool Section3();
+bool Section4();
+bool Section5();
+bool Section6();
+
 FunctionWrapper* testFunction;
 SequentialProgram* testAutonomous;
 
@@ -242,7 +254,7 @@ CommandScheduler::GetInstance().Enable();
   testAutonomous->AddFunction([](){return Section4();}, ChassisSystem);
   testAutonomous->AddFunction([](){return Section5();}, ChassisSystem);
   testAutonomous->AddFunction([](){return Section6();}, ChassisSystem);
-
+  testAutonomous->Schedule();
 
     // SmartDashboard::PutBoolean("in splinen 1", false);
 
@@ -302,8 +314,6 @@ void Robot::AutonomousPeriodic()
     }
   }*/
 
-  double elapsedTime;
-
   void Setup()
   {
   //   SmartDashboard::PutBoolean("finished loop", false);
@@ -334,6 +344,12 @@ void Robot::AutonomousPeriodic()
       currentConeY = -1 * array.value[1];
     }
   }
+  }
+
+  void Wrapup()
+  {
+    lastTime = timer.Get().value();
+    SmartDashboard::PutBoolean("finished loop", true);
   }
 
   bool Section0()
@@ -408,7 +424,7 @@ void Robot::AutonomousPeriodic()
     elevatorLift->SetElevatorHeightPID(0, elapsedTime);
     claw->OpenClaw(elapsedTime);
     claw->PIDWrist(2.1, elapsedTime);
-    bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
+    bool splineDone = swerveDrive->FollowTrajectory(timer);
     SmartDashboard::PutBoolean("spline done", splineDone);
     if (splineDone)
     {
@@ -463,7 +479,7 @@ void Robot::AutonomousPeriodic()
     Setup();
     //claw->CloseClaw(elapsedTime);
     claw->PIDWrist(0.6, elapsedTime);
-    bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
+    bool splineDone = swerveDrive->FollowTrajectory(timer);
     if (splineDone)
     {
       doneWithPoleAlignment = false;
@@ -816,12 +832,6 @@ void Robot::AutonomousPeriodic()
     claw->PIDWrist(0.6, elapsedTime);
     elevatorLift->SetElevatorHeightPID(0, elapsedTime);
   }*/
-
-void Wrapup()
-{
-  lastTime = timer.Get().value();
-  SmartDashboard::PutBoolean("finished loop", true);
-}
 
 void Robot::TeleopInit()
 {
