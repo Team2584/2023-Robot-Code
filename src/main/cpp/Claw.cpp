@@ -81,7 +81,8 @@ public:
     SmartDashboard::PutNumber("intended I", intendedI);
     SmartDashboard::PutNumber("final speed", lastWristSpeed);
 
-
+    if (lastWristSpeed < -0.2)
+      lastWristSpeed = -0.2;
     MoveWristPercent(lastWristSpeed + WRISTFF);
     return false;
   }
@@ -134,6 +135,7 @@ public:
 
   bool CloseClaw(double elapsedTime)
   {
+    SmartDashboard::PutNumber("claw speed", clawEncoder->GetVelocity());
     return PIDClaw(0.3, elapsedTime);
   }
 
