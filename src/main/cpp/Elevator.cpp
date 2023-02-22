@@ -12,6 +12,7 @@ private:
 
 public:
     rev::CANSparkMax *winchL, *winchR;
+    rev::SparkMaxRelativeEncoder *winchEncoder;
     TimeOfFlight *tofSensor;
 
   /**
@@ -23,7 +24,24 @@ public:
     winchR = winchR_;
     winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
     winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
+    winchEncoder = new rev::SparkMaxRelativeEncoder(winchL->GetEncoder());
+    winchEncoder->SetPosition(0.0);
     tofSensor = tofSensor_;
+  }
+
+  void ResetElevatorEncoder()
+  {
+    winchEncoder->SetPosition(0.0);
+  }
+
+  double winchEncoderReading()
+  {
+    return -winchEncoder->GetPosition();
+  }
+
+  double TOFSReading()
+  {
+    return (tofSensor->GetRange()) / 100;
   }
 
   double TOFSElevatorHeight()
@@ -33,17 +51,8 @@ public:
     return ((tofSensor->GetRange() - 30) * 0.70710678 + 260) / 1000;
   }
 
-  void StopElevatorCoast()
+  void StopElevator()
   {
-    winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
-    winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
-    MoveElevatorPercent(0);
-  }
-
-  void StopElevatorBreak()
-  {
-    winchR->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
-    winchL->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
     MoveElevatorPercent(0);
   }
 
@@ -53,7 +62,7 @@ public:
   void MoveElevatorPercent(double percent)
   {
     winchR->Set(percent);
-    winchL->Set(percent);   
+    winchL->Set(-percent);   
   }
 
   void StartPIDLoop()
@@ -62,27 +71,30 @@ public:
     lastSpeed = 0;
   }
 
-  void SetElevatorHeightPID(double height, double elapsedTime)
+  bool SetElevatorHeightPID(double height, double elapsedTime)
   {
-    double error = height - TOFSElevatorHeight();
+    double error = height - winchEncoderReading();
 
-     if (fabs(error) < ALLOWABLE_ERROR_HEIGHT)
+     if (fabs(error) < ALLOWABLE_ERROR_ELEV)
     {
-      error = 0;
       runningIntegral = 0;
+      MoveElevatorPercent(0);
+      return true;
     }
 
     // calculate our I in PID and clamp it between our maximum I effects
-    double intendedI = std::clamp(KI * runningIntegral, -1 * KIMAX, KIMAX);
+    double intendedI = std::clamp(ELEVKI * runningIntegral, -1 * ELEVKIMAX, ELEVKIMAX);
 
     // Clamp our intended velocity to our maximum and minimum velocity to prevent the robot from going too fast
-    double intendedVelocity = std::clamp(KP * error + intendedI, -1 * MAX_SPEED, MAX_SPEED);
+    double intendedVelocity = std::clamp(ELEVKP * error + intendedI, -1 * ELEVMAX_SPEED, ELEVMAX_SPEED);
 
     // Make sure our change in velocity from the last loop is not going above our maximum acceleration
-    lastSpeed += std::clamp(intendedVelocity - lastSpeed, -1 * MAX_ACCELERATION * elapsedTime,
-                        MAX_ACCELERATION * elapsedTime);
+    lastSpeed += std::clamp(intendedVelocity - lastSpeed, -1 * ELEVMAX_ACCELERATION * elapsedTime,
+                        ELEVMAX_ACCELERATION * elapsedTime);
 
+    runningIntegral += error;
 
-    MoveElevatorPercent(lastSpeed + HOLDFF);
+    MoveElevatorPercent(lastSpeed + ELEVHOLDFF);
+    return false;
   }
 };

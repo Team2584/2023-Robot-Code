@@ -6,6 +6,7 @@
 #include <frc/smartdashboard/SendableChooser.h>
 
 #include "rev/CANSparkMax.h"
+#include "rev/AbsoluteEncoder.h"
 
 #include "ctre/phoenix/motorcontrol/can/WPI_TalonFX.h"
 #include "ctre/phoenix/sensors/Pigeon2.h"
@@ -40,6 +41,7 @@
 #include <frc/DoubleSolenoid.h>
 #include <frc/DutyCycleEncoder.h>
 #include <frc/PWM.h>
+#include <frc/AnalogInput.h>
 
 #include <pathplanner/lib/PathPlanner.h>
 
@@ -89,7 +91,7 @@ public:
 
 private:
   frc::SendableChooser<std::string> m_chooser;
-  const std::string kAutoNameDefault = "Default";
-  const std::string kAutoNameCustom = "My Auto";
+  const std::string kAutoNameDefault = "3 Game Object";
+  const std::string kAutoNameCustom = "Test Simple";
   std::string m_autoSelected;
 };

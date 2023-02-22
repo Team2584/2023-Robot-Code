@@ -19,15 +19,15 @@ public:
     }
 
     void updateLimelightValues(){
-    tx = lemonTable->GetNumber("tx", txDefault)/(320/2); // get number and normalise :: reports -1 to 1
+    tx = lemonTable->GetNumber("tx", txDefault)/(320/2) * 5; // get number and normalise :: reports -1 to 1
     ty = lemonTable->GetNumber("ty", tyDefault)/(240/2); // get number and normalise :: reports -1 to 1
     ta = lemonTable->GetNumber("ta", taDefault)/100;     // get number and normalise :: reports 0 to 1
     }
 
     void changeTargetDefaults(double txD, double tyD, double taD){
-        txD = txDefault;
-        tyD = tyDefault;
-        taD = taDefault;
+        txDefault = txD;
+        tyDefault = tyD;
+        taDefault = taD;
     }
 
     double getTargetX(){
@@ -38,6 +38,7 @@ public:
 
     double getTargetY(){
         updateLimelightValues();
+        SmartDashboard::PutNumber("Limelight Y", ty);
         return ty;
     }
 
