@@ -26,7 +26,7 @@ public:
     wristMotor = wrist;
     clawMotor = claw;
     wristMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
-    clawMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
+    clawMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
     clawEncoder =  new rev::SparkMaxRelativeEncoder(clawMotor->GetEncoder());
     clawEncoder->SetPosition(1.0);
     wristEncoder =  new rev::SparkMaxRelativeEncoder(wristMotor->GetEncoder());
