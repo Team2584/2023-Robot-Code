@@ -15,6 +15,7 @@ public:
     rev::CANSparkMax *wristMotor;
     rev::CANSparkMax *clawMotor;
     rev::SparkMaxRelativeEncoder *wristEncoder, *clawEncoder; 
+   // rev::SparkMaxReverseLimitSwitch *reverseLimit;
     rev::SparkMaxAbsoluteEncoder *magEncoder;
 
   /**
@@ -25,7 +26,7 @@ public:
     wristMotor = wrist;
     clawMotor = claw;
     wristMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
-    clawMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
+    clawMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
     clawEncoder =  new rev::SparkMaxRelativeEncoder(clawMotor->GetEncoder());
     clawEncoder->SetPosition(1.0);
     wristEncoder =  new rev::SparkMaxRelativeEncoder(wristMotor->GetEncoder());
@@ -81,7 +82,8 @@ public:
     SmartDashboard::PutNumber("intended I", intendedI);
     SmartDashboard::PutNumber("final speed", lastWristSpeed);
 
-
+    if (lastWristSpeed < -0.2)
+      lastWristSpeed = -0.2;
     MoveWristPercent(lastWristSpeed + WRISTFF);
     return false;
   }
@@ -93,6 +95,7 @@ public:
 
   void MoveClawPercent(double percent)
   {
+   // if ()
     clawMotor->Set(percent);
   }
 
@@ -134,7 +137,10 @@ public:
 
   bool CloseClaw(double elapsedTime)
   {
-    return PIDClaw(0.3, elapsedTime);
+    SmartDashboard::PutNumber("claw speed", clawMotor->GetOutputCurrent());
+    //Grab til it stops or we hit limit switch
+    PIDClaw(0.3, elapsedTime);
+    return clawMotor->GetOutputCurrent() > 50;
   }
 
 };

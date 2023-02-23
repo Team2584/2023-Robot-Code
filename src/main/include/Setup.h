@@ -10,6 +10,7 @@ Orchestra orchestra;
 
 PS4Controller *cont_Driver = new PS4Controller(0);
 XboxController *xbox_Drive = new XboxController(0);
+XboxController *xbox_Drive2 = new XboxController(1);
 
 rev::CANSparkMax swerveFL{11, rev::CANSparkMax::MotorType::kBrushless};
 TalonFX driveFL{01};
