@@ -94,6 +94,9 @@ public:
 
     runningIntegral += error;
 
+    if (lastSpeed < -0.5)
+      lastSpeed = -0.5;
+
     MoveElevatorPercent(lastSpeed + ELEVHOLDFF);
     return false;
   }

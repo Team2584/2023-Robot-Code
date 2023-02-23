@@ -80,6 +80,7 @@ bool doneWithPoleAlignment;
 double conePlaceXLimelightGoal = 0.19; 
 double conePlaceYLimelightGoal = -0.0288;
 double conePlaceElevatorGoal = 44;
+bool placingHigh = false;
 bool queuePlacingCone = true;
 bool autoControllingRobot = false;
 bool dpadAutoControl = false;
@@ -681,7 +682,7 @@ void Robot::TeleopPeriodic()
       if (xbox_Drive2->GetLeftTriggerAxis() > 0.5)
         claw->MoveClawPercent(0.5);  
       else if (xbox_Drive2->GetRightTriggerAxis() > 0.5)
-        claw->MoveClawPercent(-0.5);
+        claw->MoveClawPercent(-0.8);
       else
         claw->MoveClawPercent(0);
 
@@ -700,6 +701,7 @@ void Robot::TeleopPeriodic()
         conePlaceXLimelightGoal = 0.19; 
         conePlaceYLimelightGoal = -0.04;
         conePlaceElevatorGoal = 44;  
+        placingHigh = false;
         doneWithPoleAlignment = false;
         turnt = false;
         swerveDrive->BeginPIDLoop();
@@ -711,6 +713,7 @@ void Robot::TeleopPeriodic()
         conePlaceXLimelightGoal = 0.19; 
         conePlaceYLimelightGoal = -0.04;
         conePlaceElevatorGoal = 78;  
+        placingHigh = true;
         doneWithPoleAlignment = false;
         turnt = false;
         swerveDrive->BeginPIDLoop();
@@ -722,6 +725,7 @@ void Robot::TeleopPeriodic()
         conePlaceYLimelightGoal= 0.91;
         conePlaceXLimelightGoal = 0.075;
         conePlaceElevatorGoal = 44;  
+        placingHigh = false;
         doneWithPoleAlignment = false;
         turnt = false;
         swerveDrive->BeginPIDLoop();
@@ -733,6 +737,7 @@ void Robot::TeleopPeriodic()
         conePlaceYLimelightGoal= 0.91;
         conePlaceXLimelightGoal = 0.075;
         conePlaceElevatorGoal = 78;  
+        placingHigh = true;
         doneWithPoleAlignment = false;
         turnt = false;
         swerveDrive->BeginPIDLoop();
@@ -792,7 +797,7 @@ void Robot::TeleopPeriodic()
         claw->PIDWrist(M_PI / 2, elapsedTime);
       }
 
-      if (xbox_Drive2->GetYButtonReleased() || xbox_Drive2->GetBButtonReleased())
+      if ((!xbox_Drive2->GetYButton() && placingHigh) || (!xbox_Drive2->GetBButton() && !placingHigh))
       {
         currentDriverSection = BEGINDRIVING;
       }
@@ -822,7 +827,7 @@ void Robot::TeleopPeriodic()
         claw->PIDWrist(M_PI / 2, elapsedTime);
       }
 
-      if (xbox_Drive2->GetAButtonReleased() || xbox_Drive2->GetXButtonReleased())
+      if ((!xbox_Drive2->GetAButton() && placingHigh) || (!xbox_Drive2->GetXButton() && !placingHigh))
       {
         currentDriverSection = BEGINDRIVING;
       }
@@ -848,7 +853,7 @@ void Robot::TeleopPeriodic()
     {
       swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-      claw->PIDWrist(2.1, elapsedTime);
+      claw->PIDWrist(2.15, elapsedTime);
       claw->OpenClaw(elapsedTime);
       
       if (xbox_Drive->GetLeftTriggerAxis() < 0.2)
@@ -864,7 +869,7 @@ void Robot::TeleopPeriodic()
       if (closed && elevatorLift->winchEncoderReading() < 5)
         claw->PIDWrist(0.3, elapsedTime);
       else
-        claw->PIDWrist(2.1, elapsedTime);
+        claw->PIDWrist(2.15, elapsedTime);
 
       if (xbox_Drive->GetRightTriggerAxis() < 0.2)
         currentDriverSection = RESUMEDRIVING; 
@@ -889,7 +894,7 @@ void Robot::TeleopPeriodic()
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->PIDWrist(1.866, elapsedTime);
       claw->OpenClaw(elapsedTime);
-      if (xbox_Drive2->GetRightStickButtonReleased())
+      if (!xbox_Drive2->GetRightStickButton())
         currentDriverSection = RESUMEDRIVING;  
       break;
     }
