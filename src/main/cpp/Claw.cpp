@@ -15,7 +15,7 @@ public:
     rev::CANSparkMax *wristMotor;
     rev::CANSparkMax *clawMotor;
     rev::SparkMaxRelativeEncoder *wristEncoder, *clawEncoder; 
-   // rev::SparkMaxReverseLimitSwitch *reverseLimit;
+    rev::SparkMaxAnalogSensor *distanceSensor;
     rev::SparkMaxAbsoluteEncoder *magEncoder;
 
   /**
@@ -31,6 +31,7 @@ public:
     clawEncoder->SetPosition(1.0);
     wristEncoder =  new rev::SparkMaxRelativeEncoder(wristMotor->GetEncoder());
     wristEncoder->SetPosition(0.0);
+    distanceSensor = new rev::SparkMaxAnalogSensor(clawMotor->GetAnalog());
 
     magEncoder = new rev::SparkMaxAbsoluteEncoder(wristMotor->GetAbsoluteEncoder(rev::SparkMaxAbsoluteEncoder::Type::kDutyCycle));
   }
@@ -95,7 +96,9 @@ public:
 
   void MoveClawPercent(double percent)
   {
-   // if ()
+   SmartDashboard::PutNumber("claw current", clawMotor->GetOutputCurrent());
+   SmartDashboard::PutNumber("claw speed", percent);
+   SmartDashboard::PutNumber("Distance Sensor", distanceSensor->GetPosition());
     clawMotor->Set(percent);
   }
 
@@ -137,10 +140,9 @@ public:
 
   bool CloseClaw(double elapsedTime)
   {
-    SmartDashboard::PutNumber("claw speed", clawMotor->GetOutputCurrent());
     //Grab til it stops or we hit limit switch
-    PIDClaw(0.3, elapsedTime);
-    return clawMotor->GetOutputCurrent() > 50;
+    PIDClaw(0, elapsedTime); // change to just closes once we have working limit switches
+    return clawMotor->GetOutputCurrent() > 55;
   }
 
 };

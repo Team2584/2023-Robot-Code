@@ -33,8 +33,6 @@ DutyCycleEncoder BRMagEnc(7);
 Pigeon2 _pigeon(6);
 
 TimeOfFlight TOFSensor(0);
-AnalogInput distanceSensor{3};
-
 
 double thetaInit;
 

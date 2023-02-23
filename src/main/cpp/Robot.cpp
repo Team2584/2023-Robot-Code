@@ -82,8 +82,8 @@ double conePlaceYLimelightGoal = -0.0288;
 double conePlaceElevatorGoal = 44;
 bool placingHigh = false;
 bool queuePlacingCone = true;
-bool autoControllingRobot = false;
-bool dpadAutoControl = false;
+bool centeredOnSubstation = false;
+
 
 double startingSanity = 0;
 
@@ -700,7 +700,7 @@ void Robot::TeleopPeriodic()
         // Low Post
         conePlaceXLimelightGoal = 0.19; 
         conePlaceYLimelightGoal = -0.04;
-        conePlaceElevatorGoal = 44;  
+        conePlaceElevatorGoal = 47;  
         placingHigh = false;
         doneWithPoleAlignment = false;
         turnt = false;
@@ -712,7 +712,7 @@ void Robot::TeleopPeriodic()
         //High Post
         conePlaceXLimelightGoal = 0.19; 
         conePlaceYLimelightGoal = -0.04;
-        conePlaceElevatorGoal = 78;  
+        conePlaceElevatorGoal = 82;  
         placingHigh = true;
         doneWithPoleAlignment = false;
         turnt = false;
@@ -721,11 +721,11 @@ void Robot::TeleopPeriodic()
       }
       else if (xbox_Drive2->GetXButtonPressed())
       {
-        //Low Cube
+        //High Cube
         conePlaceYLimelightGoal= 0.91;
         conePlaceXLimelightGoal = 0.075;
-        conePlaceElevatorGoal = 44;  
-        placingHigh = false;
+        conePlaceElevatorGoal = 82;  
+        placingHigh = true;
         doneWithPoleAlignment = false;
         turnt = false;
         swerveDrive->BeginPIDLoop();
@@ -733,11 +733,11 @@ void Robot::TeleopPeriodic()
       }
       else if (xbox_Drive2->GetAButtonPressed())
       {
-        //High Cube
+        //Low Cube
         conePlaceYLimelightGoal= 0.91;
         conePlaceXLimelightGoal = 0.075;
-        conePlaceElevatorGoal = 78;  
-        placingHigh = true;
+        conePlaceElevatorGoal = 47;  
+        placingHigh = false;
         doneWithPoleAlignment = false;
         turnt = false;
         swerveDrive->BeginPIDLoop();
@@ -747,13 +747,17 @@ void Robot::TeleopPeriodic()
       {
         currentDriverSection = ZEROING;
       }
-      else if (xbox_Drive2->GetPOV() == 0 || xbox_Drive2->GetPOV() == 45 || xbox_Drive2->GetPOV() == 315)
+      else if (xbox_Drive2->GetPOV() == 90 || xbox_Drive2->GetPOV() == 45 || xbox_Drive2->GetPOV() == 135)
       {
+        turnt = false;
+        centeredOnSubstation = false;
         currentDriverSection = SUBSTATIONINTAKING;
       }
-      else if (xbox_Drive2->GetPOV() == 180 || xbox_Drive2->GetPOV() == 225 || xbox_Drive2->GetPOV() == 135)
+      else if (xbox_Drive2->GetPOV() == 315 || xbox_Drive2->GetPOV() == 225 || xbox_Drive2->GetPOV() == 270)
       {
-        // nothing yet
+        turnt = false;
+        centeredOnSubstation = false;
+        currentDriverSection = SUBSTATIONINTAKING;
       }
       else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
       {
@@ -788,7 +792,8 @@ void Robot::TeleopPeriodic()
       {
         double offsetX = limelight->getTargetX();
         double offsetY = limelight->getTargetY();
-        centered = swerveDrive->StrafeToPole(offsetX, offsetY, conePlaceXLimelightGoal, conePlaceYLimelightGoal, elapsedTime);  //0.27, 0.149
+        if (limelight->getTargetArea() != 0 && limelight->getTargetArea() < 100000000) //tune
+          centered = swerveDrive->StrafeToPole(offsetX, offsetY, conePlaceXLimelightGoal, conePlaceYLimelightGoal, elapsedTime);  
       }
       if (centered && lifted)
         doneWithPoleAlignment = true;
@@ -827,7 +832,7 @@ void Robot::TeleopPeriodic()
         claw->PIDWrist(M_PI / 2, elapsedTime);
       }
 
-      if ((!xbox_Drive2->GetAButton() && placingHigh) || (!xbox_Drive2->GetXButton() && !placingHigh))
+      if ((!xbox_Drive2->GetXButton() && placingHigh) || (!xbox_Drive2->GetAButton() && !placingHigh))
       {
         currentDriverSection = BEGINDRIVING;
       }
@@ -879,12 +884,25 @@ void Robot::TeleopPeriodic()
     case SUBSTATIONINTAKING:
     {
       swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
-      elevatorLift->SetElevatorHeightPID(50, elapsedTime);
+      bool lifted = elevatorLift->SetElevatorHeightPID(72.6, elapsedTime);
       claw->PIDWrist(M_PI / 2, elapsedTime);
       claw->OpenClaw(elapsedTime);
-      
-      if (xbox_Drive2->GetPOV() == 0)
-        currentDriverSection = RESUMEDRIVING; // BEGIN DRIVING once using april tags to align
+      bool done = false;
+      if (!turnt)
+        turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(180_deg)), elapsedTime);
+      if (turnt)
+      {
+        centeredOnSubstation = swerveDrive->DriveToPoseTag(Pose2d(-0.25_m, -1.5_m, Rotation2d(180_deg)), elapsedTime); 
+      }
+      if (centeredOnSubstation && lifted)
+      {
+        done = swerveDrive->DriveToPoseTag(Pose2d(-0.25_m, -0.75_m, Rotation2d(180_deg)), elapsedTime); 
+      }
+      if (done)
+        claw->CloseClaw(elapsedTime);
+
+      if (xbox_Drive2->GetPOV() == -1)
+        currentDriverSection = BEGINDRIVING;
       break;
     }
 
