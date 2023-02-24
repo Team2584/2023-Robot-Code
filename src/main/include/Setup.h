@@ -34,7 +34,7 @@ Pigeon2 _pigeon(6);
 
 TimeOfFlight TOFSensor(0);
 
-frc::PWMSparkMax lights{9}; // CHANGE
+frc::PWMSparkMax lightController{0}; // CHANGE
 
 double thetaInit;
 

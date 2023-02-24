@@ -8,6 +8,7 @@
 #include "Elevator.cpp"
 #include "Limelight.cpp"
 #include "Claw.cpp"
+#include "LEDLights.cpp"
 
 #include <fmt/core.h>
 #include <frc/livewindow/LiveWindow.h>
@@ -20,6 +21,7 @@ SwerveDrive *swerveDrive;
 ElevatorLift *elevatorLift;
 Limelight *limelight;
 Claw *claw;
+LEDLights *lights;
 
 // To find values from cameras
 nt::NetworkTableInstance inst;
@@ -143,6 +145,8 @@ void Robot::RobotInit()
   elevatorLift = new ElevatorLift(&winchL, &winchR, &TOFSensor);
   limelight = new Limelight(limelightTable);
   claw = new Claw(&wrist, &clawM1);
+  lights  = new LEDLights(&lightController);
+  lights->SetLED();
 }
 
 /**
@@ -245,6 +249,11 @@ void Robot::AutonomousInit()
 void Robot::AutonomousPeriodic()
 {
   SmartDashboard::PutNumber("Spline Section", splineSection);
+
+  if (claw->ConeInClaw() && claw->ClawEncoderReading() > 8)
+    lights->SetLED("green");
+  else
+    lights->SetLED();
 
   if (m_autoSelected == kAutoRR2GO || m_autoSelected == kAutoRL2GO || m_autoSelected == kAutoBL2GO || m_autoSelected == kAutoBR2GO)
   {
@@ -646,13 +655,6 @@ void Robot::AutonomousPeriodic()
 
 void Robot::TeleopInit()
 {
-  // LOWEST POSSIBLE WRIST ALLOWED: M_PI 
-  // LOWEST WRIST ALLOWED WHEN ELEVATOR IS DOWN:2.17
-  // HIHGEST WRIST ALLOWED: -0.005
-  // HIGHEST CLAW : maybe not a great idea
-  // LOWEST CLAW: maybe not a great idea
-  // Slew rate limiting for drive: maybe not a great idea
-
   // Prepare swerve drive odometry
   pigeon_initial = fmod(_pigeon.GetYaw() + STARTING_DRIVE_HEADING, 360);
   swerveDrive->pigeon_initial = pigeon_initial;
@@ -683,15 +685,17 @@ void Robot::TeleopInit()
 
 void Robot::TeleopPeriodic()
 {
-  //distanceSensor.SetOversampleBits(8);
-  ///SmartDashboard::PutNumber("real distance value", distanceSensor.GetValue());
-  // SmartDashboard::PutNumber("average distance value", distanceSensor.GetAverageValue() / 8);
-
   // SmartDashboard::PutNumber("FL Mag", swerveDrive->FLModule->magEncoder->GetAbsolutePosition());
   // SmartDashboard::PutNumber("FR Mag", swerveDrive->FRModule->magEncoder->GetAbsolutePosition());
   // SmartDashboard::PutNumber("BL Mag", swerveDrive->BLModule->magEncoder->GetAbsolutePosition());
   // SmartDashboard::PutNumber("BR Mag", swerveDrive->BRModule->magEncoder->GetAbsolutePosition());
   // SmartDashboard::PutNumber("Pigeon", _pigeon.GetYaw());
+
+  if (claw->ConeInClaw() && claw->ClawEncoderReading() > 8)
+    lights->SetLED("green");
+  else
+    lights->SetLED();
+
 
   // update our timer
   double time = timer.Get().value();
