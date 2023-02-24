@@ -91,7 +91,8 @@ public:
 
 private:
   frc::SendableChooser<std::string> m_chooser;
-  const std::string kAutoNameDefault = "3 Game Object";
-  const std::string kAutoNameCustom = "Test Simple";
+  const std::string kAutoNameDefault = "2 Game Object";
+  const std::string kAutoNameBalance = "Balance Auto";
+  const std::string kAutoNameTest = "Test Auto";
   std::string m_autoSelected;
 };

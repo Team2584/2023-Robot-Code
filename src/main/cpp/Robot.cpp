@@ -97,7 +97,8 @@ void Robot::RobotInit()
 
   // Autonomous Choosing
   m_chooser.SetDefaultOption(kAutoNameDefault, kAutoNameDefault);
-  m_chooser.AddOption(kAutoNameCustom, kAutoNameCustom);
+  m_chooser.AddOption(kAutoNameBalance, kAutoNameBalance);
+  m_chooser.AddOption(kAutoNameTest, kAutoNameTest);
   frc::SmartDashboard::PutData("Auto Modes", &m_chooser);
 
   // Setting motor breaktypes
@@ -168,27 +169,24 @@ void Robot::RobotPeriodic()
  */
 void Robot::AutonomousInit()  
 {
-  /*m_autoSelected = m_chooser.GetSelected();
-  m_autoSelected = SmartDashboard::GetString("Auto Selector",
-                                             kAutoNameDefault);
+  m_autoSelected = m_chooser.GetSelected();
   fmt::print("Auto selected: {}\n", m_autoSelected);
 
-  if (m_autoSelected == kAutoNameCustom)
+  if (m_autoSelected == kAutoNameBalance)
   {
-    swerveDrive->ResetOdometry(Pose2d(4.74_m, 1.89_m, Rotation2d(3.14_rad)));
-    swerveDrive->ResetTrajectoryList();
-    swerveDrive->InitializeTrajectory("RedRight3GamePiece1");
-    swerveDrive->InitializeTrajectory("RedRight3GamePiece2");
-    swerveDrive->InitializeTrajectory("RedRight3GamePiece3");
-    swerveDrive->InitializeTrajectory("RedRight3GamePiece4");
-    swerveDrive->SetNextTrajectory();
+    SmartDashboard::PutString("auto tpe thing", "balace");
 
     splineSection = 0;
   }
-  else
+  else if (m_autoSelected == kAutoNameTest)
   {
-    splineSection = 0;
-  }*/
+    SmartDashboard::PutString("auto tpe thing", "test");
+  }
+  else if (m_autoSelected == kAutoNameDefault)
+  {
+    SmartDashboard::PutString("auto tpe thing", "default");
+
+  }
 
   elevatorLift->ResetElevatorEncoder();
   claw->ResetClawEncoder();
@@ -256,7 +254,7 @@ void Robot::AutonomousPeriodic()
   }*/
 
   SmartDashboard::PutNumber("Spline Section", splineSection);
-
+/*
   double elapsedTime = timer.Get().value() - lastTime;
   swerveDrive->UpdateOdometry(timer.Get());
   swerveDrive->UpdateConeOdometry();
@@ -417,7 +415,7 @@ void Robot::AutonomousPeriodic()
       }
     }
   }
-
+*/
   lastTime = timer.Get().value();
 }
 
