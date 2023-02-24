@@ -37,8 +37,6 @@ nt::DoubleEntry polePixelEntry;
 nt::BooleanEntry connectedEntry;
 nt::DoubleArrayTopic coneTopic;
 nt::DoubleArraySubscriber coneEntry;
-nt::BooleanTopic hasConeTopic;
-nt::BooleanEntry hasConeEntry;
 double currentConeX;
 double currentConeY;
 
@@ -124,14 +122,12 @@ void Robot::RobotInit()
   curPoseTopic = visionTable->GetDoubleArrayTopic("curPose");
   polePixelTopic = limelightTable->GetDoubleTopic("polePixel");
   coneTopic = visionTable->GetDoubleArrayTopic("conePos");
-  hasConeTopic = visionTable->GetBooleanTopic("hasCone");
   poseSub = poseTopic.Subscribe({});
   sanityEntry = sanityTopic.GetEntry(-1);
   connectedEntry = connectedTopic.GetEntry(false);
   curPoseEntry = curPoseTopic.GetEntry({});
   polePixelEntry = polePixelTopic.GetEntry(1000);
   coneEntry = coneTopic.Subscribe({});
-  hasConeEntry = hasConeTopic.GetEntry(false);
 
   connectedEntry.Set(true);
   startingSanity = sanityEntry.Get();
@@ -349,7 +345,7 @@ void Robot::AutonomousPeriodic()
       }
       SmartDashboard::PutBoolean("turnt", turnt);
       if (turnt)
-        coneInClaw = hasConeEntry.Get();
+        coneInClaw = claw->ConeInClaw();
       
       if (turnt && !coneInClaw)
         coneInClaw = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.58_m, goalConeGrabAngle), elapsedTime);
@@ -519,7 +515,7 @@ void Robot::AutonomousPeriodic()
       }
       SmartDashboard::PutBoolean("turnt", turnt);
       if (turnt)
-        coneInClaw = hasConeEntry.Get();
+        coneInClaw = claw->ConeInClaw();
       
       if (turnt && !coneInClaw)
         coneInClaw = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.58_m, goalConeGrabAngle), elapsedTime);
@@ -1228,7 +1224,6 @@ void Robot::TeleopPeriodic()
       turnt = swerveDrive->TurnToPixelCone(angleGoal, elapsedTime);
       goalConeGrabAngle = swerveDrive->GetPose().Rotation();
     }
-    bool atCone = hasConeEntry.Get();
     if (turnt && !atCone)
       atCone = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.58_m, goalConeGrabAngle), elapsedTime);
     if (atCone)
