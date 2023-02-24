@@ -71,6 +71,8 @@ enum DriverSection
 double MAX_DRIVE_SPEED = 0.4;
 double MAX_SPIN_SPEED = 0.4;
 double ELEVATOR_SPEED = 0.1;
+double MAX_DRIVE_ACCELERATION = 1;    //max change in percent per second
+double MAX_SPIN_ACCELERATION = 1;
 
 // Cringe Auto Values S**FF
 double splineSection = 0;
@@ -575,16 +577,22 @@ void Robot::TeleopPeriodic()
   {
     MAX_DRIVE_SPEED = 0.9;
     MAX_SPIN_SPEED = 0.9;
+    MAX_DRIVE_ACCELERATION = 4;
+    MAX_SPIN_ACCELERATION = 4;
   }
   else if (xbox_Drive->GetLeftBumper() || xbox_Drive->GetXButton())
   {
     MAX_DRIVE_SPEED = 0.2;
     MAX_SPIN_SPEED = 0.2;
+    MAX_DRIVE_ACCELERATION = 1;
+    MAX_SPIN_ACCELERATION = 1;
   }
   else
   {
     MAX_DRIVE_SPEED = 0.4;
     MAX_SPIN_SPEED = 0.4;
+    MAX_DRIVE_ACCELERATION = 2;
+    MAX_SPIN_ACCELERATION = 2;
   }
 
   // Scale our joystick inputs to our intended max drive speeds
@@ -785,7 +793,12 @@ void Robot::TeleopPeriodic()
 
     case SCORINGCONE:
     {
-      claw->MoveClawPercent(0);
+      if (xbox_Drive2->GetLeftTriggerAxis() > 0.5)
+        claw->MoveClawPercent(0.5);  
+      else if (xbox_Drive2->GetRightTriggerAxis() > 0.5)
+        claw->MoveClawPercent(-0.8);
+      else
+        claw->MoveClawPercent(0);
 
       if (!doneWithPoleAlignment)
       {
@@ -801,7 +814,7 @@ void Robot::TeleopPeriodic()
       {
         double offsetX = limelight->getTargetX();
         double offsetY = limelight->getTargetY();
-        if (limelight->getTargetArea() != 0 && limelight->getTargetArea() < 100000000) //tune
+        if (limelight->getTargetArea() != 0 && limelight->getTargetArea() < 100000000) // tune
           centered = swerveDrive->StrafeToPole(offsetX, offsetY, conePlaceXLimelightGoal, conePlaceYLimelightGoal, elapsedTime);  
       }
       if (centered && lifted)
@@ -820,8 +833,13 @@ void Robot::TeleopPeriodic()
 
     case SCORINGCUBE:
     {
-      claw->MoveClawPercent(0);
-
+      if (xbox_Drive2->GetLeftTriggerAxis() > 0.5)
+        claw->MoveClawPercent(0.5);  
+      else if (xbox_Drive2->GetRightTriggerAxis() > 0.5)
+        claw->MoveClawPercent(-0.8);
+      else
+        claw->MoveClawPercent(0);
+        
       if (!doneWithPoleAlignment)
       {
         claw->PIDWrist(0.9, elapsedTime);
@@ -851,8 +869,14 @@ void Robot::TeleopPeriodic()
     case ZEROING:
     {
       swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
+      if (xbox_Drive2->GetLeftTriggerAxis() > 0.5)
+        claw->MoveClawPercent(0.5);  
+      else if (xbox_Drive2->GetRightTriggerAxis() > 0.5)
+        claw->MoveClawPercent(-0.8);
+      else
+        claw->MoveClawPercent(0);
+
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-      claw->MoveClawPercent(0);
       if (elevatorLift->winchEncoderReading() < 5)
         claw->PIDWrist(0.3, elapsedTime);
       else

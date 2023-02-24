@@ -38,8 +38,6 @@ double thetaInit;
 
 //Customization Variabes (all in percent power so the driver's weak brain don't get confused)
 #define CONTROLLER_DEADBAND 0.2
-#define MAX_DRIVE_ACCELERATION 1    //max change in percent per second
-#define MAX_SPIN_ACCELERATION 1
 #define MAX_ELEV_ACCELERATION 3
 #define MAX_WRIST_ACCELERATION 3
 #define STARTING_DRIVE_HEADING 0
