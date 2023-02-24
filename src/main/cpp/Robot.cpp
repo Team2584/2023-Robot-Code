@@ -83,7 +83,9 @@ double conePlaceElevatorGoal = 44;
 bool placingHigh = false;
 bool queuePlacingCone = true;
 bool centeredOnSubstation = false;
-
+bool coneInClaw = false;
+bool leftSubstation = false;
+bool clawFinishedOpening = false;
 
 double startingSanity = 0;
 
@@ -751,12 +753,18 @@ void Robot::TeleopPeriodic()
       {
         turnt = false;
         centeredOnSubstation = false;
+        coneInClaw = false;
+        clawFinishedOpening = false;
+        leftSubstation = false;
         currentDriverSection = SUBSTATIONINTAKING;
       }
       else if (xbox_Drive2->GetPOV() == 315 || xbox_Drive2->GetPOV() == 225 || xbox_Drive2->GetPOV() == 270)
       {
         turnt = false;
         centeredOnSubstation = false;
+        coneInClaw = false;
+        clawFinishedOpening = false;
+        leftSubstation = true;
         currentDriverSection = SUBSTATIONINTAKING;
       }
       else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
@@ -765,6 +773,7 @@ void Robot::TeleopPeriodic()
       }
       else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
       {
+        coneInClaw = false;
         currentDriverSection = GROUNDPREPAREDTOGRAB;
       }
       else if (xbox_Drive2->GetRightStickButtonPressed())
@@ -859,8 +868,17 @@ void Robot::TeleopPeriodic()
       swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->PIDWrist(2.15, elapsedTime);
-      claw->OpenClaw(elapsedTime);
       
+      if ((claw->ConeInClaw() && claw->ClawEncoderReading() > 5) || coneInClaw)
+      {
+        claw->CloseClaw(elapsedTime);
+        coneInClaw = true;
+      }
+      else 
+      {
+        claw->OpenClaw(elapsedTime);
+      }
+
       if (xbox_Drive->GetLeftTriggerAxis() < 0.2)
         currentDriverSection = RESUMEDRIVING;
       break;
@@ -883,26 +901,54 @@ void Robot::TeleopPeriodic()
 
     case SUBSTATIONINTAKING:
     {
-      swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
-      bool lifted = elevatorLift->SetElevatorHeightPID(72.6, elapsedTime);
-      claw->PIDWrist(M_PI / 2, elapsedTime);
-      claw->OpenClaw(elapsedTime);
-      bool done = false;
-      if (!turnt)
-        turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(180_deg)), elapsedTime);
-      if (turnt)
+      if (leftSubstation)
       {
-        centeredOnSubstation = swerveDrive->DriveToPoseTag(Pose2d(-0.25_m, -1.5_m, Rotation2d(180_deg)), elapsedTime); 
+        bool lifted = elevatorLift->SetElevatorHeightPID(61, elapsedTime);
+        claw->PIDWrist(M_PI / 2, elapsedTime);
+        if (!turnt)
+          turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(0_deg)), elapsedTime);
+        if (turnt && !centeredOnSubstation)
+        {
+          centeredOnSubstation = swerveDrive->DriveToPoseTag(Pose2d(-0.65_m, -1.5_m, Rotation2d(0_deg)), elapsedTime); 
+        }
+        if (centeredOnSubstation && lifted && !coneInClaw)
+        {
+          coneInClaw = swerveDrive->DriveToPoseTag(Pose2d(-0.65_m, -0.98_m, Rotation2d(0_deg)), elapsedTime); 
+        }
+        if (centeredOnSubstation && lifted && (claw->ConeInClaw() || coneInClaw))
+        {
+          swerveDrive->DriveSwervePercent(0,0,0);
+          coneInClaw = true;
+        }
+        if (coneInClaw)
+          claw->CloseClaw(elapsedTime);
+        else
+          claw->OpenClaw(elapsedTime);
+        SmartDashboard::PutBoolean("centered", centeredOnSubstation);
+        SmartDashboard::PutBoolean("lifted", lifted);
+        SmartDashboard::PutBoolean("done", coneInClaw);
+        SmartDashboard::PutBoolean("cone in claw", claw->ConeInClaw());
       }
-      if (centeredOnSubstation && lifted)
+      else
       {
-        done = swerveDrive->DriveToPoseTag(Pose2d(-0.25_m, -0.75_m, Rotation2d(180_deg)), elapsedTime); 
+        swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
+        elevatorLift->SetElevatorHeightPID(64, elapsedTime);
+        claw->PIDWrist(M_PI / 2, elapsedTime);
+        if (!clawFinishedOpening)
+          clawFinishedOpening = claw->OpenClaw(elapsedTime);
+        else 
+        {
+           if (xbox_Drive2->GetLeftTriggerAxis() > 0.5)
+            claw->MoveClawPercent(0.5);  
+          else if (xbox_Drive2->GetRightTriggerAxis() > 0.5)
+            claw->MoveClawPercent(-0.8);
+          else
+            claw->MoveClawPercent(0);     
+        }
       }
-      if (done)
-        claw->CloseClaw(elapsedTime);
 
       if (xbox_Drive2->GetPOV() == -1)
-        currentDriverSection = BEGINDRIVING;
+        currentDriverSection = RESUMEDRIVING; // BEGINDRIVING;
       break;
     }
 

@@ -115,7 +115,8 @@ public:
 
     // calculate our I in PID and clamp it   between our maximum I effects
     double intendedI = std::clamp(CLAWKI * runningClawIntegral, -1 * CLAWKIMAX, CLAWKIMAX);
-    runningClawIntegral += error;
+    if (fabs(error) < 4)
+      runningClawIntegral += error;
 
     // Clamp our intended velocity to our maximum and minimum velocity to prevent the robot from going too fast
     double intendedVelocity = std::clamp(CLAWKP * error + intendedI, -1 * CLAWMAX_SPEED, CLAWMAX_SPEED);
@@ -123,6 +124,8 @@ public:
     // Make sure our change in velocity from the last loop is not going above our maximum acceleration
     lastClawSpeed += std::clamp(intendedVelocity - lastClawSpeed, -1 * CLAWMAX_ACCELERATION * elapsedTime,
                         CLAWMAX_ACCELERATION * elapsedTime);
+
+    SmartDashboard::PutNumber("claw I", intendedI);
 
     MoveClawPercent(lastClawSpeed);
     return false;
@@ -135,7 +138,7 @@ public:
 
   bool OpenClaw(double elapsedTime)
   {
-    return PIDClaw(12, elapsedTime);
+    return PIDClaw(13, elapsedTime);
   }
 
   bool CloseClaw(double elapsedTime)
@@ -143,6 +146,12 @@ public:
     //Grab til it stops or we hit limit switch
     PIDClaw(0, elapsedTime); // change to just closes once we have working limit switches
     return clawMotor->GetOutputCurrent() > 55;
+  }
+
+  bool ConeInClaw()
+  { //0: 2.23, 
+    double expectedDistance = -0.135 * ClawEncoderReading() + 2.85;
+    return distanceSensor->GetPosition() > expectedDistance || distanceSensor->GetPosition() > 2.87;
   }
 
 };
