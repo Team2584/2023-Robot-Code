@@ -191,7 +191,11 @@ bool Section4();
 bool Section5();
 bool Section6();
 
-FunctionWrapper* testFunction;
+bool DriveSwerve();
+bool LiftLift();
+
+FunctionWrapper* LiftFunction;
+FunctionWrapper* ChassisFunction;
 SequentialProgram* testAutonomous;
 
 void Robot::AutonomousInit()
@@ -257,14 +261,22 @@ CommandScheduler::GetInstance().Enable();
   timer.Start();
   return true;
   }, ChassisSystem);
-  testAutonomous->AddFunction([](){return Section0();}, ChassisSystem);
-  testAutonomous->AddFunction([](){return Section1();}, ChassisSystem);
-  testAutonomous->AddFunction([](){return Section2();}, ChassisSystem);
-  testAutonomous->AddFunction([](){return Section3();}, ChassisSystem);
-  testAutonomous->AddFunction([](){return Section4();}, ChassisSystem);
-  testAutonomous->AddFunction([](){return Section5();}, ChassisSystem);
-  testAutonomous->AddFunction([](){return Section6();}, ChassisSystem);
-  testAutonomous->Schedule();
+  // testAutonomous->AddFunction([](){return Section0();}, ChassisSystem);
+  // testAutonomous->AddFunction([](){return Section1();}, ChassisSystem);
+  // testAutonomous->AddFunction([](){return Section2();}, ChassisSystem);
+  // testAutonomous->AddFunction([](){return Section3();}, ChassisSystem);
+  // testAutonomous->AddFunction([](){return Section4();}, ChassisSystem);
+  // testAutonomous->AddFunction([](){return Section5();}, ChassisSystem);
+  // testAutonomous->AddFunction([](){return Section6();}, ChassisSystem);
+  testAutonomous->AddFunction([](){return DriveSwerve();}, ChassisSystem);
+  testAutonomous->AddFunction([](){return LiftLift();}, ClawSystem);
+  //testAutonomous->Schedule();
+
+  ChassisFunction = new FunctionWrapper([](){return DriveSwerve();}, ChassisSystem);
+  LiftFunction = new FunctionWrapper([](){return LiftLift();}, ClawSystem);
+  ChassisFunction->Schedule();
+  LiftFunction->Schedule();
+
 
     // SmartDashboard::PutBoolean("in splinen 1", false);
 
@@ -372,6 +384,14 @@ void Robot::AutonomousPeriodic()
     return true;
   }
 
+  bool DriveSwerve()
+  {
+    Setup();
+    swerveDrive->DriveSwervePercent(0,0,0.1);
+    Wrapup();
+    return false;
+  }
+
   bool Section1()
   {
     Setup();
@@ -444,6 +464,14 @@ void Robot::AutonomousPeriodic()
       Wrapup();
       return true;
     }
+    Wrapup();
+    return false;
+  }
+
+  bool LiftLift()
+  {
+    Setup();
+    elevatorLift->SetElevatorHeightPID(10, elapsedTime);
     Wrapup();
     return false;
   }

@@ -9,17 +9,20 @@ enum Systems
 {
     ChassisSystem,
     ClawSystem,
+    UpdateSystem,
 };
 
 class SystemManager
 {
     private:
     std::unordered_map<int, SystemWrapper> systemMap;
+    SystemWrapper Claw = SystemWrapper();
+    SystemWrapper Chassis = SystemWrapper();
     SystemManager()
     {
         systemMap = std::unordered_map<int, SystemWrapper>(); //Map from systemID to system
-        systemMap.insert(std::pair<int, SystemWrapper>(0, SystemWrapper()));
-        systemMap.insert(std::pair<int, SystemWrapper>(1, SystemWrapper()));
+        systemMap.insert(std::pair<int, SystemWrapper>(0, Chassis));
+        systemMap.insert(std::pair<int, SystemWrapper>(1, Claw));
     }
 
     public:
