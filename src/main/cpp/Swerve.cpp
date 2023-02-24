@@ -273,6 +273,8 @@ private:
   double runningIntegralY = 0;
   double runningIntegralSpin = 0;
 
+  bool isRedAlliance = true;
+
 public:
   SwerveModule *FLModule, *FRModule, *BRModule, *BLModule;
   double pigeon_initial;
@@ -920,6 +922,16 @@ public:
     }
   }
 
+  void SetAllianceColorRed()
+  {
+    isRedAlliance = true;
+  }
+
+  void SetAllianceColorBlue()
+  {
+    isRedAlliance = false;
+  }
+
   /**
    * Initializes a trajectory to be run during autonomous by loading it into memory.
    * A trajectory is a curve that we tell the robot to move through. AKA a spline.
@@ -928,7 +940,7 @@ public:
   void InitializeTrajectory(string trajectoryString)
   {
     // This will load the file "Example Path.path" and generate it with a max velocity of 3 m/s and a max acceleration of 5 m/s^2
-    trajectoryList.push(pathplanner::PathPlanner::loadPath(trajectoryString, pathplanner::PathConstraints(2_mps, 3_mps_sq)));
+    trajectoryList.push(pathplanner::PathPlanner::loadPath(trajectoryString, pathplanner::PathConstraints(3_mps, 5_mps_sq)));
   }
 
   /**
@@ -938,7 +950,7 @@ public:
    */
   void InitializeTrajectory(string trajectoryString, units::meters_per_second_t velocity, units::meters_per_second_squared_t acceleration)
   {
-    // This will load the file "Example Path.path" and generate it with a max velocity of 3 m/s and a max acceleration of 5 m/s^2
+    // This will load the file "Example Path.path" and generate it with given speeds
     trajectoryList.push(pathplanner::PathPlanner::loadPath(trajectoryString, pathplanner::PathConstraints(velocity, acceleration)));
   }
 
@@ -977,16 +989,26 @@ public:
     else
     {
       state = trajectory.sample(time);
-      // auto xFF = -1 * state.velocity * state.pose.Rotation().Sin(); Blue Alliance
-      // auto yFF = state.velocity * state.pose.Rotation().Cos(); Blue Alliance
-      xFF = state.velocity * state.pose.Rotation().Sin();
-      yFF = -1 * state.velocity * state.pose.Rotation().Cos();
+      if (isRedAlliance)
+      {
+        xFF = state.velocity * state.pose.Rotation().Sin();
+        yFF = -1 * state.velocity * state.pose.Rotation().Cos();
+      }
+      else
+      {
+        xFF = -1 * state.velocity * state.pose.Rotation().Sin();
+        yFF = state.velocity * state.pose.Rotation().Cos(); 
+      }
     }
 
     // Run simple PID to correct our robots course
     Translation2d pose = GetPose().Translation();
-    // Translation2d goal = Translation2d(8_m - state.pose.Y(), state.pose.X()); Blue Alliance
-    Translation2d goal = Translation2d(state.pose.Y(), 16.5_m - state.pose.X());
+    Translation2d goal;
+    if (isRedAlliance)
+      goal = Translation2d(state.pose.Y(), 16.5_m - state.pose.X());
+    else
+      goal = Translation2d(8_m - state.pose.Y(), state.pose.X()); 
+
     double xDistance = (goal.X() - pose.X()).value();
     double yDistance = (goal.Y() - pose.Y()).value();
     if (fabs(xDistance) < S_ALLOWABLE_ERROR_TRANSLATION)
@@ -1003,8 +1025,12 @@ public:
     double yPid = std::clamp(S_TRANSLATION_KP * yDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
 
     // Spin PID similar to drive to pose
-    // Pose2d thetaGoal = Pose2d(0_m, 0_m, Rotation2d(360_deg - state.holonomicRotation.Degrees())); Blue Aliance
-    Pose2d thetaGoal = Pose2d(0_m, 0_m, Rotation2d(180_deg - state.holonomicRotation.Degrees()));
+    Pose2d thetaGoal;
+    if (isRedAlliance)
+      thetaGoal = Pose2d(0_m, 0_m, Rotation2d(180_deg - state.holonomicRotation.Degrees()));
+    else
+      thetaGoal = Pose2d(0_m, 0_m, Rotation2d(360_deg - state.holonomicRotation.Degrees())); 
+
     double thetaDistance = thetaGoal.RelativeTo(GetPose()).Rotation().Radians().value();
     if (fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
     {

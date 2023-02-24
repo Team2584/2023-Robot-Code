@@ -144,8 +144,8 @@ public:
   bool CloseClaw(double elapsedTime)
   {
     //Grab til it stops or we hit limit switch
-    PIDClaw(0, elapsedTime); // change to just closes once we have working limit switches
-    return clawMotor->GetOutputCurrent() > 55;
+    bool done = PIDClaw(0, elapsedTime); // change to just closes once we have working limit switches
+    return clawMotor->GetOutputCurrent() > 55 || done;
   }
 
   bool ConeInClaw()

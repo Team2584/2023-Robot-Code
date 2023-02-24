@@ -34,6 +34,8 @@ Pigeon2 _pigeon(6);
 
 TimeOfFlight TOFSensor(0);
 
+frc::PWMSparkMax lights{9}; // CHANGE
+
 double thetaInit;
 
 //Customization Variabes (all in percent power so the driver's weak brain don't get confused)
