@@ -576,7 +576,7 @@ void Robot::TeleopPeriodic()
     MAX_DRIVE_SPEED = 0.9;
     MAX_SPIN_SPEED = 0.9;
   }
-  else if (xbox_Drive->GetLeftBumper())
+  else if (xbox_Drive->GetLeftBumper() || xbox_Drive->GetXButton())
   {
     MAX_DRIVE_SPEED = 0.2;
     MAX_SPIN_SPEED = 0.2;
@@ -592,7 +592,6 @@ void Robot::TeleopPeriodic()
   double STRAFE_Drive_Speed = joy_lStick_X * MAX_DRIVE_SPEED;
   double Turn_Speed = joy_rStick_X * MAX_SPIN_SPEED;
 
-
   // Slew rate limiting driver input
   lastFwdSpeed += std::clamp(FWD_Drive_Speed - lastFwdSpeed, -1 * MAX_DRIVE_ACCELERATION * elapsedTime,
                             MAX_DRIVE_ACCELERATION * elapsedTime);
@@ -600,6 +599,9 @@ void Robot::TeleopPeriodic()
                                 MAX_DRIVE_ACCELERATION * elapsedTime);
   lastTurnSpeed += std::clamp(Turn_Speed - lastTurnSpeed, -1 * MAX_SPIN_ACCELERATION * elapsedTime,
                               MAX_SPIN_ACCELERATION * elapsedTime);
+
+  if (xbox_Drive->GetXButton())
+    lastFwdSpeed = 0;
 
 
   switch(currentDriverSection)
