@@ -1193,9 +1193,9 @@ public:
     float deadZone = 2.5;                           //deadzone angle
     float slowDownDeadZone = 13;
     float motorSpeedDamp = frc::SmartDashboard::GetNumber("balance speed", 0.2) * 1 / 9;
-    float motorSpeedBigDamp = 0.75 * 1 / 9;
+    float motorSpeedBigDamp = 0.9 * 1 / 9;
     float motorTurnDamp = 0.01 * 1 / 9;                     //max speed of motor in %
-    float hardMotorCap = frc::SmartDashboard::GetNumber("hard balance speed cap", 0.3);
+    float hardMotorCap = frc::SmartDashboard::GetNumber("hard balance speed cap", 0.4);
     float motorVelocity = 0;                            //final velocity of motor
     float turn = 0;                                      //TylerWasHere
     int direction = (gyroRot > 0) ? 1 : -1;         // if gyroRot is greater than 0, change direction to -1, vice versa. This is for correction, we want to move opposite direction from tilt

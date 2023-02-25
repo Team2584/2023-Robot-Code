@@ -706,6 +706,8 @@ void Robot::TeleopInit()
   seeCubeTagsEntry.Set(true);
   seeSubstationTagsEntry.Set(false);
 
+  SmartDashboard::PutBoolean("code pushed", true);
+
   /*
     orchestra.LoadMusic("CHIRP");
     orchestra.AddInstrument(swerveBL);
