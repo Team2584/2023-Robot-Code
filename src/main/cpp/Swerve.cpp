@@ -1155,9 +1155,9 @@ public:
                         P_STRAFE_MAX_ACCEL * elapsedTime);
     runningIntegralX += offsetX;
 
-//  SmartDashboard::PutNumber("XDistance", offsetX);
-// SmartDashboard::PutNumber("X I", intendedI);
-// SmartDashboard::PutNumber("Intended Vel", intendedVelocity);
+  SmartDashboard::PutNumber("XDistance", offsetX);
+  SmartDashboard::PutNumber("X I", intendedI);
+  SmartDashboard::PutNumber("Intended Vel", intendedVelocity);
      SmartDashboard::PutNumber("Drive X", lastX);
      
     offsetY -= yGoal;
@@ -1178,9 +1178,9 @@ public:
     DriveSwervePercent(-lastX, lastY, lastSpin);
 
 
-//  SmartDashboard::PutNumber("YDistance", offsetY);
-// SmartDashboard::PutNumber("Y I", intendedI);
-// SmartDashboard::PutNumber("Intended Vel", intendedVelocity);
+  SmartDashboard::PutNumber("YDistance", offsetY);
+  SmartDashboard::PutNumber("Y I", intendedI);
+ SmartDashboard::PutNumber("Intended Vel", intendedVelocity);
      SmartDashboard::PutNumber("Drive Y", lastY);
     return (lastX == 0 && lastY == 0 && lastSpin == 0);
   }
