@@ -27,18 +27,26 @@ LEDLights *lights;
 nt::NetworkTableInstance inst;
 shared_ptr<nt::NetworkTable> visionTable;
 shared_ptr<nt::NetworkTable> limelightTable;
-nt::DoubleArrayTopic poseTopic;
+nt::DoubleArrayTopic cubeTagTopic;
+nt::DoubleArraySubscriber cubeTagSub;
+nt::DoubleArrayTopic substationTagTopic;
+nt::DoubleArraySubscriber substationTagSub;
 nt::DoubleTopic sanityTopic;
 nt::BooleanTopic connectedTopic;
-nt::DoubleArrayTopic curPoseTopic;
-nt::DoubleArraySubscriber poseSub;
 nt::DoubleEntry sanityEntry;
-nt::DoubleArrayEntry curPoseEntry;
 nt::DoubleTopic polePixelTopic;
 nt::DoubleEntry polePixelEntry;
 nt::BooleanEntry connectedEntry;
 nt::DoubleArrayTopic coneTopic;
 nt::DoubleArraySubscriber coneEntry;
+nt::BooleanTopic seeConesTopic;
+nt::BooleanEntry seeConesEntry;
+nt::BooleanTopic seeCubesTopic;
+nt::BooleanEntry seeCubesEntry;
+nt::BooleanTopic seeCubeTagsTopic;
+nt::BooleanEntry seeCubeTagsEntry;
+nt::BooleanTopic seeSubstationTagsTopic;
+nt::BooleanEntry seeSubstationTagsEntry;
 double currentConeX;
 double currentConeY;
 
@@ -118,18 +126,26 @@ void Robot::RobotInit()
   inst.StartServer();
   visionTable = inst.GetTable("vision");
   limelightTable = inst.GetTable("limelight");
-  poseTopic = visionTable->GetDoubleArrayTopic("poseArray");
+  cubeTagTopic = visionTable->GetDoubleArrayTopic("cubeTag");
+  substationTagTopic = visionTable->GetDoubleArrayTopic("substationTag");
   sanityTopic = visionTable->GetDoubleTopic("sanitycheck");
   connectedTopic = visionTable->GetBooleanTopic("connected");
-  curPoseTopic = visionTable->GetDoubleArrayTopic("curPose");
   polePixelTopic = limelightTable->GetDoubleTopic("polePixel");
   coneTopic = visionTable->GetDoubleArrayTopic("conePos");
-  poseSub = poseTopic.Subscribe({});
+  seeConesTopic = visionTable->GetBooleanTopic("seeCones");
+  seeCubesTopic = visionTable->GetBooleanTopic("seeCubes");
+  seeCubeTagsTopic = visionTable->GetBooleanTopic("seeCubeTags");
+  seeSubstationTagsTopic = visionTable->GetBooleanTopic("seeSubstationTags");
+  cubeTagSub = cubeTagTopic.Subscribe({});
+  substationTagSub = substationTagTopic.Subscribe({});
   sanityEntry = sanityTopic.GetEntry(-1);
   connectedEntry = connectedTopic.GetEntry(false);
-  curPoseEntry = curPoseTopic.GetEntry({});
   polePixelEntry = polePixelTopic.GetEntry(1000);
   coneEntry = coneTopic.Subscribe({});
+  seeCubesEntry = seeCubesTopic.GetEntry(true);
+  seeConesEntry = seeConesTopic.GetEntry(true);
+  seeCubeTagsEntry = seeCubeTagsTopic.GetEntry(true);
+  seeSubstationTagsEntry = seeSubstationTagsTopic.GetEntry(true);
 
   connectedEntry.Set(true);
   startingSanity = sanityEntry.Get();
@@ -244,6 +260,11 @@ void Robot::AutonomousInit()
   lastTime = 0;
   timer.Reset();
   timer.Start();
+
+  seeConesEntry.Set(true);
+  seeCubesEntry.Set(false);
+  seeCubeTagsEntry.Set(false);
+  seeSubstationTagsEntry.Set(false);
 }
 
 void Robot::AutonomousPeriodic()
@@ -675,6 +696,11 @@ void Robot::TeleopInit()
 
   currentDriverSection = 0;
 
+  seeConesEntry.Set(true);
+  seeCubesEntry.Set(false);
+  seeCubeTagsEntry.Set(true);
+  seeSubstationTagsEntry.Set(false);
+
   /*
     orchestra.LoadMusic("CHIRP");
     orchestra.AddInstrument(swerveBL);
@@ -708,7 +734,7 @@ void Robot::TeleopPeriodic()
   swerveDrive->UpdateConeOdometry();
   swerveDrive->UpdateTagOdometry();
 
-  for (auto array : coneEntry.ReadQueue())
+  /*for (auto array : coneEntry.ReadQueue())
   {
     if ((array.value[0] != 0 || array.value[1] != 0) && array.value[1] > 1)
     {
@@ -721,14 +747,23 @@ void Robot::TeleopPeriodic()
       currentConeX = -1 * array.value[0];
       currentConeY = -1 * array.value[1];
     }
-  }
-  for (auto array : poseSub.ReadQueue())
+  }*/
+
+  for (auto array : cubeTagSub.ReadQueue())
   {
     Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
     frc::SmartDashboard::PutNumber("Tag Vision X", poseEst.X().value());
     frc::SmartDashboard::PutNumber("Tag Vision Y", poseEst.Y().value());
     swerveDrive->ResetTagOdometry(Pose2d(poseEst, swerveDrive->GetPose().Rotation()));
   }
+  for (auto array : substationTagSub.ReadQueue())
+  {
+    Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
+    frc::SmartDashboard::PutNumber("Tag Vision X", poseEst.X().value());
+    frc::SmartDashboard::PutNumber("Tag Vision Y", poseEst.Y().value());
+    swerveDrive->ResetTagOdometry(Pose2d(poseEst, swerveDrive->GetPose().Rotation()));
+  }
+
 
   // Update our odometry position based on cone data
 
@@ -767,8 +802,6 @@ void Robot::TeleopPeriodic()
 
   // DEBUG INFO
   Pose2d pose = swerveDrive->GetPose();
-  double poseArray[] = {pose.X().value(), pose.Y().value(), 0.75, pose.Rotation().Radians().value(), 0};
-  curPoseEntry.Set(poseArray);
   frc::SmartDashboard::PutNumber("Odometry X", pose.X().value());
   frc::SmartDashboard::PutNumber("Odometry Y", pose.Y().value());
   frc::SmartDashboard::PutNumber("Odometry Theta", swerveDrive->GetPose().Rotation().Degrees().value());
@@ -958,6 +991,7 @@ void Robot::TeleopPeriodic()
       else if (xbox_Drive2->GetXButtonPressed())
       {
         //High Cube
+        seeCubesEntry.Set(true);
         conePlaceYLimelightGoal= 0.91;
         conePlaceXLimelightGoal = 0.075;
         conePlaceElevatorGoal = 82;  
@@ -970,6 +1004,7 @@ void Robot::TeleopPeriodic()
       else if (xbox_Drive2->GetAButtonPressed())
       {
         //Low Cube
+        seeCubesEntry.Set(true);
         conePlaceYLimelightGoal= 0.91;
         conePlaceXLimelightGoal = 0.075;
         conePlaceElevatorGoal = 47;  
@@ -985,6 +1020,7 @@ void Robot::TeleopPeriodic()
       }
       else if (xbox_Drive2->GetPOV() == 90 || xbox_Drive2->GetPOV() == 45 || xbox_Drive2->GetPOV() == 135)
       {
+        seeSubstationTagsEntry.Set(true);
         turnt = false;
         centeredOnSubstation = false;
         coneInClaw = false;
@@ -994,6 +1030,7 @@ void Robot::TeleopPeriodic()
       }
       else if (xbox_Drive2->GetPOV() == 315 || xbox_Drive2->GetPOV() == 225 || xbox_Drive2->GetPOV() == 270)
       {
+        seeSubstationTagsEntry.Set(true);
         turnt = false;
         centeredOnSubstation = false;
         coneInClaw = false;
@@ -1087,6 +1124,7 @@ void Robot::TeleopPeriodic()
 
       if ((!xbox_Drive2->GetXButton() && placingHigh) || (!xbox_Drive2->GetAButton() && !placingHigh))
       {
+        seeCubeTagsEntry.Set(false);
         currentDriverSection = BEGINDRIVING;
       }
       break;
@@ -1198,7 +1236,13 @@ void Robot::TeleopPeriodic()
       }
 
       if (xbox_Drive2->GetPOV() == -1)
-        currentDriverSection = RESUMEDRIVING; // BEGINDRIVING;
+      {
+        seeSubstationTagsEntry.Set(false);
+        if (leftSubstation)
+          currentDriverSection = BEGINDRIVING;
+        else
+          currentDriverSection = RESUMEDRIVING; 
+      }
       break;
     }
 
