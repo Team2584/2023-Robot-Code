@@ -97,6 +97,7 @@ bool centeredOnSubstation = false;
 bool coneInClaw = false;
 bool leftSubstation = false;
 bool clawFinishedOpening = false;
+bool canSeeCubeTag = false;
 
 double startingSanity = 0;
 
@@ -770,7 +771,9 @@ void Robot::TeleopPeriodic()
     }
   }*/
 
-  for (auto array : cubeTagSub.ReadQueue())
+  auto cubeTagArrays = cubeTagSub.ReadQueue();
+  canSeeCubeTag = cubeTagArrays.size() >= 1;
+  for (auto array : cubeTagArrays)
   {
     Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
     frc::SmartDashboard::PutNumber("Tag Vision X", poseEst.X().value());
@@ -1152,7 +1155,9 @@ void Robot::TeleopPeriodic()
         doneWithPoleAlignment = true;
       if (doneWithPoleAlignment)
       {
-        claw->PIDWrist(M_PI / 2, elapsedTime);
+        bool wristDown = claw->PIDWrist(M_PI / 2, elapsedTime);
+        if (wristDown && canSeeCubeTag)
+          claw->OpenClaw(elapsedTime);
       }
 
       if ((!xbox_Drive2->GetXButton() && placingHigh) || (!xbox_Drive2->GetAButton() && !placingHigh))
