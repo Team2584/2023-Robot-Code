@@ -98,5 +98,9 @@ private:
   const std::string kAutoBL2GO = "BLUE Left 2 GO";
   const std::string kAutoRR1GOB = "RED Right 1 GO / Balance";
   const std::string kAutoBL1GOB = "BLUE Left 1 GO / Balance";
+  const std::string kAutoRR2GONV = "RED Right 2 GO NV";
+  const std::string kAutoRL2GONV = "RED Left 2 GO NV";
+  const std::string kAutoBR2GONV = "BLUE Right 2 GO NV";
+  const std::string kAutoBL2GONV = "BLUE Left 2 GO NV";
   std::string m_autoSelected;
 };

@@ -164,7 +164,7 @@ public:
     SmartDashboard::PutNumber("clawpidtime", initalClawPIDTime);
     initalClawPIDTime += elapsedTime;
     //Grab til it stops or we hit limit switch
-    MoveClawPercent(-0.8);// change to just closes once we have working limit switches
+    MoveClawPercent(-0.9);
     if (ClawEncoderReading() <= 0 || initalClawPIDTime > 0.5)
     {
       MoveClawPercent(0);
