@@ -90,6 +90,16 @@ public:
     return false;
   }
 
+  bool PIDWristDown(double elapsedTime)
+  {
+    return PIDWrist(2.15, elapsedTime);
+  }
+
+  bool PIDWristUp(double elapsedTime)
+  {
+    return PIDWrist(0.2, elapsedTime);
+  }
+
   double ClawEncoderReading()
   {
     return clawEncoder->GetPosition();

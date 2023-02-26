@@ -73,7 +73,8 @@ enum DriverSection
   SCORINGCONE = 5,
   SCORINGCUBE = 6,
   UNTIPCONE = 7,
-  BALANCE = 8
+  BALANCE = 8,
+  AUTOGRABBINGCONE = 9
 };
 
 // Values to Set with ShuffleBoard
@@ -357,7 +358,7 @@ void Robot::AutonomousPeriodic()
     {
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->OpenClaw(elapsedTime);
-      claw->PIDWrist(2.1, elapsedTime);
+      claw->PIDWristDown(elapsedTime);
       bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
       if (splineDone)
       {
@@ -373,9 +374,9 @@ void Robot::AutonomousPeriodic()
     if (splineSection == 1.5)
     {
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-      claw->PIDWrist(2.1, elapsedTime);
+      claw->PIDWristDown(elapsedTime);
 
-      if (swerveDrive->GetConeOdometryPose().Y().value() < 1.2)
+      if (swerveDrive->GetConeOdometryPose().Y().value() < 1.2 && turnt)
         seeConesEntry.Set(false);
 
       if (!turnt)
@@ -532,7 +533,7 @@ void Robot::AutonomousPeriodic()
     {
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->OpenClaw(elapsedTime);
-      claw->PIDWrist(2.1, elapsedTime);
+      claw->PIDWristDown(elapsedTime);
       bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
       if (splineDone)
       {
@@ -549,7 +550,7 @@ void Robot::AutonomousPeriodic()
     if (splineSection == 1.5)
     {
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-      claw->PIDWrist(2.1, elapsedTime);
+      claw->PIDWristDown(elapsedTime);
       if (!turnt)
       {
         double angleGoal = atan2(-currentConeX, -currentConeY);
@@ -937,7 +938,7 @@ void Robot::TeleopPeriodic()
       {
         lastElevatorSpeed = 0;
         elevatorPIDWrist = true;
-        claw->PIDWrist(2.1, elapsedTime);
+        claw->PIDWristDown(elapsedTime);
       }
       else if (elevatorLift->winchEncoderReading() > 82.5 && lastElevatorSpeed > 0)
       {
@@ -1071,16 +1072,18 @@ void Robot::TeleopPeriodic()
       }
       else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
       {
-        claw->PIDWrist(0.3, elapsedTime);
+        currentDriverSection = UNTIPCONE;
       }
       else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
       {
         coneInClaw = false;
         currentDriverSection = GROUNDPREPAREDTOGRAB;
       }
-      else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
+      else if (xbox_Drive->GetBButtonPressed())
       {
-        //currentDriverSection = UNTIPCONE;
+        turnt = false;
+        coneInClaw = false;
+        currentDriverSection = AUTOGRABBINGCONE;
       }
       else if (xbox_Drive->GetYButtonPressed())
       {
@@ -1180,7 +1183,7 @@ void Robot::TeleopPeriodic()
 
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       if (elevatorLift->winchEncoderReading() < 5)
-        claw->PIDWrist(0.2, elapsedTime);
+        claw->PIDWristUp(elapsedTime);
       else
         claw->PIDWrist(1, elapsedTime);
 
@@ -1193,7 +1196,7 @@ void Robot::TeleopPeriodic()
     {
       swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-      claw->PIDWrist(2.15, elapsedTime);
+      claw->PIDWristDown(elapsedTime);
       
       if ((claw->ConeInClaw() && claw->ClawEncoderReading() > 5) || coneInClaw)
       {
@@ -1216,9 +1219,9 @@ void Robot::TeleopPeriodic()
       bool closed = claw->CloseClaw(elapsedTime);
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       if (closed && elevatorLift->winchEncoderReading() < 5)
-        claw->PIDWrist(0.3, elapsedTime);
+        claw->PIDWristUp(elapsedTime);
       else
-        claw->PIDWrist(2.15, elapsedTime);
+        claw->PIDWristDown(elapsedTime);
 
       if (xbox_Drive->GetRightTriggerAxis() < 0.2)
         currentDriverSection = RESUMEDRIVING; 
@@ -1299,34 +1302,38 @@ void Robot::TeleopPeriodic()
     {
       swerveDrive->BalanceOnCharger(elapsedTime);
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-      claw->PIDWrist(0.6, elapsedTime);
+      if (elevatorLift->winchEncoderReading() < 5)
+        claw->PIDWristUp(elapsedTime);
+      else
+        claw->PIDWrist(1, elapsedTime);
       claw->OpenClaw(elapsedTime);
-
       if(!xbox_Drive->GetYButton())
         currentDriverSection = BEGINDRIVING;
       break;
     }
-  } 
 
-  /*
-  if (xbox_Drive->GetXButtonPressed())
-  {
-    turnt = false;
-  }
-  if (xbox_Drive->GetXButton())
-  {
-    if (!turnt)
-    {
-      double angleGoal = atan2(-currentConeX, -currentConeY);
-      SmartDashboard::PutNumber("cone angle", angleGoal);
-      turnt = swerveDrive->TurnToPixelCone(angleGoal, elapsedTime);
-      goalConeGrabAngle = swerveDrive->GetPose().Rotation();
-    }
-    if (turnt && !atCone)
-      atCone = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.58_m, goalConeGrabAngle), elapsedTime);
-    if (atCone)
-      claw->CloseClaw(elapsedTime);
-  }*/
+    case AUTOGRABBINGCONE:
+      elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+      claw->PIDWristDown(elapsedTime);
+      if (!turnt)
+      {
+        double angleGoal = atan2(-currentConeX, -currentConeY);
+        SmartDashboard::PutNumber("cone angle", angleGoal);
+        turnt = swerveDrive->TurnToPixelCone(angleGoal, elapsedTime);
+        goalConeGrabAngle = swerveDrive->GetPose().Rotation();
+      }
+      coneInClaw = claw->ConeInClaw();
+      if (turnt && !coneInClaw)
+        coneInClaw = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.3_m, goalConeGrabAngle), elapsedTime);
+      if (coneInClaw)
+        claw->CloseClaw(elapsedTime);
+      else
+        claw->OpenClaw(elapsedTime);
+
+      if (!xbox_Drive->GetBButton())
+        currentDriverSection = BEGINDRIVING;
+      break;
+  } 
 
   limelight->getTargetX();
   limelight->getTargetY();
