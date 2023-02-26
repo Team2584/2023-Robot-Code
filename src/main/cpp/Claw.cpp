@@ -10,6 +10,7 @@ private:
     double lastClawSpeed = 0;
     double runningWristIntegral = 0;
     double lastWristSpeed = 0;
+    double initalClawPIDTime = 0;
     
 public:
     rev::CANSparkMax *wristMotor;
@@ -102,6 +103,13 @@ public:
     clawMotor->Set(percent);
   }
 
+  void BeginClawPID()
+  {
+    lastClawSpeed = 0;
+    runningClawIntegral = 0;
+    initalClawPIDTime = 0;
+  }
+
   bool PIDClaw(double point, double elapsedTime)
   {
     double error = point - ClawEncoderReading();
@@ -138,14 +146,21 @@ public:
 
   bool OpenClaw(double elapsedTime)
   {
-    return PIDClaw(13, elapsedTime);
+    return PIDClaw(12, elapsedTime);
   }
 
   bool CloseClaw(double elapsedTime)
   {
+    SmartDashboard::PutNumber("clawpidtime", initalClawPIDTime);
+    initalClawPIDTime += elapsedTime;
     //Grab til it stops or we hit limit switch
-    bool done = PIDClaw(1, elapsedTime); // change to just closes once we have working limit switches
-    return clawMotor->GetOutputCurrent() > 59 || done;
+    MoveClawPercent(-0.8);// change to just closes once we have working limit switches
+    if (ClawEncoderReading() <= 0 || initalClawPIDTime > 0.5)
+    {
+      MoveClawPercent(0);
+      return true;
+    }
+    return false;
   }
 
   bool ConeInClaw()

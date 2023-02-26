@@ -59,13 +59,13 @@
 #define P_STRAFE_KI_MAX 0.05
 #define P_STRAFE_MAX_SPEED 0.3
 #define P_STRAFE_MAX_ACCEL 3
-#define P_ALLOWABLE_ERROR_STRAFE 0.1 // in pixel values from -1 to 1
+#define P_ALLOWABLE_ERROR_STRAFE 0.05 // in pixel values from -1 to 1
 #define P_TRANS_KP 3.5
 #define P_TRANS_KI 0.05 
 #define P_TRANS_KI_MAX 0.05
 #define P_TRANS_MAX_SPEED 0.2
 #define P_TRANS_MAX_ACCEL 3 
-#define P_ALLOWABLE_ERROR_TRANS 0.05
+#define P_ALLOWABLE_ERROR_TRANS 0.01
 #define P_SPIN_KP 2.7
 #define P_SPIN_KI 0
 #define P_SPIN_KI_MAX 0.1

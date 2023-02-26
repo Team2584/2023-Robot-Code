@@ -51,6 +51,16 @@ public:
         return ta != 0.0;
     }
 
+    void TurnOffLimelight()
+    {
+        lemonTable->PutNumber("ledMode", 1);
+    }
+    
+    void TurnOnLimelight()
+    {
+        lemonTable->PutNumber("ledMode", 3);
+    }
+
     void limelightToSmartDashboard(){
         SmartDashboard::PutNumber("TargetX", getTargetX());
         SmartDashboard::PutNumber("TargetY", getTargetY());

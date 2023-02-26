@@ -275,6 +275,8 @@ private:
 
   bool isRedAlliance = true;
 
+  float lastGyroRot = 10000;
+
 public:
   SwerveModule *FLModule, *FRModule, *BRModule, *BLModule;
   double pigeon_initial;
@@ -1186,40 +1188,62 @@ public:
   }
 
   bool BalanceOnCharger(double elapsedTime){
+
     float gyroRot = pigeonIMU->GetRoll();//Pull roll angle from gyroscope
-    float pitch = pigeonIMU->GetPitch();
+    if (lastGyroRot == 10000)
+      lastGyroRot = gyroRot;
+/*    float pitch = pigeonIMU->GetPitch();
     frc::SmartDashboard::PutNumber("gyroRot", gyroRot); //on the dashboard, output the gyroRot number
 
     float deadZone = 2.5;                           //deadzone angle
     float slowDownDeadZone = 13;
-    float motorSpeedDamp = frc::SmartDashboard::GetNumber("balance speed", 0.2) * 1 / 9;
-    float motorSpeedBigDamp = 0.9 * 1 / 9;
-    float motorTurnDamp = 0.01 * 1 / 9;                     //max speed of motor in %
-    float hardMotorCap = frc::SmartDashboard::GetNumber("hard balance speed cap", 0.4);
+    float slowP = 0.2 * 1 / 9;
+    float fastP = 0.9 * 1 / 9;
+    float hardMotorCap =  0.4;
     float motorVelocity = 0;                            //final velocity of motor
-    float turn = 0;                                      //TylerWasHere
     int direction = (gyroRot > 0) ? 1 : -1;         // if gyroRot is greater than 0, change direction to -1, vice versa. This is for correction, we want to move opposite direction from tilt
 
     if (abs(gyroRot) > slowDownDeadZone)
-        motorVelocity = direction * (abs(gyroRot) - deadZone) * motorSpeedDamp; //when rotation of gyro exceeds the deadzone, set motor velocity (this is proportional to the gyro angle)
+        motorVelocity = direction * abs(gyroRot) * motorSpeedBigDamp; //when rotation of gyro exceeds the deadzone, set motor velocity (this is proportional to the gyro angle)
     else if (abs(gyroRot) > deadZone)
-        motorVelocity = direction * (abs(gyroRot) - slowDownDeadZone) * motorSpeedBigDamp;
-    if (abs(pitch) > deadZone)
-        turn = direction * (abs(pitch) - deadZone) * motorTurnDamp;
+        motorVelocity = direction * abs(gyroRot) * motorSpeedDamp;
     if (motorVelocity > hardMotorCap)   //if motorVelocity exceeds the hard cap, make the motor velocity equal the hard cap
         motorVelocity = hardMotorCap;
     if (motorVelocity < -hardMotorCap)  //same in negative direction
-        motorVelocity = -hardMotorCap;
+        motorVelocity = -hardMotorCap;*/
     
-    frc::SmartDashboard::PutNumber("turn", turn);
-    frc::SmartDashboard::PutNumber("pitch", pitch);
-    frc::SmartDashboard::PutNumber("roll", gyroRot);
-    frc::SmartDashboard::PutNumber("MotorVelocity", motorVelocity);
     //Added a negative sign below because the robot will be facing backwards     -Avrick
 
-    
+    double thetaGoal = 0;
+    double direction = 1;
+    if (GetIMURadians() > 90 || GetIMURadians() < 270)
+    {
+      thetaGoal = 180;
+      direction = -1;
+    }
+
+    double gyroDeriv = (gyroRot - lastGyroRot) / elapsedTime;
+    double fwdVel = 0;
+    SmartDashboard::PutNumber("gyro Derivative", gyroDeriv);
+    frc::SmartDashboard::PutNumber("gyro roll", gyroRot);
+    frc::SmartDashboard::PutNumber("direction", direction);
+
+    if (direction == 1)
+    {
+      /*if (gyroRot > 13 && gyroDeriv > -1)
+        fwdVel = gyroRot *  0.3;
+      else if (gyroRot > 13 && gyroDeriv <= -1)
+        fwdVel = gyroRot * -0.1;
+      else if (gyroRotd)
+      else if (abs(gyroRot) > 2.5)
+        fwdVel = */
+    }
+    else
+    {
+
+    }
     // Use PID similar to the above function to determine our desired spin speed
-    double thetaDistance = (Rotation2d(180_deg) - GetPose().Rotation()).Radians().value();
+    double thetaDistance = (Rotation2d(units::radian_t{thetaGoal}) - GetPose().Rotation()).Radians().value();
     if (thetaDistance > 180)
       thetaDistance = thetaDistance - 360;
     if (fabs(thetaDistance) < O_ALLOWABLE_ERROR_ROTATION)
@@ -1228,7 +1252,8 @@ public:
     lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * O_SPIN_MAX_ACCEL * elapsedTime,
                            O_SPIN_MAX_ACCEL * elapsedTime);
 
-    DriveSwervePercent(0, -motorVelocity, lastSpin);
-    return motorVelocity == 0; // Returns true if done or false if still parking -Avrick
+    //DriveSwervePercent(0, fwdVel, lastSpin);
+    lastGyroRot = gyroRot;
+    return fwdVel == 0; // Returns true if done or false if still parking -Avrick
   }
 };
