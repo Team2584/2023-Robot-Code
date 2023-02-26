@@ -592,6 +592,7 @@ void Robot::AutonomousPeriodic()
       {
         splineSection = 2.5;
         swerveDrive->DriveSwervePercent(0,0,0);
+        swerveDrive->StartBalance();
       }
     } 
 
@@ -672,6 +673,7 @@ void Robot::AutonomousPeriodic()
       {
         splineSection = 1.5;
         timer.Reset();
+        swerveDrive->StartBalance();
         lastTime = 0;
       }
     }
@@ -1087,6 +1089,7 @@ void Robot::TeleopPeriodic()
       }
       else if (xbox_Drive->GetYButtonPressed())
       {
+        swerveDrive->StartBalance();
         currentDriverSection = BALANCE;
       }
       break;
@@ -1196,17 +1199,22 @@ void Robot::TeleopPeriodic()
     {
       swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-      claw->PIDWristDown(elapsedTime);
       
+      bool clawClosed = false;
       if ((claw->ConeInClaw() && claw->ClawEncoderReading() > 5) || coneInClaw)
       {
-        claw->CloseClaw(elapsedTime);
+        clawClosed = claw->CloseClaw(elapsedTime);
         coneInClaw = true;
       }
       else 
       {
         claw->OpenClaw(elapsedTime);
       }
+
+      if (clawClosed)
+        claw->PIDWristUp(elapsedTime);
+      else
+        claw->PIDWristDown(elapsedTime);
 
       if (xbox_Drive->GetLeftTriggerAxis() < 0.2)
         currentDriverSection = RESUMEDRIVING;
@@ -1232,8 +1240,8 @@ void Robot::TeleopPeriodic()
     {
       if (leftSubstation)
       {
-        bool lifted = elevatorLift->SetElevatorHeightPID(66, elapsedTime);
-        claw->PIDWrist(M_PI / 2, elapsedTime);
+        bool lifted = elevatorLift->SetElevatorHeightPID(72, elapsedTime);
+        claw->PIDWristDown(elapsedTime);
         if (!turnt)
           turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(0_deg)), elapsedTime);
         if (turnt && !centeredOnSubstation)
@@ -1262,7 +1270,7 @@ void Robot::TeleopPeriodic()
       {
         swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
         elevatorLift->SetElevatorHeightPID(72, elapsedTime);
-        claw->PIDWrist(M_PI / 2, elapsedTime);
+        claw->PIDWristDown(elapsedTime);
         if (!clawFinishedOpening)
           clawFinishedOpening = claw->OpenClaw(elapsedTime);
         else 
@@ -1300,7 +1308,8 @@ void Robot::TeleopPeriodic()
 
     case BALANCE:
     {
-      swerveDrive->BalanceOnCharger(elapsedTime);
+      bool done = swerveDrive->BalanceOnCharger(elapsedTime);
+      SmartDashboard::PutBoolean("done with balance", done);
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       if (elevatorLift->winchEncoderReading() < 5)
         claw->PIDWristUp(elapsedTime);

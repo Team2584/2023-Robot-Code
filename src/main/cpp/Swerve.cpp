@@ -275,7 +275,11 @@ private:
 
   bool isRedAlliance = true;
 
-  float lastGyroRot = 10000;
+  double lastGyroRot = 0;
+  double lastGyroVel = 0;
+  int currentBalanceDrivingDirection = 1;
+  int balanceFacingDirection = 1;
+  bool waitingOnPlatform = false;
 
 public:
   SwerveModule *FLModule, *FRModule, *BRModule, *BLModule;
@@ -1187,11 +1191,81 @@ public:
     return (lastX == 0 && lastY == 0 && lastSpin == 0);
   }
 
-  bool BalanceOnCharger(double elapsedTime){
+  void StartBalance()
+  {
+    //determine which of the two possible directions we are facing, fwds or backwards
+    balanceFacingDirection = 1;
+    if (GetIMURadians() > 90 || GetIMURadians() < 270)
+    {
+      balanceFacingDirection = -1;
+    }
 
-    float gyroRot = pigeonIMU->GetRoll();//Pull roll angle from gyroscope
-    if (lastGyroRot == 10000)
-      lastGyroRot = gyroRot;
+    // zero values
+    waitingOnPlatform = false;
+    lastGyroRot = pigeonIMU->GetRoll();
+    lastGyroVel = 0;
+    currentBalanceDrivingDirection = balanceFacingDirection;
+    lastY = 0;
+  }
+
+  bool BalanceOnCharger(double elapsedTime){
+    // positive gyroRot means far side of platform is up, I multiply by balance facing direction to rotate the roll to field oriented
+    float gyroRot = pigeonIMU->GetRoll() * balanceFacingDirection;
+    double gyroVel = (gyroRot - lastGyroRot) / elapsedTime;
+    double gyroAccel = (gyroVel - lastGyroVel) / elapsedTime;
+
+    SmartDashboard::PutNumber("gyro Accel", gyroAccel);
+    SmartDashboard::PutNumber("gyro Vel", gyroVel);
+    frc::SmartDashboard::PutNumber("gyro roll", gyroRot);
+    frc::SmartDashboard::PutNumber("balanceFacingDirection", balanceFacingDirection);
+    SmartDashboard::PutBoolean("waitingOnPlatform", waitingOnPlatform);
+
+    double intendedYVel = 0;
+    if (!waitingOnPlatform)
+    {
+      if (fabs(gyroRot < 3)) // if we are in a 3 degree dead zone, then we basically have no error
+        gyroRot = 0;
+      intendedYVel = std::clamp(gyroRot *  0.05, -0.4, 0.4); // Use simple P to figure out the speed you should go
+
+      if ((gyroRot < 0 && gyroVel > 0) || (gyroRot > 0 && gyroVel < 0)) // If the platform has started rotated towards flat, we know we have crossed center of mass and should stop
+      {
+        intendedYVel = 0;
+        waitingOnPlatform = true;
+      }
+    }
+    else
+    {
+      // Maybe lock wheels by making them face sideways here
+      intendedYVel = 0; 
+      if (fabs(gyroAccel) < 50 && fabs(gyroVel) < 10)  // When the platform has stopped oscillating, start moving again.
+        waitingOnPlatform = false;
+    }
+    // Simple acceleration limiting
+    lastY += std::clamp(intendedYVel - lastY, -1 * 5 * elapsedTime,
+                           5 * elapsedTime);
+    
+    SmartDashboard::PutNumber("intded balance vel", intendedYVel);
+    SmartDashboard::PutNumber("actual balance vel", lastY);
+
+    // PID to rotate to face either forwards or backwards and just lock onto that, I know this part of the code works
+    double thetaGoal = 0;
+    if (balanceFacingDirection == -1)
+      thetaGoal = 180;
+    double thetaDistance = (Rotation2d(units::radian_t{thetaGoal}) - GetPose().Rotation()).Radians().value();
+    if (thetaDistance > 180)
+      thetaDistance = thetaDistance - 360;
+    if (fabs(thetaDistance) < O_ALLOWABLE_ERROR_ROTATION)
+      thetaDistance = 0;
+    double intendedVelocity = std::clamp(O_SPIN_KP * thetaDistance, -1 * O_SPIN_MAX_SPEED, O_SPIN_MAX_SPEED);
+    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * O_SPIN_MAX_ACCEL * elapsedTime,
+                           O_SPIN_MAX_ACCEL * elapsedTime);
+
+    DriveSwervePercent(0, lastY, lastSpin);
+
+    lastGyroRot = gyroRot;
+    lastGyroVel = gyroVel;
+    return (fabs(gyroRot) < 3 && fabs(gyroVel) < 5 && lastY == 0); // Returns true if done 
+  }
 /*    float pitch = pigeonIMU->GetPitch();
     frc::SmartDashboard::PutNumber("gyroRot", gyroRot); //on the dashboard, output the gyroRot number
 
@@ -1213,47 +1287,4 @@ public:
         motorVelocity = -hardMotorCap;*/
     
     //Added a negative sign below because the robot will be facing backwards     -Avrick
-
-    double thetaGoal = 0;
-    double direction = 1;
-    if (GetIMURadians() > 90 || GetIMURadians() < 270)
-    {
-      thetaGoal = 180;
-      direction = -1;
-    }
-
-    double gyroDeriv = (gyroRot - lastGyroRot) / elapsedTime;
-    double fwdVel = 0;
-    SmartDashboard::PutNumber("gyro Derivative", gyroDeriv);
-    frc::SmartDashboard::PutNumber("gyro roll", gyroRot);
-    frc::SmartDashboard::PutNumber("direction", direction);
-
-    if (direction == 1)
-    {
-      /*if (gyroRot > 13 && gyroDeriv > -1)
-        fwdVel = gyroRot *  0.3;
-      else if (gyroRot > 13 && gyroDeriv <= -1)
-        fwdVel = gyroRot * -0.1;
-      else if (gyroRotd)
-      else if (abs(gyroRot) > 2.5)
-        fwdVel = */
-    }
-    else
-    {
-
-    }
-    // Use PID similar to the above function to determine our desired spin speed
-    double thetaDistance = (Rotation2d(units::radian_t{thetaGoal}) - GetPose().Rotation()).Radians().value();
-    if (thetaDistance > 180)
-      thetaDistance = thetaDistance - 360;
-    if (fabs(thetaDistance) < O_ALLOWABLE_ERROR_ROTATION)
-      thetaDistance = 0;
-    double intendedVelocity = std::clamp(O_SPIN_KP * thetaDistance, -1 * O_SPIN_MAX_SPEED, O_SPIN_MAX_SPEED);
-    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * O_SPIN_MAX_ACCEL * elapsedTime,
-                           O_SPIN_MAX_ACCEL * elapsedTime);
-
-    //DriveSwervePercent(0, fwdVel, lastSpin);
-    lastGyroRot = gyroRot;
-    return fwdVel == 0; // Returns true if done or false if still parking -Avrick
-  }
 };
