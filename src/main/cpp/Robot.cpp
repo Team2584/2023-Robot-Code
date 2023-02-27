@@ -682,7 +682,7 @@ void Robot::AutonomousPeriodic()
     swerveDrive->UpdateConeOdometry();
     for (auto array : coneEntry.ReadQueue())
     {
-      if ((array.value[0] != 0 || array.value[1] != 0) && array.value[1] > 1)
+      if ((array.value[0] != 0 || array.value[1] != 0) && array.value[1] > 0.75)
       {
         double fieldOrientedX = -1 * array.value[0];
         double fieldOrientedY = -1 * array.value[1];
