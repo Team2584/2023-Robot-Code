@@ -1195,7 +1195,7 @@ public:
   {
     //determine which of the two possible directions we are facing, fwds or backwards
     balanceFacingDirection = 1;
-    if (GetIMURadians() > 90 || GetIMURadians() < 270)
+    if (GetIMURadians() > (M_PI / 2) && GetIMURadians() < (3 * M_PI / 2))
     {
       balanceFacingDirection = -1;
     }
@@ -1223,7 +1223,7 @@ public:
     double intendedYVel = 0;
     if (!waitingOnPlatform)
     {
-      if (fabs(gyroRot < 3)) // if we are in a 3 degree dead zone, then we basically have no error
+      if (fabs(gyroRot) < 3) // if we are in a 3 degree dead zone, then we basically have no error
         gyroRot = 0;
       intendedYVel = std::clamp(gyroRot *  0.05, -0.4, 0.4); // Use simple P to figure out the speed you should go
 
@@ -1244,7 +1244,7 @@ public:
     lastY += std::clamp(intendedYVel - lastY, -1 * 5 * elapsedTime,
                            5 * elapsedTime);
     
-    SmartDashboard::PutNumber("intded balance vel", intendedYVel);
+    SmartDashboard::PutNumber("intended balance vel", intendedYVel);
     SmartDashboard::PutNumber("actual balance vel", lastY);
 
     // PID to rotate to face either forwards or backwards and just lock onto that, I know this part of the code works
