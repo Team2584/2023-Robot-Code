@@ -1225,7 +1225,7 @@ public:
     {
       if (fabs(gyroRot) < 3) // if we are in a 3 degree dead zone, then we basically have no error
         gyroRot = 0;
-      intendedYVel = std::clamp(gyroRot *  0.05, -0.4, 0.4); // Use simple P to figure out the speed you should go
+      intendedYVel = std::clamp(gyroRot *  0.05, -0.2, 0.2); // Use simple P to figure out the speed you should go
 
       if ((gyroRot < 0 && gyroVel > 0) || (gyroRot > 0 && gyroVel < 0)) // If the platform has started rotated towards flat, we know we have crossed center of mass and should stop
       {
