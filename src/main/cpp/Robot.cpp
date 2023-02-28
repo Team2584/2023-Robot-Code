@@ -599,20 +599,20 @@ void Robot::AutonomousPeriodic()
       bool clawClosed = false;
       coneInClaw = claw->ConeInClaw();      
 
-      if (swerveDrive->GetPose().Y().value() < 3.5)
-        elevatorLift->SetElevatorHeightPID(47, elapsedTime);
-      else
-        elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-
       if (coneInClaw)
         clawClosed = claw->CloseClaw(elapsedTime);
       else
         claw->OpenClaw(elapsedTime);
       
       if (clawClosed)
-        claw->PIDWristUp(elapsedTime);
+        claw->PIDWrist(0.6, elapsedTime);
       else
         claw->PIDWristDown(elapsedTime);
+
+      if (swerveDrive->GetPose().Y().value() < 3.5 && clawClosed)
+        elevatorLift->SetElevatorHeightPID(47, elapsedTime);
+      else
+        elevatorLift->SetElevatorHeightPID(0, elapsedTime);
 
       if (splineDone)
       {
