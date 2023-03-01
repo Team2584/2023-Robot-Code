@@ -265,6 +265,8 @@ void Robot::AutonomousInit()
     swerveDrive->ResetOdometry(Pose2d(2.42_m, 1.85_m, Rotation2d(180_deg)));
     swerveDrive->InitializeTrajectory("Place and Balance");
     swerveDrive->SetNextTrajectory();      
+    if (m_autoSelected == kAutoCubeB)
+      claw->ResetClawEncoder(6.6);
   }
   else if (m_autoSelected == kAutoRR2GONV)
   {
@@ -311,10 +313,7 @@ void Robot::AutonomousPeriodic()
 {
   SmartDashboard::PutNumber("Spline Section", splineSection);
 
-  if (claw->ConeInClaw() && claw->ClawEncoderReading() > 8)
-    lights->SetLED("green");
-  else
-    lights->SetLED();
+  lights->SetLED();
 
 
 
@@ -970,9 +969,9 @@ void Robot::AutonomousPeriodic()
  else if (m_autoSelected == kAutoCubeB)
   {
     double elapsedTime = timer.Get().value() - lastTime;
-    seeCubesEntry.Set(true);
     swerveDrive->UpdateOdometry(timer.Get());
     swerveDrive->UpdateConeOdometry();
+    swerveDrive->UpdateTagOdometry();
     for (auto array : coneEntry.ReadQueue())
     {
       if ((array.value[0] != 0 || array.value[1] != 0) && array.value[1] > 0.75)
@@ -987,9 +986,18 @@ void Robot::AutonomousPeriodic()
         currentConeY = -1 * array.value[1];
       }
     }
-
+    for (auto array :cubeTagSub.ReadQueue())
+    {
+      Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
+      frc::SmartDashboard::PutNumber("Tag Vision X", poseEst.X().value());
+      frc::SmartDashboard::PutNumber("Tag Vision Y", poseEst.Y().value());
+      swerveDrive->ResetTagOdometry(Pose2d(poseEst, swerveDrive->GetPose().Rotation()));
+    }
+  
     if (splineSection == 0)
     {
+      limelight->TurnOffLimelight();  
+      seeCubesEntry.Set(true);
       splineSection = 0.5; 
       conePlaceYLimelightGoal= 0.91;
       conePlaceXLimelightGoal = 0.075;
@@ -997,6 +1005,7 @@ void Robot::AutonomousPeriodic()
       placingHigh = true;
       doneWithPoleAlignment = false;
       turnt = false;
+      swerveDrive->ResetTagOdometry(Pose2d(0.075_m, 0.91_m, Rotation2d(180_deg)));
       swerveDrive->BeginPIDLoop();
     }
 
@@ -1008,12 +1017,12 @@ void Robot::AutonomousPeriodic()
       }
       bool lifted = elevatorLift->SetElevatorHeightPID(conePlaceElevatorGoal, elapsedTime);
       bool centered = false;
-      if (!turnt)
-        turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(180_deg)), elapsedTime);
-      if (turnt && elevatorLift->winchEncoderReading() > 15)
+      SmartDashboard::PutBoolean("lifted", lifted);
+      if (lifted)
       {
         centered = swerveDrive->DriveToPoseTag(Pose2d(units::meter_t{conePlaceXLimelightGoal}, units::meter_t{conePlaceYLimelightGoal}, Rotation2d(180_deg)), elapsedTime); 
       }
+      SmartDashboard::PutBoolean("centered", centered);
       if (centered && lifted)
         doneWithPoleAlignment = true;
       if (doneWithPoleAlignment)
@@ -1023,7 +1032,7 @@ void Robot::AutonomousPeriodic()
           claw->OpenClaw(elapsedTime);
       }
 
-      if (claw->ClawEncoderReading() > 5)
+      if (claw->ClawEncoderReading() > 9)
       {
         splineSection = 0.9;
       }

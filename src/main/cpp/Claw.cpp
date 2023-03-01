@@ -154,6 +154,11 @@ public:
     clawEncoder->SetPosition(0.0);
   }
 
+  void ResetClawEncoder(double val)
+  {
+    clawEncoder->SetPosition(val);
+  }
+
   bool OpenClaw(double elapsedTime)
   {
     return PIDClaw(12, elapsedTime);
