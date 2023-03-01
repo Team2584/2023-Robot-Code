@@ -946,7 +946,7 @@ public:
   void InitializeTrajectory(string trajectoryString)
   {
     // This will load the file "Example Path.path" and generate it with a max velocity of 3 m/s and a max acceleration of 5 m/s^2
-    trajectoryList.push(pathplanner::PathPlanner::loadPath(trajectoryString, pathplanner::PathConstraints(3_mps, 5_mps_sq)));
+    trajectoryList.push(pathplanner::PathPlanner::loadPath(trajectoryString, pathplanner::PathConstraints(2_mps, 3_mps_sq)));
   }
 
   /**
@@ -1194,10 +1194,10 @@ public:
   void StartBalance()
   {
     //determine which of the two possible directions we are facing, fwds or backwards
-    balanceFacingDirection = 1;
+    balanceFacingDirection = -1;
     if (GetIMURadians() > (M_PI / 2) && GetIMURadians() < (3 * M_PI / 2))
     {
-      balanceFacingDirection = -1;
+      balanceFacingDirection = 1;
     }
 
     // zero values

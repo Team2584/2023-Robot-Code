@@ -44,9 +44,9 @@
 #define S_TRANSLATION_KI_MAX 0.1
 #define S_TRANSLATION_MAX_SPEED 1.0
 #define S_TRANSLATION_MAX_ACCEL 1.5
-#define S_SPIN_KP 4
-#define S_SPIN_KI 0
-#define S_SPIN_KI_MAX 0.1
+#define S_SPIN_KP 4.3
+#define S_SPIN_KI 0.0
+#define S_SPIN_KI_MAX 0.0
 #define S_SPIN_KD 0
 #define S_SPIN_MAX_SPEED 4.0
 #define S_SPIN_MAX_ACCEL 1.5
@@ -55,14 +55,14 @@
 
 //PID VALUES FOR TURN TO Pole WITH LIMELIGHT
 #define P_STRAFE_KP 0.6
-#define P_STRAFE_KI 0.02
-#define P_STRAFE_KI_MAX 0.05
+#define P_STRAFE_KI 0.03
+#define P_STRAFE_KI_MAX 0.06
 #define P_STRAFE_MAX_SPEED 0.3
 #define P_STRAFE_MAX_ACCEL 3
 #define P_ALLOWABLE_ERROR_STRAFE 0.05 // in pixel values from -1 to 1
 #define P_TRANS_KP 3.5
 #define P_TRANS_KI 0.05 
-#define P_TRANS_KI_MAX 0.05
+#define P_TRANS_KI_MAX 0.06
 #define P_TRANS_MAX_SPEED 0.2
 #define P_TRANS_MAX_ACCEL 3 
 #define P_ALLOWABLE_ERROR_TRANS 0.01

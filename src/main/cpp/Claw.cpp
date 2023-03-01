@@ -92,7 +92,7 @@ public:
 
   bool PIDWristDown(double elapsedTime)
   {
-    return PIDWrist(2.15, elapsedTime);
+    return PIDWrist(2.1, elapsedTime);
   }
 
   bool PIDWristUp(double elapsedTime)
@@ -175,8 +175,9 @@ public:
 
   bool ConeInClaw()
   { //0: 2.23, 
-    double expectedDistance = -0.135 * ClawEncoderReading() + 2.85;
-    return distanceSensor->GetPosition() > expectedDistance || distanceSensor->GetPosition() > 2.87;
+    double expectedDistance = -0.1557 * ClawEncoderReading() + 2.1566;
+    SmartDashboard::PutNumber("expected Distance", expectedDistance);
+    return distanceSensor->GetPosition() > expectedDistance + 0.2;
   }
 
 };
