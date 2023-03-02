@@ -262,6 +262,22 @@ void Robot::AutonomousInit()
     swerveDrive->InitializeTrajectory("BlueLeft1GamePieceBalance2");
     swerveDrive->SetNextTrajectory();      
   }
+  else if (m_autoSelected == kAutoRL1GOB)
+  {
+    swerveDrive->SetAllianceColorRed();
+    swerveDrive->ResetOdometry(Pose2d(4_m, 1.85_m, Rotation2d(180_deg)));
+    swerveDrive->InitializeTrajectory("RedLeft2GamePiece1");
+    swerveDrive->InitializeTrajectory("RedLeft1GamePieceBalance2");
+    swerveDrive->SetNextTrajectory();  
+  }
+  else if (m_autoSelected == kAutoBR1GOB)
+  {
+    swerveDrive->SetAllianceColorBlue();
+    swerveDrive->ResetOdometry(Pose2d(3.25_m, 1.84_m, Rotation2d(180_deg)));
+    swerveDrive->InitializeTrajectory("BlueRight2GamePiece1");
+    swerveDrive->InitializeTrajectory("BlueRight1GamePieceBalance2");
+    swerveDrive->SetNextTrajectory();      
+  }
   /*else if (m_autoSelected == kAutoConeB || m_autoSelected == kAutoCubeB)
   {
     swerveDrive->SetAllianceColorRed();  
@@ -707,7 +723,7 @@ void Robot::AutonomousPeriodic()
 
 
 
-  else if (m_autoSelected == kAutoBL1GOB || m_autoSelected == kAutoRR1GOB)
+  else if (m_autoSelected == kAutoBL1GOB || m_autoSelected == kAutoRR1GOB || m_autoSelected == kAutoBR1GOB || m_autoSelected == kAutoRL1GOB)
   {
     double elapsedTime = timer.Get().value() - lastTime;
     swerveDrive->UpdateOdometry(timer.Get());
@@ -729,6 +745,8 @@ void Robot::AutonomousPeriodic()
 
     if (splineSection == 0)
     {
+      timer.Reset();
+      lastTime = 0;
       doneWithPoleAlignment = false;
       turnt = false;
       swerveDrive->BeginPIDLoop();
@@ -742,7 +760,7 @@ void Robot::AutonomousPeriodic()
       {
         claw->PIDWrist(0.9, elapsedTime);
       }
-      bool lifted = elevatorLift->SetElevatorHeightPID(80, elapsedTime); 
+      bool lifted = elevatorLift->SetElevatorHeightPID(HIGHCONELIFTHEIGHT, elapsedTime); 
       bool centered = false;
       if (!turnt)
         turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(180_deg)), elapsedTime);
@@ -750,11 +768,11 @@ void Robot::AutonomousPeriodic()
       {
         double offsetX = limelight->getTargetX();
         double offsetY = limelight->getTargetY();
-        centered = swerveDrive->StrafeToPole(offsetX, offsetY, 0.19, -0.04, elapsedTime);  //0.27, 0.149
+        centered = swerveDrive->StrafeToPole(offsetX, offsetY, HIGHCONEX, HIGHCONEY, elapsedTime);  
       }
       SmartDashboard::PutBoolean("cenetered", centered);
       SmartDashboard::PutBoolean("lifted", lifted);
-      if (centered && lifted)
+      if (centered && lifted || timer.Get() > 4_s)
       {
         doneWithPoleAlignment = true;
         timer.Reset();
@@ -772,8 +790,14 @@ void Robot::AutonomousPeriodic()
 
     if (splineSection == 0.9)
     {
-      if (m_autoSelected == kAutoBL1GOB)
+      if (m_autoSelected == kAutoBR1GOB)
+        swerveDrive->ResetOdometry(Pose2d(6.5_m, 1.91_m, swerveDrive->GetPose().Rotation()));
+      else if (m_autoSelected == kAutoBL1GOB)
         swerveDrive->ResetOdometry(Pose2d(3.25_m, 1.91_m, swerveDrive->GetPose().Rotation()));
+      else if (m_autoSelected == kAutoRR1GOB)
+        swerveDrive->ResetOdometry(Pose2d(4_m, 1.91_m, swerveDrive->GetPose().Rotation()));
+      else if (m_autoSelected == kAutoRL1GOB)
+        swerveDrive->ResetOdometry(Pose2d(0.63_m, 1.91_m, swerveDrive->GetPose().Rotation()));
       claw->PIDWrist(0.5, elapsedTime);
       claw->OpenClaw(elapsedTime);
       if (claw->MagEncoderReading() < 0.75)
@@ -856,8 +880,6 @@ void Robot::AutonomousPeriodic()
       if (splineDone)
       {
         splineSection = 2.5;
-        doneWithPoleAlignment = false;
-        turnt = false;
         swerveDrive->StartBalance();
         swerveDrive->BeginPIDLoop();
       }
