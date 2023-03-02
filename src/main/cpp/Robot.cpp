@@ -278,16 +278,40 @@ void Robot::AutonomousInit()
     swerveDrive->InitializeTrajectory("BlueRight1GamePieceBalance2");
     swerveDrive->SetNextTrajectory();      
   }
-  /*else if (m_autoSelected == kAutoConeB || m_autoSelected == kAutoCubeB)
+  else if (m_autoSelected == kAutoRConeB)
   {
     swerveDrive->SetAllianceColorRed();  
-    swerveDrive->ResetOdometry(Pose2d(2.42_m, 1.85_m, Rotation2d(180_deg)));
-    swerveDrive->InitializeTrajectory("Place and Balance");
+    swerveDrive->ResetOdometry(Pose2d(2.35_m, 1.85_m, Rotation2d(180_deg)));
+    swerveDrive->InitializeTrajectory("RedCenterConeBalance1");
+    swerveDrive->InitializeTrajectory("RedCenterBalance2");
     swerveDrive->SetNextTrajectory();      
-    if (m_autoSelected == kAutoCubeB)
-      claw->ResetClawEncoder(6.6);
-  }*/
-
+  }
+  else if (m_autoSelected == kAutoBConeB)
+  {
+    swerveDrive->SetAllianceColorBlue();  
+    swerveDrive->ResetOdometry(Pose2d(5.67_m, 1.85_m, Rotation2d(180_deg)));
+    swerveDrive->InitializeTrajectory("BlueCenterConeBalance1");
+    swerveDrive->InitializeTrajectory("BlueCenterBalance2");
+    swerveDrive->SetNextTrajectory();      
+  }
+  else if (m_autoSelected == kAutoRCubeB)
+  {
+    claw->ResetClawEncoder(6.6);
+    swerveDrive->SetAllianceColorRed();  
+    swerveDrive->ResetOdometry(Pose2d(2.89_m, 1.85_m, Rotation2d(180_deg)));
+    swerveDrive->InitializeTrajectory("RedCenterCubeBalance1");
+    swerveDrive->InitializeTrajectory("RedCenterBalance2");
+    swerveDrive->SetNextTrajectory();      
+  }
+  else if (m_autoSelected == kAutoBCubeB)
+  {
+    claw->ResetClawEncoder(6.6);
+    swerveDrive->SetAllianceColorBlue();  
+    swerveDrive->ResetOdometry(Pose2d(5.19_m, 1.85_m, Rotation2d(180_deg)));
+    swerveDrive->InitializeTrajectory("BlueCenterCubeBalance1");
+    swerveDrive->InitializeTrajectory("BlueCenterBalance2");
+    swerveDrive->SetNextTrajectory();      
+  }
 
 
   // else if (m_autoSelected == kAutoRR2GONV)
@@ -897,8 +921,8 @@ void Robot::AutonomousPeriodic()
 
 
 
-  /*
-  else if (m_autoSelected == kAutoConeB)
+  
+  else if (m_autoSelected == kAutoBConeB || m_autoSelected == kAutoRConeB)
   {
     double elapsedTime = timer.Get().value() - lastTime;
     swerveDrive->UpdateOdometry(timer.Get());
@@ -920,11 +944,12 @@ void Robot::AutonomousPeriodic()
 
     if (splineSection == 0)
     {
+      timer.Reset();
+      lastTime = 0;
       doneWithPoleAlignment = false;
       turnt = false;
       swerveDrive->BeginPIDLoop();
       splineSection = 0.5; 
-      timer.Reset();
       limelight->TurnOnLimelight();
     }
 
@@ -934,7 +959,7 @@ void Robot::AutonomousPeriodic()
       {
         claw->PIDWrist(0.9, elapsedTime);
       }
-      bool lifted = elevatorLift->SetElevatorHeightPID(80, elapsedTime); 
+      bool lifted = elevatorLift->SetElevatorHeightPID(HIGHCONELIFTHEIGHT, elapsedTime); 
       bool centered = false;
       if (!turnt)
         turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(180_deg)), elapsedTime);
@@ -942,17 +967,17 @@ void Robot::AutonomousPeriodic()
       {
         double offsetX = limelight->getTargetX();
         double offsetY = limelight->getTargetY();
-        centered = swerveDrive->StrafeToPole(offsetX, offsetY, 0.19, -0.04, elapsedTime);  //0.27, 0.149
+        centered = swerveDrive->StrafeToPole(offsetX, offsetY, HIGHCONEX, HIGHCONEY, elapsedTime);  
       }
       SmartDashboard::PutBoolean("cenetered", centered);
       SmartDashboard::PutBoolean("lifted", lifted);
-      if (centered && lifted)
+      if (centered && lifted || timer.Get() > 4_s)
       {
         doneWithPoleAlignment = true;
         timer.Reset();
         lastTime = 0;
       }
-      if (doneWithPoleAlignment || timer.Get() > 2_s)
+      if (doneWithPoleAlignment)
       {
         claw->PIDWrist(M_PI / 2, elapsedTime);
         if (claw->MagEncoderReading() > M_PI / 2 - 0.05 || timer.Get() > 1_s)
@@ -964,40 +989,65 @@ void Robot::AutonomousPeriodic()
 
     if (splineSection == 0.9)
     {
-      claw->PIDWrist(0.6, elapsedTime);
+      if (m_autoSelected == kAutoBConeB)
+        swerveDrive->ResetOdometry(Pose2d(5.67_m, 1.91_m, swerveDrive->GetPose().Rotation()));
+      else if (m_autoSelected == kAutoRConeB)
+        swerveDrive->ResetOdometry(Pose2d(2.35_m, 1.91_m, swerveDrive->GetPose().Rotation()));
+      claw->PIDWrist(0.5, elapsedTime);
       claw->OpenClaw(elapsedTime);
       if (claw->MagEncoderReading() < 0.75)
         elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-      if (elevatorLift->winchEncoderReading() < 40)
+      if (elevatorLift->winchEncoderReading() < 10)
       {
         timer.Reset();
         lastTime = 0;
         splineSection = 1;
-        claw->BeginClawPID();
-        coneInClaw = false;
       }
     }
 
-    //Drive onto the platform using a spline (basically a path to drive) in pathplanner
-    // If you want to edit the spline go into pathplanner.exe on the driver station's desktop or download it yourself from github
-    // https://github.com/mjansen4857/pathplanner
     if (splineSection == 1)
     {
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-      claw->PIDWrist(0.6, elapsedTime);
       claw->OpenClaw(elapsedTime);
+      claw->PIDWrist(0.6, elapsedTime);
       bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
       if (splineDone)
       {
         splineSection = 1.5;
+        swerveDrive->SetNextTrajectory();
+      }
+    }
+
+    if (splineSection == 1.5)
+    {
+      elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+      claw->OpenClaw(elapsedTime);
+      claw->PIDWrist(0.6, elapsedTime);
+      swerveDrive->DriveSwervePercent(0, 0.4, 0);
+      if (fabs(swerveDrive->GetIMURoll()) < 3 || swerveDrive->GetPose().Y() > 7_m)
+      {
         timer.Reset();
-        swerveDrive->StartBalance();
         lastTime = 0;
+        swerveDrive->DriveSwervePercent(0,0,0);
+        splineSection = 2;
+      }
+    }
+
+    if (splineSection == 2)
+    {
+      elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+      claw->OpenClaw(elapsedTime);
+      claw->PIDWrist(0.6, elapsedTime);
+      bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
+      if (splineDone)
+      {
+        splineSection = 2.5;
+        swerveDrive->StartBalance();
       }
     }
 
     // When you are done with the spline, balance using your code
-    if (splineSection == 1.5)
+    if (splineSection == 2.5)
     {
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->PIDWrist(0.6, elapsedTime);
@@ -1011,7 +1061,7 @@ void Robot::AutonomousPeriodic()
 
 
 
-  else if (m_autoSelected == kAutoCubeB)
+  else if (m_autoSelected == kAutoBCubeB || m_autoSelected == kAutoRCubeB)
   {
     double elapsedTime = timer.Get().value() - lastTime;
     swerveDrive->UpdateOdometry(timer.Get());
@@ -1094,38 +1144,59 @@ void Robot::AutonomousPeriodic()
         timer.Reset();
         lastTime = 0;
         splineSection = 1;
-        claw->BeginClawPID();
-        coneInClaw = false;
       }
     }
 
-    //Drive onto the platform using a spline (basically a path to drive) in pathplanner
-    // If you want to edit the spline go into pathplanner.exe on the driver station's desktop or download it yourself from github
-    // https://github.com/mjansen4857/pathplanner
-    if (splineSection == 1)
+   if (splineSection == 1)
     {
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-      claw->PIDWrist(0.6, elapsedTime);
       claw->OpenClaw(elapsedTime);
+      claw->PIDWrist(0.6, elapsedTime);
       bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
       if (splineDone)
       {
         splineSection = 1.5;
+        swerveDrive->SetNextTrajectory();
+      }
+    }
+
+    if (splineSection == 1.5)
+    {
+      elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+      claw->OpenClaw(elapsedTime);
+      claw->PIDWrist(0.6, elapsedTime);
+      swerveDrive->DriveSwervePercent(0, 0.4, 0);
+      if (fabs(swerveDrive->GetIMURoll()) < 3 || swerveDrive->GetPose().Y() > 7_m)
+      {
+        swerveDrive->DriveSwervePercent(0,0,0);
         timer.Reset();
-        swerveDrive->StartBalance();
         lastTime = 0;
+        splineSection = 2;
+      }
+    }
+
+    if (splineSection == 2)
+    {
+      elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+      claw->OpenClaw(elapsedTime);
+      claw->PIDWrist(0.6, elapsedTime);
+      bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
+      if (splineDone)
+      {
+        swerveDrive->StartBalance();
+        splineSection = 2.5;
       }
     }
 
     // When you are done with the spline, balance using your code
-    if (splineSection == 1.5)
+    if (splineSection == 2.5)
     {
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->PIDWrist(0.6, elapsedTime);
       claw->OpenClaw(elapsedTime);
       swerveDrive->BalanceOnCharger(elapsedTime);
     }
-  }*/
+  }
 
 
 
@@ -1539,6 +1610,7 @@ void Robot::TeleopPeriodic()
       {
         turnt = false;
         coneInClaw = false;
+        claw->BeginClawPID();
         currentDriverSection = AUTOGRABBINGCONE;
       }
       else if (xbox_Drive->GetYButtonPressed())

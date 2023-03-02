@@ -93,10 +93,10 @@ private:
   frc::SendableChooser<std::string> m_chooser;
   const std::string kAutoRR2GO = "RED Right 2 GO";
   const std::string kAutoRL2GO = "RED Left 2 GO";
-  const std::string kAutoRConeB = "RED Place Cone / Balance";
-  const std::string kAutoRCubeB = "RED Place Cube / Balance";
-  const std::string kAutoBConeB = "BLUE Place Cone / Balance";
-  const std::string kAutoBCubeB = "BLUE Place Cube / Balance";
+  const std::string kAutoRConeB = "RED Center Cone / Balance";
+  const std::string kAutoRCubeB = "RED Center Cube / Balance";
+  const std::string kAutoBConeB = "BLUE Center Cone / Balance";
+  const std::string kAutoBCubeB = "BLUE Center Cube / Balance";
   const std::string kAutoBR2GO = "BLUE Right 2 GO";
   const std::string kAutoBL2GO = "BLUE Left 2 GO";
   const std::string kAutoRR1GOB = "RED Right 1 GO / Balance";

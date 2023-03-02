@@ -1194,10 +1194,10 @@ public:
   void StartBalance()
   {
     //determine which of the two possible directions we are facing, fwds or backwards
-    balanceFacingDirection = -1;
+    balanceFacingDirection = 1;
     if (GetIMURadians() > (M_PI / 2) && GetIMURadians() < (3 * M_PI / 2))
     {
-      balanceFacingDirection = 1;
+      balanceFacingDirection = -1;
     }
 
     // zero values
@@ -1206,6 +1206,11 @@ public:
     lastGyroVel = 0;
     currentBalanceDrivingDirection = balanceFacingDirection;
     lastY = 0;
+  }
+
+  double GetIMURoll()
+  {
+    return pigeonIMU->GetRoll();
   }
 
   bool BalanceOnCharger(double elapsedTime){
@@ -1251,7 +1256,7 @@ public:
     double thetaGoal = 0;
     if (balanceFacingDirection == -1)
       thetaGoal = 180;
-    double thetaDistance = (Rotation2d(units::radian_t{thetaGoal}) - GetPose().Rotation()).Radians().value();
+    double thetaDistance = (Rotation2d(units::degree_t{thetaGoal}) - GetPose().Rotation()).Radians().value();
     if (thetaDistance > 180)
       thetaDistance = thetaDistance - 360;
     if (fabs(thetaDistance) < O_ALLOWABLE_ERROR_ROTATION)
