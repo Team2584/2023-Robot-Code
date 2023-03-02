@@ -419,7 +419,7 @@ void Robot::AutonomousPeriodic()
       }
       SmartDashboard::PutBoolean("cenetered", centered);
       SmartDashboard::PutBoolean("lifted", lifted);
-      if (centered && lifted || timer.Get() > 4_s)
+      if ((centered && lifted) || timer.Get() > 4_s)
       {
         doneWithPoleAlignment = true;
         timer.Reset();
@@ -797,7 +797,7 @@ void Robot::AutonomousPeriodic()
       }
       SmartDashboard::PutBoolean("cenetered", centered);
       SmartDashboard::PutBoolean("lifted", lifted);
-      if (centered && lifted || timer.Get() > 4_s)
+      if ((centered && lifted) || timer.Get() > 4_s)
       {
         doneWithPoleAlignment = true;
         timer.Reset();
@@ -972,7 +972,7 @@ void Robot::AutonomousPeriodic()
       }
       SmartDashboard::PutBoolean("cenetered", centered);
       SmartDashboard::PutBoolean("lifted", lifted);
-      if (centered && lifted || timer.Get() > 4_s)
+      if ((centered && lifted) || timer.Get() > 4_s)
       {
         doneWithPoleAlignment = true;
         timer.Reset();
