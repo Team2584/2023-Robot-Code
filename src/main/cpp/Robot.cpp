@@ -76,7 +76,8 @@ enum DriverSection
   SCORINGCUBE = 6,
   UNTIPCONE = 7,
   BALANCE = 8,
-  AUTOGRABBINGCONE = 9
+  AUTOGRABBINGCONE = 9,
+  ANGLEDSUBSTATION = 10
 };
 
 // Values to Set with ShuffleBoard
@@ -1574,15 +1575,8 @@ void Robot::TeleopPeriodic()
       }
       else if (xbox_Drive2->GetPOV() == 90 || xbox_Drive2->GetPOV() == 45 || xbox_Drive2->GetPOV() == 135)
       {
-        seeSubstationTagsEntry.Set(true);
-        seeCubeTagsEntry.Set(false);
-        turnt = false;
-        centeredOnSubstation = false;
-        claw->BeginClawPID();
-        coneInClaw = false;
         clawFinishedOpening = false;
-        leftSubstation = false;
-        currentDriverSection = SUBSTATIONINTAKING;
+        currentDriverSection = ANGLEDSUBSTATION;
       }
       else if (xbox_Drive2->GetPOV() == 315 || xbox_Drive2->GetPOV() == 225 || xbox_Drive2->GetPOV() == 270)
       {
@@ -1763,7 +1757,7 @@ void Robot::TeleopPeriodic()
 
     case SUBSTATIONINTAKING:
     {
-      if (leftSubstation)
+      /*if (leftSubstation)
       {
         bool lifted = elevatorLift->SetElevatorHeightPID(81, elapsedTime);
         claw->PIDWristDown(elapsedTime);
@@ -1792,9 +1786,14 @@ void Robot::TeleopPeriodic()
         SmartDashboard::PutBoolean("cone in claw", claw->ConeInClaw());
       }
       else
-      {
+      {*/
         swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
-        elevatorLift->SetElevatorHeightPID(81, elapsedTime);
+
+        if (claw->WristEncoderReading() < 0.3)
+          elevatorLift->MoveElevatorPercent(0);
+        else
+          elevatorLift->SetElevatorHeightPID(81, elapsedTime);
+
         claw->PIDWristDown(elapsedTime);
         if (!clawFinishedOpening)
           clawFinishedOpening = claw->OpenClaw(elapsedTime);
@@ -1807,16 +1806,45 @@ void Robot::TeleopPeriodic()
           else
             claw->MoveClawPercent(0);     
         }
-      }
+    //  }
 
       if (xbox_Drive2->GetPOV() == -1)
       {
         seeSubstationTagsEntry.Set(false);
         seeCubeTagsEntry.Set(true);
-        if (leftSubstation)
+     /* if (leftSubstation)
           currentDriverSection = BEGINDRIVING;
-        else
+        else*/
           currentDriverSection = RESUMEDRIVING; 
+      }
+      break;
+    }
+
+    case ANGLEDSUBSTATION:
+    {
+      swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
+
+      if (claw->WristEncoderReading() < 0.3)
+        elevatorLift->MoveElevatorPercent(0);
+      else
+        elevatorLift->SetElevatorHeightPID(40, elapsedTime);
+
+      claw->PIDWrist(1, elapsedTime);
+      if (!clawFinishedOpening)
+        clawFinishedOpening = claw->OpenClaw(elapsedTime);
+      else 
+      {
+          if (xbox_Drive2->GetLeftTriggerAxis() > 0.5)
+          claw->MoveClawPercent(0.5);  
+        else if (xbox_Drive2->GetRightTriggerAxis() > 0.5)
+          claw->MoveClawPercent(-0.8);
+        else
+          claw->MoveClawPercent(0);     
+      }
+
+      if (xbox_Drive2->GetPOV() == -1)
+      {
+        currentDriverSection = RESUMEDRIVING; 
       }
       break;
     }
