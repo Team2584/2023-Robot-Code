@@ -179,6 +179,8 @@ void Robot::RobotInit()
   lights  = new LEDLights(&lightController);
   lights->SetLED();
   limelight->TurnOffLimelight();
+  //limelight->TurnOnLimelight();
+
 }
 
 /**
@@ -1251,6 +1253,8 @@ void Robot::TeleopInit()
 
 void Robot::TeleopPeriodic()
 {
+  //limelight->TurnOnLimelight();
+
   // SmartDashboard::PutNumber("FL Mag", swerveDrive->FLModule->magEncoder->GetAbsolutePosition());
   // SmartDashboard::PutNumber("FR Mag", swerveDrive->FRModule->magEncoder->GetAbsolutePosition());
   // SmartDashboard::PutNumber("BL Mag", swerveDrive->BLModule->magEncoder->GetAbsolutePosition());
@@ -1503,7 +1507,7 @@ void Robot::TeleopPeriodic()
       if (xbox_Drive2->GetLeftTriggerAxis() > 0.5)
         claw->MoveClawPercent(0.7);  
       else if (xbox_Drive2->GetRightTriggerAxis() > 0.5)
-        claw->MoveClawPercent(-0.8);
+        claw->MoveClawPercent(-0.9);
       else
         claw->MoveClawPercent(0);
 
@@ -1789,7 +1793,7 @@ void Robot::TeleopPeriodic()
       {*/
         swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
 
-        if (claw->WristEncoderReading() < 0.3)
+        if (claw->MagEncoderReading() < 0.3)
           elevatorLift->MoveElevatorPercent(0);
         else
           elevatorLift->SetElevatorHeightPID(81, elapsedTime);
@@ -1824,7 +1828,7 @@ void Robot::TeleopPeriodic()
     {
       swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
 
-      if (claw->WristEncoderReading() < 0.3)
+      if (claw->MagEncoderReading() < 0.3)
         elevatorLift->MoveElevatorPercent(0);
       else
         elevatorLift->SetElevatorHeightPID(40, elapsedTime);
@@ -1888,7 +1892,7 @@ void Robot::TeleopPeriodic()
       }
       coneInClaw = claw->ConeInClaw();
       if (turnt && !coneInClaw)
-        coneInClaw = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.3_m, goalConeGrabAngle), elapsedTime);
+        coneInClaw = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.58_m, goalConeGrabAngle), elapsedTime);
       if (coneInClaw)
         claw->CloseClaw(elapsedTime);
       else

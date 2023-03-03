@@ -7,6 +7,7 @@
 
 #include "rev/CANSparkMax.h"
 #include "rev/AbsoluteEncoder.h"
+#include "rev/SparkMaxLimitSwitch.h"
 
 #include "ctre/phoenix/motorcontrol/can/WPI_TalonFX.h"
 #include "ctre/phoenix/sensors/Pigeon2.h"

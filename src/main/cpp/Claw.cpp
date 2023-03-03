@@ -18,6 +18,7 @@ public:
     rev::SparkMaxRelativeEncoder *wristEncoder, *clawEncoder; 
     rev::SparkMaxAnalogSensor *distanceSensor;
     rev::SparkMaxAbsoluteEncoder *magEncoder;
+    rev::SparkMaxLimitSwitch *closedLimit, *openLimit;
 
   /**
    * Instantiates a two motor elevator lift
@@ -33,7 +34,8 @@ public:
     wristEncoder =  new rev::SparkMaxRelativeEncoder(wristMotor->GetEncoder());
     wristEncoder->SetPosition(0.0);
     distanceSensor = new rev::SparkMaxAnalogSensor(clawMotor->GetAnalog());
-
+   // closedLimit = new rev::SparkMaxLimitSwitch(clawMotor->GetReverseLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed));
+   // openLimit = new rev::SparkMaxLimitSwitch(clawMotor->GetForwardLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed));
     magEncoder = new rev::SparkMaxAbsoluteEncoder(wristMotor->GetAbsoluteEncoder(rev::SparkMaxAbsoluteEncoder::Type::kDutyCycle));
   }
 
@@ -110,6 +112,10 @@ public:
    SmartDashboard::PutNumber("claw current", clawMotor->GetOutputCurrent());
    SmartDashboard::PutNumber("claw speed", percent);
    SmartDashboard::PutNumber("Distance Sensor", distanceSensor->GetPosition());
+    //if (closedLimit->Get())
+    //  ResetClawEncoder(0);
+    //else if (openLimit->Get())
+     // ResetClawEncoder(13);
     clawMotor->Set(percent);
   }
 
@@ -161,7 +167,7 @@ public:
 
   bool OpenClaw(double elapsedTime)
   {
-    return PIDClaw(12, elapsedTime);
+    return PIDClaw(12.5, elapsedTime);
   }
 
   bool CloseClaw(double elapsedTime)
@@ -170,7 +176,7 @@ public:
     initalClawPIDTime += elapsedTime;
     //Grab til it stops or we hit limit switch
     MoveClawPercent(-0.9);
-    if (ClawEncoderReading() <= 0 || initalClawPIDTime > 0.5)
+    if (ClawEncoderReading() <= 0.25 || initalClawPIDTime > 0.5)
     {
       MoveClawPercent(0);
       return true;
@@ -183,7 +189,7 @@ public:
    /* double expectedDistance = -0.1557 * ClawEncoderReading() + 2.1566;
     SmartDashboard::PutNumber("expected Distance", expectedDistance);
     return distanceSensor->GetPosition() > expectedDistance + 0.2;*/
-    return distanceSensor->GetPosition() < 2.5;
+    return distanceSensor->GetPosition() < 1;
   }
 
 };
