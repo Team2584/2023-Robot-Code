@@ -180,9 +180,10 @@ public:
 
   bool ConeInClaw()
   { //0: 2.23, 
-    double expectedDistance = -0.1557 * ClawEncoderReading() + 2.1566;
+   /* double expectedDistance = -0.1557 * ClawEncoderReading() + 2.1566;
     SmartDashboard::PutNumber("expected Distance", expectedDistance);
-    return distanceSensor->GetPosition() > expectedDistance + 0.2;
+    return distanceSensor->GetPosition() > expectedDistance + 0.2;*/
+    return distanceSensor->GetPosition() < 2.5;
   }
 
 };
