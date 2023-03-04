@@ -1257,7 +1257,7 @@ public:
     double thetaGoal = 0;
     if (balanceFacingDirection == -1)
       thetaGoal = 180;
-      frc::SmartDashboard::PutNumber("theta goal balance", thetaGoal);
+    frc::SmartDashboard::PutNumber("theta goal balance", thetaGoal);
     double thetaDistance = (Rotation2d(units::degree_t{thetaGoal}) - GetPose().Rotation()).Radians().value();
     if (thetaDistance > 180)
       thetaDistance = thetaDistance - 360;

@@ -77,7 +77,8 @@ enum DriverSection
   UNTIPCONE = 7,
   BALANCE = 8,
   AUTOGRABBINGCONE = 9,
-  ANGLEDSUBSTATION = 10
+  ANGLEDSUBSTATION = 10,
+  AUTOCLOSE = 11
 };
 
 // Values to Set with ShuffleBoard
@@ -289,7 +290,7 @@ void Robot::AutonomousInit()
     swerveDrive->SetAllianceColorRed();  
     swerveDrive->ResetOdometry(Pose2d(2.35_m, 1.85_m, Rotation2d(180_deg)));
     swerveDrive->InitializeTrajectory("RedCenterConeBalance1");
-    swerveDrive->InitializeTrajectory("RedCenterBalance2");
+    swerveDrive->InitializeTrajectory("RedCenterBalance2", 2.5_mps, 7_mps_sq);
     swerveDrive->SetNextTrajectory();      
   }
   else if (m_autoSelected == kAutoBConeB)
@@ -297,7 +298,7 @@ void Robot::AutonomousInit()
     swerveDrive->SetAllianceColorBlue();  
     swerveDrive->ResetOdometry(Pose2d(5.67_m, 1.85_m, Rotation2d(180_deg)));
     swerveDrive->InitializeTrajectory("BlueCenterConeBalance1");
-    swerveDrive->InitializeTrajectory("BlueCenterBalance2");
+    swerveDrive->InitializeTrajectory("BlueCenterBalance2", 2.5_mps, 7_mps_sq);
     swerveDrive->SetNextTrajectory();      
   }
   else if (m_autoSelected == kAutoRCubeB)
@@ -306,7 +307,7 @@ void Robot::AutonomousInit()
     swerveDrive->SetAllianceColorRed();  
     swerveDrive->ResetOdometry(Pose2d(2.89_m, 1.85_m, Rotation2d(180_deg)));
     swerveDrive->InitializeTrajectory("RedCenterCubeBalance1");
-    swerveDrive->InitializeTrajectory("RedCenterBalance2");
+    swerveDrive->InitializeTrajectory("RedCenterBalance2", 2.5_mps, 7_mps_sq);
     swerveDrive->SetNextTrajectory();      
   }
   else if (m_autoSelected == kAutoBCubeB)
@@ -315,7 +316,7 @@ void Robot::AutonomousInit()
     swerveDrive->SetAllianceColorBlue();  
     swerveDrive->ResetOdometry(Pose2d(5.19_m, 1.85_m, Rotation2d(180_deg)));
     swerveDrive->InitializeTrajectory("BlueCenterCubeBalance1");
-    swerveDrive->InitializeTrajectory("BlueCenterBalance2");
+    swerveDrive->InitializeTrajectory("BlueCenterBalance2", 2.5_mps, 7_mps_sq);
     swerveDrive->SetNextTrajectory();      
   }
 
@@ -1020,10 +1021,8 @@ void Robot::AutonomousPeriodic()
       claw->OpenClaw(elapsedTime);
       claw->PIDWrist(0.6, elapsedTime);
       swerveDrive->DriveSwervePercent(0, 0.4, 0);
-      if (fabs(swerveDrive->GetIMURoll()) < 5 || swerveDrive->GetPose().Y() > 7_m)
+      if (fabs(swerveDrive->GetIMURoll()) < 5 || swerveDrive->GetPose().Y() > 8.5_m)
       {
-        timer.Reset();
-        lastTime = 0;
         swerveDrive->ResetConeOdometry(Pose2d(0_m, 0_m, Rotation2d(0_deg)));
         splineSection = 1.7;
       }
@@ -1037,7 +1036,21 @@ void Robot::AutonomousPeriodic()
       bool done = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, 0.7_m, Rotation2d(0_deg)), elapsedTime);
       if (done)
       {
-        splineSection = 1.7;
+        splineSection = 1.9;
+        timer.Reset();
+        lastTime = 0;
+      }
+    }
+
+    if (splineSection == 1.9)
+    {
+      elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+      claw->OpenClaw(elapsedTime);
+      claw->PIDWrist(0.6, elapsedTime);
+      swerveDrive->DriveSwervePercent(0,0,0);
+      if (timer.Get() > 2_s)
+      {
+        splineSection = 2;
         timer.Reset();
         lastTime = 0;
       }
@@ -1163,12 +1176,40 @@ void Robot::AutonomousPeriodic()
       claw->OpenClaw(elapsedTime);
       claw->PIDWrist(0.6, elapsedTime);
       swerveDrive->DriveSwervePercent(0, 0.4, 0);
-      if (fabs(swerveDrive->GetIMURoll()) < 3 || swerveDrive->GetPose().Y() > 7_m)
+      if (fabs(swerveDrive->GetIMURoll()) < 5 || swerveDrive->GetPose().Y() > 8.5_m)
       {
-        swerveDrive->DriveSwervePercent(0,0,0);
         timer.Reset();
         lastTime = 0;
+        swerveDrive->ResetConeOdometry(Pose2d(0_m, 0_m, Rotation2d(0_deg)));
+        splineSection = 1.7;
+      }
+    }
+
+    if (splineSection == 1.7)
+    {
+      elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+      claw->OpenClaw(elapsedTime);
+      claw->PIDWrist(0.6, elapsedTime);
+      bool done = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, 0.7_m, Rotation2d(0_deg)), elapsedTime);
+      if (done)
+      {
+        splineSection = 1.9;
+        timer.Reset();
+        lastTime = 0;
+      }
+    }
+
+    if (splineSection == 1.9)
+    {
+      elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+      claw->OpenClaw(elapsedTime);
+      claw->PIDWrist(0.6, elapsedTime);
+      swerveDrive->DriveSwervePercent(0,0,0);
+      if (timer.Get() > 2_s)
+      {
         splineSection = 2;
+        timer.Reset();
+        lastTime = 0;
       }
     }
 
@@ -1590,15 +1631,21 @@ void Robot::TeleopPeriodic()
         leftSubstation = true;
         currentDriverSection = SUBSTATIONINTAKING;
       }
+      else if (xbox_Drive2->GetStartButtonPressed())
+      {
+        coneInClaw = false;
+        claw->BeginClawPID();
+        currentDriverSection = GROUNDINTAKING;      
+      }
       else if (xbox_Drive->GetRightTriggerAxis() > 0.5)
       {
         currentDriverSection = UNTIPCONE;
       }
       else if (xbox_Drive->GetLeftTriggerAxis() > 0.5)
       {
-        coneInClaw = false;
-        claw->BeginClawPID();
-        currentDriverSection = GROUNDPREPAREDTOGRAB;
+        //coneInClaw = false;
+        //claw->BeginClawPID();
+        //currentDriverSection = GROUNDPREPAREDTOGRAB;
       }
       else if (xbox_Drive->GetBButtonPressed())
       {
@@ -1714,7 +1761,7 @@ void Robot::TeleopPeriodic()
       break;
     }
 
-    case GROUNDPREPAREDTOGRAB:
+    case GROUNDINTAKING:
     {
       swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
@@ -1737,21 +1784,6 @@ void Robot::TeleopPeriodic()
 
       if (xbox_Drive->GetLeftTriggerAxis() < 0.2)
         currentDriverSection = RESUMEDRIVING;
-      break;
-    }
-
-    case GROUNDINTAKING:
-    {
-      swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
-      bool closed = claw->CloseClaw(elapsedTime);
-      elevatorLift->SetElevatorHeightPID(0, elapsedTime);
-      if (closed && elevatorLift->winchEncoderReading() < 5)
-        claw->PIDWristUp(elapsedTime);
-      else
-        claw->PIDWristDown(elapsedTime);
-
-      if (xbox_Drive->GetRightTriggerAxis() < 0.2)
-        currentDriverSection = RESUMEDRIVING; 
       break;
     }
 
