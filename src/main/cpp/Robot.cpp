@@ -103,7 +103,7 @@ bool leftSubstation = false;
 bool clawFinishedOpening = false;
 bool canSeeCubeTag = false;
 
-#define HIGHCONELIFTHEIGHT 80
+#define HIGHCONELIFTHEIGHT 80.0
 #define HIGHCONEX 0.19
 #define HIGHCONEY -0.04
 
@@ -422,19 +422,19 @@ void Robot::AutonomousPeriodic()
       }
       SmartDashboard::PutBoolean("cenetered", centered);
       SmartDashboard::PutBoolean("lifted", lifted);
-      if ((centered && lifted) || timer.Get() > 5_s)
+      if ((centered && lifted) || timer.Get() > 4_s)
       {
         doneWithPoleAlignment = true;
       }
       if (doneWithPoleAlignment)
       {
         claw->PIDWrist(M_PI / 2, elapsedTime);
-        if (claw->MagEncoderReading() > M_PI / 2 - 0.05 || timer.Get() > 6_s)
+        if (claw->MagEncoderReading() > M_PI / 2 - 0.05 || timer.Get() > 5_s)
           claw->OpenClaw(elapsedTime);
         if (claw->ClawEncoderReading() > 5)
         {
           splineSection = 0.9;
-          if (timer.Get() < 5.5_s)
+          if (timer.Get() < 5_s)
           {
             if (m_autoSelected == kAutoBR2GO)
               swerveDrive->ResetOdometry(Pose2d(6.5_m, 1.91_m, swerveDrive->GetPose().Rotation()));
@@ -806,13 +806,11 @@ void Robot::AutonomousPeriodic()
       if ((centered && lifted) || timer.Get() > 4_s)
       {
         doneWithPoleAlignment = true;
-        timer.Reset();
-        lastTime = 0;
       }
       if (doneWithPoleAlignment)
       {
         claw->PIDWrist(M_PI / 2, elapsedTime);
-        if (claw->MagEncoderReading() > M_PI / 2 - 0.05 || timer.Get() > 1_s)
+        if (claw->MagEncoderReading() > M_PI / 2 - 0.05 || timer.Get() > 5_s)
           claw->OpenClaw(elapsedTime);
         if (claw->ClawEncoderReading() > 5)
           splineSection = 0.9;
@@ -934,20 +932,6 @@ void Robot::AutonomousPeriodic()
     double elapsedTime = timer.Get().value() - lastTime;
     swerveDrive->UpdateOdometry(timer.Get());
     swerveDrive->UpdateConeOdometry();
-    for (auto array : coneEntry.ReadQueue())
-    {
-      if ((array.value[0] != 0 || array.value[1] != 0) && array.value[1] > 0.75)
-      {
-        double fieldOrientedX = -1 * array.value[0];
-        double fieldOrientedY = -1 * array.value[1];
-        Translation2d transEst = Translation2d(units::meter_t{fieldOrientedX}, units::meter_t{fieldOrientedY});
-        frc::SmartDashboard::PutNumber("Cone X Vision", transEst.X().value());
-        frc::SmartDashboard::PutNumber("Cone Y Vision", transEst.Y().value());
-        swerveDrive->ResetConeOdometry(Pose2d(transEst, swerveDrive->GetPose().Rotation()));
-        currentConeX = -1 * array.value[0];
-        currentConeY = -1 * array.value[1];
-      }
-    }
 
     if (splineSection == 0)
     {
@@ -978,14 +962,14 @@ void Robot::AutonomousPeriodic()
       }
       SmartDashboard::PutBoolean("cenetered", centered);
       SmartDashboard::PutBoolean("lifted", lifted);
-      if ((centered && lifted) || timer.Get() > 5_s)
+      if ((centered && lifted) || timer.Get() > 4_s)
       {
         doneWithPoleAlignment = true;
       }
       if (doneWithPoleAlignment)
       {
         claw->PIDWrist(M_PI / 2, elapsedTime);
-        if (claw->MagEncoderReading() > M_PI / 2 - 0.05 || timer.Get() > 6_s)
+        if (claw->MagEncoderReading() > M_PI / 2 - 0.05 || timer.Get() > 5_s)
           claw->OpenClaw(elapsedTime);
         if (claw->ClawEncoderReading() > 5)
         {
@@ -1003,6 +987,7 @@ void Robot::AutonomousPeriodic()
 
     if (splineSection == 0.9)
     {
+      claw->PIDWrist(0.5, elapsedTime);
       claw->OpenClaw(elapsedTime);
       if (claw->MagEncoderReading() < 0.75)
         elevatorLift->SetElevatorHeightPID(0, elapsedTime);
@@ -1037,8 +1022,22 @@ void Robot::AutonomousPeriodic()
       {
         timer.Reset();
         lastTime = 0;
-        swerveDrive->DriveSwervePercent(0,0,0);
-        splineSection = 2;
+        swerveDrive->ResetConeOdometry(Pose2d(0_m, 0_m, Rotation2d(0_deg)));
+        splineSection = 1.7;
+      }
+    }
+
+    if (splineSection == 1.7)
+    {
+      elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+      claw->OpenClaw(elapsedTime);
+      claw->PIDWrist(0.6, elapsedTime);
+      bool done = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, 0.7_m, Rotation2d(0_deg)));
+      if (done)
+      {
+        splineSection = 1.7;
+        timer.Reset();
+        lastTime = 0;
       }
     }
 
@@ -1076,20 +1075,7 @@ void Robot::AutonomousPeriodic()
     swerveDrive->UpdateOdometry(timer.Get());
     swerveDrive->UpdateConeOdometry();
     swerveDrive->UpdateTagOdometry();
-    for (auto array : coneEntry.ReadQueue())
-    {
-      if ((array.value[0] != 0 || array.value[1] != 0) && array.value[1] > 0.75)
-      {
-        double fieldOrientedX = -1 * array.value[0];
-        double fieldOrientedY = -1 * array.value[1];
-        Translation2d transEst = Translation2d(units::meter_t{fieldOrientedX}, units::meter_t{fieldOrientedY});
-        frc::SmartDashboard::PutNumber("Cone X Vision", transEst.X().value());
-        frc::SmartDashboard::PutNumber("Cone Y Vision", transEst.Y().value());
-        swerveDrive->ResetConeOdometry(Pose2d(transEst, swerveDrive->GetPose().Rotation()));
-        currentConeX = -1 * array.value[0];
-        currentConeY = -1 * array.value[1];
-      }
-    }
+
     for (auto array :cubeTagSub.ReadQueue())
     {
       Translation2d poseEst = Translation2d(units::meter_t{array.value[0]}, units::meter_t{array.value[1]});
