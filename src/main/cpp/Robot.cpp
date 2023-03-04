@@ -104,6 +104,8 @@ bool leftSubstation = false;
 bool clawFinishedOpening = false;
 bool canSeeCubeTag = false;
 bool turnedOffCone = false;
+double preBalanceXGoal = 0;
+double preBalanceYGoal = 0;
 
 #define HIGHCONELIFTHEIGHT 80.0
 #define HIGHCONEX 0.19
@@ -297,7 +299,7 @@ void Robot::AutonomousInit()
   else if (m_autoSelected == kAutoBConeB)
   {
     swerveDrive->SetAllianceColorBlue();  
-    swerveDrive->ResetOdometry(Pose2d(5.67_m, 1.85_m, Rotation2d(180_deg)));
+    swerveDrive->ResetOdometry(Pose2d(4.86_m, 1.91_m, swerveDrive->GetPose().Rotation()));
     swerveDrive->InitializeTrajectory("BlueCenterConeBalance1");
     swerveDrive->InitializeTrajectory("BlueCenterBalance2", 2.5_mps, 7_mps_sq);
     swerveDrive->SetNextTrajectory();      
@@ -442,7 +444,7 @@ void Robot::AutonomousPeriodic()
           if (timer.Get() < 5_s)
           {
             if (m_autoSelected == kAutoBR2GO)
-              swerveDrive->ResetOdometry(Pose2d(6.5_m, 1.91_m, swerveDrive->GetPose().Rotation()));
+              swerveDrive->ResetOdometry(Pose2d(6.46_m, 1.91_m, swerveDrive->GetPose().Rotation()));
             else if (m_autoSelected == kAutoBL2GO)
               swerveDrive->ResetOdometry(Pose2d(3.25_m, 1.91_m, swerveDrive->GetPose().Rotation()));
             else if (m_autoSelected == kAutoRR2GO)
@@ -964,7 +966,7 @@ void Robot::AutonomousPeriodic()
       doneWithPoleAlignment = false;
       turnt = false;
       swerveDrive->BeginPIDLoop();
-      splineSection = 0.5; 
+      splineSection = 0.5;
       limelight->TurnOnLimelight();
     }
 
@@ -1000,7 +1002,7 @@ void Robot::AutonomousPeriodic()
           if (timer.Get() < 5_s)
           {
             if (m_autoSelected == kAutoBConeB)
-              swerveDrive->ResetOdometry(Pose2d(5.67_m, 1.91_m, swerveDrive->GetPose().Rotation()));
+              swerveDrive->ResetOdometry(Pose2d(4.86_m, 1.91_m, swerveDrive->GetPose().Rotation()));
             else if (m_autoSelected == kAutoRConeB)
               swerveDrive->ResetOdometry(Pose2d(2.35_m, 1.91_m, swerveDrive->GetPose().Rotation()));
           }
@@ -1044,7 +1046,8 @@ void Robot::AutonomousPeriodic()
       swerveDrive->DriveSwervePercent(0, 0.4, 0);
       if (fabs(swerveDrive->GetIMURoll()) < 5 || swerveDrive->GetPose().Y() > 8.5_m)
       {
-        swerveDrive->ResetConeOdometry(Pose2d(0_m, 0_m, Rotation2d(0_deg)));
+        preBalanceXGoal = swerveDrive->GetPose().X().value();
+        preBalanceYGoal = swerveDrive->GetPose().Y().value() + 0.7;
         splineSection = 1.7;
       }
     }
@@ -1054,7 +1057,7 @@ void Robot::AutonomousPeriodic()
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->OpenClaw(elapsedTime);
       claw->PIDWrist(0.6, elapsedTime);
-      bool done = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, 0.7_m, Rotation2d(0_deg)), elapsedTime);
+      bool done = swerveDrive->DriveToPose(Pose2d(units::meter_t{preBalanceXGoal}, units::meter_t{preBalanceYGoal}, Rotation2d(180_deg)), elapsedTime);
       if (done)
       {
         splineSection = 1.9;
@@ -1069,7 +1072,7 @@ void Robot::AutonomousPeriodic()
       claw->OpenClaw(elapsedTime);
       claw->PIDWrist(0.6, elapsedTime);
       swerveDrive->DriveSwervePercent(0,0,0);
-      if (timer.Get() > 2_s)
+      if (timer.Get() > 1_s)
       {
         splineSection = 2;
         timer.Reset();
@@ -1443,8 +1446,8 @@ void Robot::TeleopPeriodic()
   // Speed up or Slow Down the Drive
   if (xbox_Drive->GetRightBumper() && elevatorLift->winchEncoderReading() < 30)
   {
-    MAX_DRIVE_SPEED = 0.9;
-    MAX_SPIN_SPEED = 0.9;
+    MAX_DRIVE_SPEED = 0.98;
+    MAX_SPIN_SPEED = 0.98;
     MAX_DRIVE_ACCELERATION = 4;
     MAX_SPIN_ACCELERATION = 4;
   }
@@ -1496,9 +1499,9 @@ void Robot::TeleopPeriodic()
 
       double elevSpeed = 0;
       if (xbox_Drive2->GetLeftY() > 0.3)
-        elevSpeed = -0.3;
+        elevSpeed = (xbox_Drive2->GetLeftY() - 0.3) * 4 / 7 + 0.3; 
       else if (xbox_Drive2->GetLeftY() < -0.3)
-        elevSpeed = 0.3;
+        elevSpeed = (xbox_Drive2->GetLeftY() + 0.3) * 4 / 7 - 0.3; 
       else
         elevSpeed = 0;
         
@@ -1561,7 +1564,7 @@ void Robot::TeleopPeriodic()
       if (!elevatorPIDWrist)
         claw->MoveWristPercent(lastWristSpeed); 
 
-      if (xbox_Drive2->GetLeftTriggerAxis() > 0.5)
+      if (xbox_Drive2->GetLeftTriggerAxis() > 0.5 && claw->ClawEncoderReading() < 12)
         claw->MoveClawPercent(0.7);  
       else if (xbox_Drive2->GetRightTriggerAxis() > 0.5)
         claw->MoveClawPercent(-0.9);
