@@ -1194,10 +1194,10 @@ public:
   void StartBalance()
   {
     //determine which of the two possible directions we are facing, fwds or backwards
-    balanceFacingDirection = 1;
-    if (GetIMURadians() > (M_PI / 2) && GetIMURadians() < (3 * M_PI / 2))
+    balanceFacingDirection = -1;
+    if (fabs(GetPose().Rotation().Radians().value()) < M_PI / 2)
     {
-      balanceFacingDirection = -1;
+      balanceFacingDirection = 1;
     }
 
     // zero values
@@ -1228,13 +1228,14 @@ public:
     double intendedYVel = 0;
     if (!waitingOnPlatform)
     {
-      if (fabs(gyroRot) < 3) // if we are in a 3 degree dead zone, then we basically have no error
+      if (fabs(gyroRot) < 4) // if we are in a 4 degree dead zone, then we basically have no error
         gyroRot = 0;
-      intendedYVel = std::clamp(gyroRot *  0.05, -0.2, 0.2); // Use simple P to figure out the speed you should go
+      intendedYVel = std::clamp(gyroRot *  0.05, -0.25, 0.25); // Use simple P to figure out the speed you should go
 
-      if ((gyroRot < 0 && gyroVel > 0) || (gyroRot > 0 && gyroVel < 0)) // If the platform has started rotated towards flat, we know we have crossed center of mass and should stop
+      if ((gyroRot < 0 && gyroVel > 9) || (gyroRot > 0 && gyroVel < -9)) // If the platform has started rotated towards flat, we know we have crossed center of mass and should stop
       {
         intendedYVel = 0;
+        StrafeLock();
         waitingOnPlatform = true;
       }
     }
@@ -1256,6 +1257,7 @@ public:
     double thetaGoal = 0;
     if (balanceFacingDirection == -1)
       thetaGoal = 180;
+      frc::SmartDashboard::PutNumber("theta goal balance", thetaGoal);
     double thetaDistance = (Rotation2d(units::degree_t{thetaGoal}) - GetPose().Rotation()).Radians().value();
     if (thetaDistance > 180)
       thetaDistance = thetaDistance - 360;
@@ -1270,6 +1272,14 @@ public:
     lastGyroRot = gyroRot;
     lastGyroVel = gyroVel;
     return (fabs(gyroRot) < 3 && fabs(gyroVel) < 5 && lastY == 0); // Returns true if done 
+  }
+
+  void StrafeLock()
+  {
+    FLModule->DriveSwerveModulePercent(0, M_PI / 2);
+    FRModule->DriveSwerveModulePercent(0, M_PI / 2);
+    BLModule->DriveSwerveModulePercent(0, M_PI / 2);
+    BRModule->DriveSwerveModulePercent(0, M_PI / 2);
   }
 /*    float pitch = pigeonIMU->GetPitch();
     frc::SmartDashboard::PutNumber("gyroRot", gyroRot); //on the dashboard, output the gyroRot number

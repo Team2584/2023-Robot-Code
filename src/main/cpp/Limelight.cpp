@@ -20,7 +20,7 @@ public:
 
     void updateLimelightValues(){
     tx = lemonTable->GetNumber("tx", txDefault)/(320/2) * 5; // get number and normalise :: reports -1 to 1
-    ty = lemonTable->GetNumber("ty", tyDefault)/(240/2); // get number and normalise :: reports -1 to 1
+    ty = (lemonTable->GetNumber("ty", tyDefault))/(240/2); // get number and normalise :: reports -1 to 1
     ta = lemonTable->GetNumber("ta", taDefault)/100;     // get number and normalise :: reports 0 to 1
     }
 
