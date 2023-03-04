@@ -193,7 +193,9 @@ void Robot::RobotInit()
  */
 void Robot::RobotPeriodic()
 {
-  //limelight->TurnOnLimelight();
+  limelight->TurnOnLimelight();
+  limelight->getTargetX();
+  limelight->getTargetY();
   connectedEntry.Set(true);
 }
 
@@ -1032,7 +1034,7 @@ void Robot::AutonomousPeriodic()
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->OpenClaw(elapsedTime);
       claw->PIDWrist(0.6, elapsedTime);
-      bool done = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, 0.7_m, Rotation2d(0_deg)));
+      bool done = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, 0.7_m, Rotation2d(0_deg)), elapsedTime);
       if (done)
       {
         splineSection = 1.7;
@@ -1795,7 +1797,7 @@ void Robot::TeleopPeriodic()
         if (!coneInClaw)
           coneInClaw = claw->ConeInClaw();
 
-        claw->PIDWrist(1.65, elapsedTime);
+        claw->PIDWrist(1.6, elapsedTime);
         if (!clawFinishedOpening)
           clawFinishedOpening = claw->OpenClaw(elapsedTime);
         else if (coneInClaw)
