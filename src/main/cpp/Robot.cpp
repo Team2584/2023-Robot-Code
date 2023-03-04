@@ -103,6 +103,7 @@ bool coneInClaw = false;
 bool leftSubstation = false;
 bool clawFinishedOpening = false;
 bool canSeeCubeTag = false;
+bool turnedOffCone = false;
 
 #define HIGHCONELIFTHEIGHT 80.0
 #define HIGHCONEX 0.19
@@ -399,6 +400,7 @@ void Robot::AutonomousPeriodic()
     if (splineSection == 0)
     {
       timer.Reset();
+      turnedOffCone = false;
       lastTime = 0;
       doneWithPoleAlignment = false;
       turnt = false;
@@ -489,10 +491,12 @@ void Robot::AutonomousPeriodic()
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->PIDWristDown(elapsedTime);
 
-      if (swerveDrive->GetConeOdometryPose().Y().value() > 2 && turnt)
+      if (swerveDrive->GetConeOdometryPose().Y().value() > 3 && turnt && !turnedOffCone) 
       {
         swerveDrive->ResetConeOdometry(Pose2d(units::meter_t{lastConeX}, units::meter_t{lastConeY}, Rotation2d(0_deg)));
         seeConesEntry.Set(false);
+        turnedOffCone = true;
+        SmartDashboard::PutBoolean("caught bad cone", true);
       }
 
       turnt = true; // maybe remove this later
@@ -511,6 +515,12 @@ void Robot::AutonomousPeriodic()
         coneInClaw = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.58_m, goalConeGrabAngle), elapsedTime);
       else if (turnt)
         swerveDrive->DriveSwervePercent(0,0,0);
+
+      if (!coneInClaw && swerveDrive->GetPose().Y() > 7_m)
+      {
+        swerveDrive->DriveSwervePercent(0,0,0);
+        coneInClaw = true;
+      }
 
       SmartDashboard::PutBoolean("atCone", coneInClaw);
 
@@ -786,6 +796,7 @@ void Robot::AutonomousPeriodic()
       swerveDrive->BeginPIDLoop();
       splineSection = 0.5; 
       limelight->TurnOnLimelight();
+      turnedOffCone = false;
     }
 
     if (splineSection == 0.5)
@@ -856,6 +867,8 @@ void Robot::AutonomousPeriodic()
         swerveDrive->ResetConeOdometry(Pose2d(0_m, -1_m, Rotation2d(0_deg)));
         turnt = false;
         coneInClaw = false;
+        lastConeX = 0;
+        lastConeY = -1;
         claw->BeginClawPID();
       }
     }
@@ -865,10 +878,12 @@ void Robot::AutonomousPeriodic()
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->PIDWristDown(elapsedTime);
 
-      if (swerveDrive->GetConeOdometryPose().Y().value() > 2 && turnt)
+      if (swerveDrive->GetConeOdometryPose().Y().value() > 3 && turnt && !turnedOffCone) 
       {
         swerveDrive->ResetConeOdometry(Pose2d(units::meter_t{lastConeX}, units::meter_t{lastConeY}, Rotation2d(0_deg)));
         seeConesEntry.Set(false);
+        turnedOffCone = true;
+        SmartDashboard::PutBoolean("caught bad cone", true);
       }
 
       turnt = true; // maybe remove this later
@@ -887,6 +902,12 @@ void Robot::AutonomousPeriodic()
         coneInClaw = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.58_m, goalConeGrabAngle), elapsedTime);
       else if (turnt)
         swerveDrive->DriveSwervePercent(0,0,0);
+
+      if (!coneInClaw && swerveDrive->GetPose().Y() > 7_m)
+      {
+        swerveDrive->DriveSwervePercent(0,0,0);
+        coneInClaw = true;
+      }
 
       SmartDashboard::PutBoolean("atCone", coneInClaw);
 
@@ -1782,7 +1803,7 @@ void Robot::TeleopPeriodic()
       else
         claw->PIDWristDown(elapsedTime);
 
-      if (xbox_Drive->GetLeftTriggerAxis() < 0.2)
+      if (!xbox_Drive2->GetStartButton())
         currentDriverSection = RESUMEDRIVING;
       break;
     }
