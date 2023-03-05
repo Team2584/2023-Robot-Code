@@ -132,6 +132,7 @@ void Robot::RobotInit()
   m_chooser.AddOption(kAutoRCubeB, kAutoRCubeB);
   m_chooser.AddOption(kAutoBConeB, kAutoBConeB);
   m_chooser.AddOption(kAutoBCubeB, kAutoBCubeB);
+  m_chooser.AddOption(kAuto1GO, kAuto1GO);
   frc::SmartDashboard::PutData("Auto Modes", &m_chooser);
 
   // Setting motor breaktypes
@@ -299,7 +300,7 @@ void Robot::AutonomousInit()
   else if (m_autoSelected == kAutoBConeB)
   {
     swerveDrive->SetAllianceColorBlue();  
-    swerveDrive->ResetOdometry(Pose2d(4.86_m, 1.91_m, swerveDrive->GetPose().Rotation()));
+    swerveDrive->ResetOdometry(Pose2d(4.86_m, 1.91_m, Rotation2d(180_deg)));
     swerveDrive->InitializeTrajectory("BlueCenterConeBalance1");
     swerveDrive->InitializeTrajectory("BlueCenterBalance2", 2.5_mps, 7_mps_sq);
     swerveDrive->SetNextTrajectory();      
@@ -322,6 +323,9 @@ void Robot::AutonomousInit()
     swerveDrive->InitializeTrajectory("BlueCenterBalance2", 2.5_mps, 7_mps_sq);
     swerveDrive->SetNextTrajectory();      
   }
+  else if (m_autoSelected == kAuto1GO)
+    swerveDrive->ResetOdometry(Pose2d(5.19_m, 1.85_m, Rotation2d(180_deg)));
+
 
 
   // else if (m_autoSelected == kAutoRR2GONV)
@@ -1202,9 +1206,8 @@ void Robot::AutonomousPeriodic()
       swerveDrive->DriveSwervePercent(0, 0.4, 0);
       if (fabs(swerveDrive->GetIMURoll()) < 5 || swerveDrive->GetPose().Y() > 8.5_m)
       {
-        timer.Reset();
-        lastTime = 0;
-        swerveDrive->ResetConeOdometry(Pose2d(0_m, 0_m, Rotation2d(0_deg)));
+        preBalanceXGoal = swerveDrive->GetPose().X().value();
+        preBalanceYGoal = swerveDrive->GetPose().Y().value() + 0.7;
         splineSection = 1.7;
       }
     }
@@ -1214,7 +1217,7 @@ void Robot::AutonomousPeriodic()
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->OpenClaw(elapsedTime);
       claw->PIDWrist(0.6, elapsedTime);
-      bool done = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, 0.7_m, Rotation2d(0_deg)), elapsedTime);
+      bool done = swerveDrive->DriveToPose(Pose2d(units::meter_t{preBalanceXGoal}, units::meter_t{preBalanceYGoal}, Rotation2d(180_deg)), elapsedTime);
       if (done)
       {
         splineSection = 1.9;
@@ -1229,7 +1232,7 @@ void Robot::AutonomousPeriodic()
       claw->OpenClaw(elapsedTime);
       claw->PIDWrist(0.6, elapsedTime);
       swerveDrive->DriveSwervePercent(0,0,0);
-      if (timer.Get() > 2_s)
+      if (timer.Get() > 1_s)
       {
         splineSection = 2;
         timer.Reset();
@@ -1245,8 +1248,8 @@ void Robot::AutonomousPeriodic()
       bool splineDone = swerveDrive->FollowTrajectory(timer.Get(), elapsedTime);
       if (splineDone)
       {
-        swerveDrive->StartBalance();
         splineSection = 2.5;
+        swerveDrive->StartBalance();
       }
     }
 
@@ -1261,6 +1264,88 @@ void Robot::AutonomousPeriodic()
   }
 
 
+
+  else if (m_autoSelected == kAuto1GO)
+  {
+    double elapsedTime = timer.Get().value() - lastTime;
+    swerveDrive->UpdateOdometry(timer.Get());
+    swerveDrive->UpdateConeOdometry();
+    for (auto array : coneEntry.ReadQueue())
+    {
+      if ((array.value[0] != 0 || array.value[1] != 0) && array.value[1] > 0.75)
+      {
+        double fieldOrientedX = -1 * array.value[0];
+        double fieldOrientedY = -1 * array.value[1];
+        Translation2d transEst = Translation2d(units::meter_t{fieldOrientedX}, units::meter_t{fieldOrientedY});
+        frc::SmartDashboard::PutNumber("Cone X Vision", transEst.X().value());
+        frc::SmartDashboard::PutNumber("Cone Y Vision", transEst.Y().value());
+        swerveDrive->ResetConeOdometry(Pose2d(transEst, swerveDrive->GetPose().Rotation()));
+        currentConeX = -1 * array.value[0];
+        currentConeY = -1 * array.value[1];
+      }
+    }
+
+    if (splineSection == 0)
+    {
+      timer.Reset();
+      turnedOffCone = false;
+      lastTime = 0;
+      doneWithPoleAlignment = false;
+      turnt = false;
+      swerveDrive->BeginPIDLoop();
+      splineSection = 0.5; 
+      limelight->TurnOnLimelight();
+    }
+
+    if (splineSection == 0.5)
+    {
+      if (!doneWithPoleAlignment)
+      {
+        claw->PIDWrist(0.9, elapsedTime);
+      }
+      bool lifted = elevatorLift->SetElevatorHeightPID(HIGHCONELIFTHEIGHT, elapsedTime); 
+      bool centered = false;
+      if (!turnt)
+        turnt = swerveDrive->DriveToPose(Pose2d(swerveDrive->GetPose().Translation(), Rotation2d(180_deg)), elapsedTime);
+      if (turnt && elevatorLift->winchEncoderReading() > 30)
+      {
+        double offsetX = limelight->getTargetX();
+        double offsetY = limelight->getTargetY();
+        centered = swerveDrive->StrafeToPole(offsetX, offsetY, HIGHCONEX, HIGHCONEY, elapsedTime);  
+      }
+      SmartDashboard::PutBoolean("cenetered", centered);
+      SmartDashboard::PutBoolean("lifted", lifted);
+      if ((centered && lifted) || timer.Get() > 4_s)
+      {
+        doneWithPoleAlignment = true;
+      }
+      if (doneWithPoleAlignment)
+      {
+        claw->PIDWrist(M_PI / 2, elapsedTime);
+        if (claw->MagEncoderReading() > M_PI / 2 - 0.05 || timer.Get() > 5_s)
+          claw->OpenClaw(elapsedTime);
+        if (claw->ClawEncoderReading() > 5)
+        {
+          splineSection = 0.9;
+        }
+      }
+    }
+
+    if (splineSection == 0.9)
+    {
+      claw->PIDWrist(0.5, elapsedTime);
+      swerveDrive->DriveSwervePercent(0,0,0);
+      claw->OpenClaw(elapsedTime);
+      if (claw->MagEncoderReading() < 0.75)
+        elevatorLift->SetElevatorHeightPID(0, elapsedTime);
+      if (elevatorLift->winchEncoderReading() < 3)
+      {
+        timer.Reset();
+        lastTime = 0;
+        splineSection = 1;
+      }
+    } 
+  }
 
 
 
@@ -1499,9 +1584,9 @@ void Robot::TeleopPeriodic()
 
       double elevSpeed = 0;
       if (xbox_Drive2->GetLeftY() > 0.3)
-        elevSpeed = (xbox_Drive2->GetLeftY() - 0.3) * 4 / 7 + 0.3; 
+        elevSpeed = -((xbox_Drive2->GetLeftY() - 0.3) * 4 / 7 + 0.3); 
       else if (xbox_Drive2->GetLeftY() < -0.3)
-        elevSpeed = (xbox_Drive2->GetLeftY() + 0.3) * 4 / 7 - 0.3; 
+        elevSpeed = -((xbox_Drive2->GetLeftY() + 0.3) * 4 / 7 - 0.3); 
       else
         elevSpeed = 0;
         

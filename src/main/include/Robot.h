@@ -104,5 +104,6 @@ private:
   const std::string kAutoBL1GOB = "BLUE Left 1 GO / Balance";  
   const std::string kAutoRL1GOB = "RED Left 1 GO / Balance";
   const std::string kAutoBR1GOB = "BLUE Right 1 GO / Balance";
+  const std::string kAuto1GO = "Just Place GO";
   std::string m_autoSelected;
 };
