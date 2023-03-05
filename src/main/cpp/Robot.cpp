@@ -252,7 +252,7 @@ void Robot::AutonomousInit()
   else if (m_autoSelected == kAutoBL2GO)
   {
     swerveDrive->SetAllianceColorBlue();
-    swerveDrive->ResetOdometry(Pose2d(3.25_m, 1.84_m, Rotation2d(180_deg)));
+    swerveDrive->ResetOdometry(Pose2d(3.2_m, 1.85_m, Rotation2d(180_deg)));
     swerveDrive->InitializeTrajectory("BlueLeft2GamePiece1");
     swerveDrive->InitializeTrajectory("BlueLeft2GamePiece2");
     swerveDrive->SetNextTrajectory();      
@@ -294,7 +294,7 @@ void Robot::AutonomousInit()
     swerveDrive->SetAllianceColorRed();  
     swerveDrive->ResetOdometry(Pose2d(2.35_m, 1.85_m, Rotation2d(180_deg)));
     swerveDrive->InitializeTrajectory("RedCenterConeBalance1");
-    swerveDrive->InitializeTrajectory("RedCenterBalance2", 2.5_mps, 7_mps_sq);
+    swerveDrive->InitializeTrajectory("RedCenterBalance2", 2.7_mps, 7_mps_sq);
     swerveDrive->SetNextTrajectory();      
   }
   else if (m_autoSelected == kAutoBConeB)
@@ -302,7 +302,7 @@ void Robot::AutonomousInit()
     swerveDrive->SetAllianceColorBlue();  
     swerveDrive->ResetOdometry(Pose2d(4.86_m, 1.91_m, Rotation2d(180_deg)));
     swerveDrive->InitializeTrajectory("BlueCenterConeBalance1");
-    swerveDrive->InitializeTrajectory("BlueCenterBalance2", 2.5_mps, 7_mps_sq);
+    swerveDrive->InitializeTrajectory("BlueCenterBalance2", 2.7_mps, 7_mps_sq);
     swerveDrive->SetNextTrajectory();      
   }
   else if (m_autoSelected == kAutoRCubeB)
@@ -311,7 +311,7 @@ void Robot::AutonomousInit()
     swerveDrive->SetAllianceColorRed();  
     swerveDrive->ResetOdometry(Pose2d(2.89_m, 1.85_m, Rotation2d(180_deg)));
     swerveDrive->InitializeTrajectory("RedCenterCubeBalance1");
-    swerveDrive->InitializeTrajectory("RedCenterBalance2", 2.5_mps, 7_mps_sq);
+    swerveDrive->InitializeTrajectory("RedCenterBalance2", 2.7_mps, 7_mps_sq);
     swerveDrive->SetNextTrajectory();      
   }
   else if (m_autoSelected == kAutoBCubeB)
@@ -320,7 +320,7 @@ void Robot::AutonomousInit()
     swerveDrive->SetAllianceColorBlue();  
     swerveDrive->ResetOdometry(Pose2d(5.19_m, 1.85_m, Rotation2d(180_deg)));
     swerveDrive->InitializeTrajectory("BlueCenterCubeBalance1");
-    swerveDrive->InitializeTrajectory("BlueCenterBalance2", 2.5_mps, 7_mps_sq);
+    swerveDrive->InitializeTrajectory("BlueCenterBalance2", 2.7_mps, 7_mps_sq);
     swerveDrive->SetNextTrajectory();      
   }
   else if (m_autoSelected == kAuto1GO)
@@ -450,7 +450,7 @@ void Robot::AutonomousPeriodic()
             if (m_autoSelected == kAutoBR2GO)
               swerveDrive->ResetOdometry(Pose2d(6.46_m, 1.91_m, swerveDrive->GetPose().Rotation()));
             else if (m_autoSelected == kAutoBL2GO)
-              swerveDrive->ResetOdometry(Pose2d(3.25_m, 1.91_m, swerveDrive->GetPose().Rotation()));
+              swerveDrive->ResetOdometry(Pose2d(3.2_m, 1.91_m, swerveDrive->GetPose().Rotation()));
             else if (m_autoSelected == kAutoRR2GO)
               swerveDrive->ResetOdometry(Pose2d(4_m, 1.91_m, swerveDrive->GetPose().Rotation()));
             else if (m_autoSelected == kAutoRL2GO)
@@ -1076,7 +1076,7 @@ void Robot::AutonomousPeriodic()
       claw->OpenClaw(elapsedTime);
       claw->PIDWrist(0.6, elapsedTime);
       swerveDrive->DriveSwervePercent(0,0,0);
-      if (timer.Get() > 1_s)
+      if (timer.Get() > 0.5_s)
       {
         splineSection = 2;
         timer.Reset();
@@ -1232,7 +1232,7 @@ void Robot::AutonomousPeriodic()
       claw->OpenClaw(elapsedTime);
       claw->PIDWrist(0.6, elapsedTime);
       swerveDrive->DriveSwervePercent(0,0,0);
-      if (timer.Get() > 1_s)
+      if (timer.Get() > 0.5_s)
       {
         splineSection = 2;
         timer.Reset();
