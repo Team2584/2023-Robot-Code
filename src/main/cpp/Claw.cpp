@@ -10,12 +10,15 @@ private:
     double lastClawSpeed = 0;
     double runningWristIntegral = 0;
     double lastWristSpeed = 0;
+    double initalClawPIDTime = 0;
     
 public:
     rev::CANSparkMax *wristMotor;
     rev::CANSparkMax *clawMotor;
-    rev::SparkMaxRelativeEncoder *wristEncoder;//, *clawEncoder; 
+    rev::SparkMaxRelativeEncoder *wristEncoder, *clawEncoder; 
+    rev::SparkMaxAnalogSensor *distanceSensor;
     rev::SparkMaxAbsoluteEncoder *magEncoder;
+    rev::SparkMaxLimitSwitch *closedLimit, *openLimit;
 
   /**
    * Instantiates a two motor elevator lift
@@ -24,13 +27,15 @@ public:
   {
     wristMotor = wrist;
     clawMotor = claw;
-    wristMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
-    clawMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kCoast);
-    /*clawEncoder =  new rev::SparkMaxRelativeEncoder(clawMotor->GetEncoder());
-    clawEncoder->SetPosition(1.0);*/
+    wristMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
+    clawMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
+    clawEncoder =  new rev::SparkMaxRelativeEncoder(clawMotor->GetEncoder());
+    clawEncoder->SetPosition(1.0);
     wristEncoder =  new rev::SparkMaxRelativeEncoder(wristMotor->GetEncoder());
     wristEncoder->SetPosition(0.0);
-
+    distanceSensor = new rev::SparkMaxAnalogSensor(clawMotor->GetAnalog());
+   // closedLimit = new rev::SparkMaxLimitSwitch(clawMotor->GetReverseLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed));
+   // openLimit = new rev::SparkMaxLimitSwitch(clawMotor->GetForwardLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed));
     magEncoder = new rev::SparkMaxAbsoluteEncoder(wristMotor->GetAbsoluteEncoder(rev::SparkMaxAbsoluteEncoder::Type::kDutyCycle));
   }
 
@@ -52,7 +57,7 @@ public:
    */
   void MoveWristPercent(double percent)
   {
-    wristMotor->Set(percent);
+    wristMotor->Set(-percent);
   }
 
   bool PIDWrist(double point, double elapsedTime)
@@ -77,20 +82,48 @@ public:
     lastWristSpeed += std::clamp(intendedVelocity - lastWristSpeed, -1 * WRISTMAX_ACCELERATION * elapsedTime,
                         WRISTMAX_ACCELERATION * elapsedTime);
 
-    SmartDashboard::PutNumber("error", error);
-    MoveWristPercent(lastWristSpeed);
+    SmartDashboard::PutNumber("intended Velocity", intendedVelocity);
+    SmartDashboard::PutNumber("intended I", intendedI);
+    SmartDashboard::PutNumber("final speed", lastWristSpeed);
+
+    if (lastWristSpeed < -0.2)
+      lastWristSpeed = -0.2;
+    MoveWristPercent(lastWristSpeed + WRISTFF);
     return false;
+  }
+
+  bool PIDWristDown(double elapsedTime)
+  {
+    return PIDWrist(2.1, elapsedTime);
+  }
+
+  bool PIDWristUp(double elapsedTime)
+  {
+    return PIDWrist(0.2, elapsedTime);
   }
 
   double ClawEncoderReading()
   {
-  //  return clawEncoder->GetPosition();
-    return 0.0;
+    return clawEncoder->GetPosition();
   }
 
   void MoveClawPercent(double percent)
   {
+   SmartDashboard::PutNumber("claw current", clawMotor->GetOutputCurrent());
+   SmartDashboard::PutNumber("claw speed", percent);
+   SmartDashboard::PutNumber("Distance Sensor", distanceSensor->GetPosition());
+    //if (closedLimit->Get())
+    //  ResetClawEncoder(0);
+    //else if (openLimit->Get())
+     // ResetClawEncoder(13);
     clawMotor->Set(percent);
+  }
+
+  void BeginClawPID()
+  {
+    lastClawSpeed = 0;
+    runningClawIntegral = 0;
+    initalClawPIDTime = 0;
   }
 
   bool PIDClaw(double point, double elapsedTime)
@@ -106,7 +139,8 @@ public:
 
     // calculate our I in PID and clamp it   between our maximum I effects
     double intendedI = std::clamp(CLAWKI * runningClawIntegral, -1 * CLAWKIMAX, CLAWKIMAX);
-    runningClawIntegral += error;
+    if (fabs(error) < 4)
+      runningClawIntegral += error;
 
     // Clamp our intended velocity to our maximum and minimum velocity to prevent the robot from going too fast
     double intendedVelocity = std::clamp(CLAWKP * error + intendedI, -1 * CLAWMAX_SPEED, CLAWMAX_SPEED);
@@ -115,24 +149,48 @@ public:
     lastClawSpeed += std::clamp(intendedVelocity - lastClawSpeed, -1 * CLAWMAX_ACCELERATION * elapsedTime,
                         CLAWMAX_ACCELERATION * elapsedTime);
 
-    SmartDashboard::PutNumber("error", error);
+    SmartDashboard::PutNumber("claw I", intendedI);
+
     MoveClawPercent(lastClawSpeed);
     return false;
   }
 
   void ResetClawEncoder()
   {
-   // clawEncoder->SetPosition(0.0);
+    clawEncoder->SetPosition(0.0);
+  }
+
+  void ResetClawEncoder(double val)
+  {
+    clawEncoder->SetPosition(val);
   }
 
   bool OpenClaw(double elapsedTime)
   {
-    return PIDClaw(10, elapsedTime);
+    return PIDClaw(12.5, elapsedTime);
   }
 
   bool CloseClaw(double elapsedTime)
   {
-    return PIDClaw(0.3, elapsedTime);
+    SmartDashboard::PutNumber("clawpidtime", initalClawPIDTime);
+    initalClawPIDTime += elapsedTime;
+    //Grab til it stops or we hit limit switch
+    MoveClawPercent(-0.9);
+    if (ClawEncoderReading() <= 0.25 || initalClawPIDTime > 0.5)
+    {
+      MoveClawPercent(0);
+      return true;
+    }
+    return false;
+  }
+
+  bool ConeInClaw()
+  { //0: 2.23, 
+    /*double expectedDistance = -0.1557 * ClawEncoderReading() + 2.1566;
+    SmartDashboard::PutNumber("expected Distance", expectedDistance);
+    return distanceSensor->GetPosition() >  0.9;*/
+   // return distanceSensor->GetPosition() < 2.5;
+    return false;
   }
 
 };

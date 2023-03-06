@@ -10,7 +10,6 @@ private:
   ctre::phoenix::motorcontrol::can::TalonFX *driveMotor;
   rev::CANSparkMax *spinMotor;
   rev::SparkMaxRelativeEncoder *spinEncoder;
-  frc::DutyCycleEncoder *magEncoder;
   double encoderOffset;       /* Offset in magnetic encoder from 0 facing the front of the robot */
   double driveEncoderInitial; /* Used to computer the change in encoder tics, aka motor rotation */
   double spinEncoderInitialHeading;
@@ -18,6 +17,8 @@ private:
   double runningIntegral = 0; /* Running sum of errors for integral in PID */
 
 public:
+  frc::DutyCycleEncoder *magEncoder;
+
   /**
    * Constructor for a Swerve Module: One of the four 2-motor systems in a swerve drive.
    *
@@ -254,7 +255,7 @@ private:
   Translation2d m_backLeft;
   Translation2d m_backRight;
   SwerveDriveKinematics<4> kinematics;
-  SwerveDriveOdometry<4> *coneOdometry;
+  SwerveDriveOdometry<4> *coneOdometry, *tagOdometry;
   SwerveDriveOdometry<4> *odometry;
   std::queue<pathplanner::PathPlannerTrajectory> trajectoryList;
   pathplanner::PathPlannerTrajectory trajectory;
@@ -271,6 +272,14 @@ private:
   double runningIntegralX = 0; /* The running tally of error in the X direction, aka the Integral used for pId */
   double runningIntegralY = 0;
   double runningIntegralSpin = 0;
+
+  bool isRedAlliance = true;
+
+  double lastGyroRot = 0;
+  double lastGyroVel = 0;
+  int currentBalanceDrivingDirection = 1;
+  int balanceFacingDirection = 1;
+  bool waitingOnPlatform = false;
 
 public:
   SwerveModule *FLModule, *FRModule, *BRModule, *BLModule;
@@ -315,6 +324,10 @@ public:
                                                positions,
                                                frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
     coneOdometry = new SwerveDriveOdometry<4>(kinematics,
+                                              Rotation2d(units::radian_t{GetIMURadians()}),
+                                              positions,
+                                              frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{0_deg})));
+    tagOdometry = new SwerveDriveOdometry<4>(kinematics,
                                               Rotation2d(units::radian_t{GetIMURadians()}),
                                               positions,
                                               frc::Pose2d(0_m, 0_m, Rotation2d(units::radian_t{robotStartingRadian})));
@@ -428,11 +441,6 @@ public:
    */
   void ResetConeOdometry(Pose2d position)
   {
-    FLModule->ResetEncoders();
-    FRModule->ResetEncoders();
-    BLModule->ResetEncoders();
-    BRModule->ResetEncoders();
-
     wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
                                                      FRModule->GetSwerveModulePosition(),
                                                      BLModule->GetSwerveModulePosition(),
@@ -441,8 +449,30 @@ public:
     coneOdometry->ResetPosition(
         Rotation2d(units::radian_t{GetIMURadians()}),
         positions,
+        frc::Pose2d(Pose2d(position.Y(), position.X(), Rotation2d(0_rad))));
+  }
+
+  void ResetTagOdometry()
+  {
+    ResetTagOdometry(Pose2d(0_m, 0_m, Rotation2d(0_rad)));
+  }
+
+  /**
+   * Resets Odometry to a position
+   */
+  void ResetTagOdometry(Pose2d position)
+  {
+    wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
+                                                     FRModule->GetSwerveModulePosition(),
+                                                     BLModule->GetSwerveModulePosition(),
+                                                     BRModule->GetSwerveModulePosition()};
+
+    tagOdometry->ResetPosition(
+        Rotation2d(units::radian_t{GetIMURadians()}),
+        positions,
         frc::Pose2d(Pose2d(position.Y(), position.X(), position.Rotation())));
   }
+
 
   /**
    * Updates the odometry reading based on change in each swerve module's positions.
@@ -468,6 +498,16 @@ public:
                                                      BRModule->GetSwerveModulePosition()};
     coneOdometry->Update(units::radian_t{0_rad}, positions);
   }
+
+  void UpdateTagOdometry()
+  {
+    wpi::array<SwerveModulePosition, 4> positions = {FLModule->GetSwerveModulePosition(),
+                                                     FRModule->GetSwerveModulePosition(),
+                                                     BLModule->GetSwerveModulePosition(),
+                                                     BRModule->GetSwerveModulePosition()};
+    tagOdometry->Update(units::radian_t{0_rad}, positions);
+  }
+
 
   /**
    * Updates the Estimated Position of the robot with an estimate from non-odometry sensors, usually using vision and april-tags
@@ -510,6 +550,12 @@ public:
   Pose2d GetConeOdometryPose()
   {
     Pose2d pose = coneOdometry->GetPose();
+    return Pose2d(pose.Y(), pose.X(), pose.Rotation());
+  }
+
+  Pose2d GetTagOdometryPose()
+  {
+    Pose2d pose = tagOdometry->GetPose();
     return Pose2d(pose.Y(), pose.X(), pose.Rotation());
   }
 
@@ -638,6 +684,14 @@ public:
                        O_TRANSLATION_KP, O_TRANSLATION_KI, O_TRANSLATION_KI_MAX, O_SPIN_MAX_SPEED, O_SPIN_MAX_ACCEL, O_ALLOWABLE_ERROR_ROTATION,
                        O_SPIN_KP, O_SPIN_KI, O_SPIN_KI_MAX, false);
   }
+
+  bool DriveToPoseTag(Pose2d target, double elapsedTime)
+  {
+    return DriveToPose(Pose2d(GetTagOdometryPose().Translation(), GetPose().Rotation()), target, elapsedTime, A_TRANSLATION_MAX_SPEED, A_TRANSLATION_MAX_ACCEL, A_ALLOWABLE_ERROR_TRANSLATION,
+                       A_TRANSLATION_KP, A_TRANSLATION_KI, A_TRANSLATION_KI_MAX, O_SPIN_MAX_SPEED, O_SPIN_MAX_ACCEL, O_ALLOWABLE_ERROR_ROTATION,
+                       O_SPIN_KP, O_SPIN_KI, O_SPIN_KI_MAX, false);
+  }
+
 
   bool DriveToPoseConeOdometry(Pose2d target, double elapsedTime)
   {
@@ -874,6 +928,16 @@ public:
     }
   }
 
+  void SetAllianceColorRed()
+  {
+    isRedAlliance = true;
+  }
+
+  void SetAllianceColorBlue()
+  {
+    isRedAlliance = false;
+  }
+
   /**
    * Initializes a trajectory to be run during autonomous by loading it into memory.
    * A trajectory is a curve that we tell the robot to move through. AKA a spline.
@@ -882,7 +946,7 @@ public:
   void InitializeTrajectory(string trajectoryString)
   {
     // This will load the file "Example Path.path" and generate it with a max velocity of 3 m/s and a max acceleration of 5 m/s^2
-    trajectoryList.push(pathplanner::PathPlanner::loadPath(trajectoryString, pathplanner::PathConstraints(2_mps, 3_mps_sq)));
+    trajectoryList.push(pathplanner::PathPlanner::loadPath(trajectoryString, pathplanner::PathConstraints(2.5_mps, 3_mps_sq)));
   }
 
   /**
@@ -892,7 +956,7 @@ public:
    */
   void InitializeTrajectory(string trajectoryString, units::meters_per_second_t velocity, units::meters_per_second_squared_t acceleration)
   {
-    // This will load the file "Example Path.path" and generate it with a max velocity of 3 m/s and a max acceleration of 5 m/s^2
+    // This will load the file "Example Path.path" and generate it with given speeds
     trajectoryList.push(pathplanner::PathPlanner::loadPath(trajectoryString, pathplanner::PathConstraints(velocity, acceleration)));
   }
 
@@ -931,16 +995,26 @@ public:
     else
     {
       state = trajectory.sample(time);
-      // auto xFF = -1 * state.velocity * state.pose.Rotation().Sin(); Blue Alliance
-      // auto yFF = state.velocity * state.pose.Rotation().Cos(); Blue Alliance
-      xFF = state.velocity * state.pose.Rotation().Sin();
-      yFF = -1 * state.velocity * state.pose.Rotation().Cos();
+      if (isRedAlliance)
+      {
+        xFF = state.velocity * state.pose.Rotation().Sin();
+        yFF = -1 * state.velocity * state.pose.Rotation().Cos();
+      }
+      else
+      {
+        xFF = -1 * state.velocity * state.pose.Rotation().Sin();
+        yFF = state.velocity * state.pose.Rotation().Cos(); 
+      }
     }
 
     // Run simple PID to correct our robots course
     Translation2d pose = GetPose().Translation();
-    // Translation2d goal = Translation2d(8_m - state.pose.Y(), state.pose.X()); Blue Alliance
-    Translation2d goal = Translation2d(state.pose.Y(), 16.5_m - state.pose.X());
+    Translation2d goal;
+    if (isRedAlliance)
+      goal = Translation2d(state.pose.Y(), 16.5_m - state.pose.X());
+    else
+      goal = Translation2d(8_m - state.pose.Y(), state.pose.X()); 
+
     double xDistance = (goal.X() - pose.X()).value();
     double yDistance = (goal.Y() - pose.Y()).value();
     if (fabs(xDistance) < S_ALLOWABLE_ERROR_TRANSLATION)
@@ -957,8 +1031,12 @@ public:
     double yPid = std::clamp(S_TRANSLATION_KP * yDistance, -1 * S_TRANSLATION_MAX_SPEED, S_TRANSLATION_MAX_SPEED);
 
     // Spin PID similar to drive to pose
-    // Pose2d thetaGoal = Pose2d(0_m, 0_m, Rotation2d(360_deg - state.holonomicRotation.Degrees())); Blue Aliance
-    Pose2d thetaGoal = Pose2d(0_m, 0_m, Rotation2d(180_deg - state.holonomicRotation.Degrees()));
+    Pose2d thetaGoal;
+    if (isRedAlliance)
+      thetaGoal = Pose2d(0_m, 0_m, Rotation2d(180_deg - state.holonomicRotation.Degrees()));
+    else
+      thetaGoal = Pose2d(0_m, 0_m, Rotation2d(360_deg - state.holonomicRotation.Degrees())); 
+
     double thetaDistance = thetaGoal.RelativeTo(GetPose()).Rotation().Radians().value();
     if (fabs(thetaDistance) < S_ALLOWABLE_ERROR_ROTATION)
     {
@@ -1083,9 +1161,9 @@ public:
                         P_STRAFE_MAX_ACCEL * elapsedTime);
     runningIntegralX += offsetX;
 
-//  SmartDashboard::PutNumber("XDistance", offsetX);
-// SmartDashboard::PutNumber("X I", intendedI);
-// SmartDashboard::PutNumber("Intended Vel", intendedVelocity);
+  SmartDashboard::PutNumber("XDistance", offsetX);
+  SmartDashboard::PutNumber("X I", intendedI);
+  SmartDashboard::PutNumber("Intended Vel", intendedVelocity);
      SmartDashboard::PutNumber("Drive X", lastX);
      
     offsetY -= yGoal;
@@ -1105,10 +1183,123 @@ public:
 
     DriveSwervePercent(-lastX, lastY, lastSpin);
 
-//  SmartDashboard::PutNumber("YDistance", offsetY);
-// SmartDashboard::PutNumber("Y I", intendedI);
-// SmartDashboard::PutNumber("Intended Vel", intendedVelocity);
+
+  SmartDashboard::PutNumber("YDistance", offsetY);
+  SmartDashboard::PutNumber("Y I", intendedI);
+ SmartDashboard::PutNumber("Intended Vel", intendedVelocity);
      SmartDashboard::PutNumber("Drive Y", lastY);
     return (lastX == 0 && lastY == 0 && lastSpin == 0);
   }
+
+  void StartBalance()
+  {
+    //determine which of the two possible directions we are facing, fwds or backwards
+    balanceFacingDirection = -1;
+    if (fabs(GetPose().Rotation().Radians().value()) < M_PI / 2)
+    {
+      balanceFacingDirection = 1;
+    }
+
+    // zero values
+    waitingOnPlatform = false;
+    lastGyroRot = pigeonIMU->GetRoll();
+    lastGyroVel = 0;
+    currentBalanceDrivingDirection = balanceFacingDirection;
+    lastY = 0;
+  }
+
+  double GetIMURoll()
+  {
+    return pigeonIMU->GetRoll();
+  }
+
+  bool BalanceOnCharger(double elapsedTime){
+    // positive gyroRot means far side of platform is up, I multiply by balance facing direction to rotate the roll to field oriented
+    float gyroRot = pigeonIMU->GetRoll() * balanceFacingDirection;
+    double gyroVel = (gyroRot - lastGyroRot) / elapsedTime;
+    double gyroAccel = (gyroVel - lastGyroVel) / elapsedTime;
+
+    SmartDashboard::PutNumber("gyro Accel", gyroAccel);
+    SmartDashboard::PutNumber("gyro Vel", gyroVel);
+    frc::SmartDashboard::PutNumber("gyro roll", gyroRot);
+    frc::SmartDashboard::PutNumber("balanceFacingDirection", balanceFacingDirection);
+    SmartDashboard::PutBoolean("waitingOnPlatform", waitingOnPlatform);
+
+    double intendedYVel = 0;
+    if (!waitingOnPlatform)
+    {
+      if (fabs(gyroRot) < 4) // if we are in a 4 degree dead zone, then we basically have no error
+        gyroRot = 0;
+      intendedYVel = std::clamp(gyroRot *  0.05, -0.25, 0.25); // Use simple P to figure out the speed you should go
+
+      if ((gyroRot < 0 && gyroVel > 9) || (gyroRot > 0 && gyroVel < -9)) // If the platform has started rotated towards flat, we know we have crossed center of mass and should stop
+      {
+        intendedYVel = 0;
+        StrafeLock();
+        waitingOnPlatform = true;
+      }
+    }
+    else
+    {
+      // Maybe lock wheels by making them face sideways here
+      intendedYVel = 0; 
+      if (fabs(gyroAccel) < 50 && fabs(gyroVel) < 10)  // When the platform has stopped oscillating, start moving again.
+        waitingOnPlatform = false;
+    }
+    // Simple acceleration limiting
+    lastY += std::clamp(intendedYVel - lastY, -1 * 5 * elapsedTime,
+                           5 * elapsedTime);
+    
+    SmartDashboard::PutNumber("intended balance vel", intendedYVel);
+    SmartDashboard::PutNumber("actual balance vel", lastY);
+
+    // PID to rotate to face either forwards or backwards and just lock onto that, I know this part of the code works
+    double thetaGoal = 0;
+    if (balanceFacingDirection == -1)
+      thetaGoal = 180;
+    frc::SmartDashboard::PutNumber("theta goal balance", thetaGoal);
+    double thetaDistance = (Rotation2d(units::degree_t{thetaGoal}) - GetPose().Rotation()).Radians().value();
+    if (thetaDistance > 180)
+      thetaDistance = thetaDistance - 360;
+    if (fabs(thetaDistance) < O_ALLOWABLE_ERROR_ROTATION)
+      thetaDistance = 0;
+    double intendedVelocity = std::clamp(O_SPIN_KP * thetaDistance, -1 * O_SPIN_MAX_SPEED, O_SPIN_MAX_SPEED);
+    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * O_SPIN_MAX_ACCEL * elapsedTime,
+                           O_SPIN_MAX_ACCEL * elapsedTime);
+
+    DriveSwervePercent(0, lastY, lastSpin);
+
+    lastGyroRot = gyroRot;
+    lastGyroVel = gyroVel;
+    return (fabs(gyroRot) < 3 && fabs(gyroVel) < 5 && lastY == 0); // Returns true if done 
+  }
+
+  void StrafeLock()
+  {
+    FLModule->DriveSwerveModulePercent(0, M_PI / 2);
+    FRModule->DriveSwerveModulePercent(0, M_PI / 2);
+    BLModule->DriveSwerveModulePercent(0, M_PI / 2);
+    BRModule->DriveSwerveModulePercent(0, M_PI / 2);
+  }
+/*    float pitch = pigeonIMU->GetPitch();
+    frc::SmartDashboard::PutNumber("gyroRot", gyroRot); //on the dashboard, output the gyroRot number
+
+    float deadZone = 2.5;                           //deadzone angle
+    float slowDownDeadZone = 13;
+    float slowP = 0.2 * 1 / 9;
+    float fastP = 0.9 * 1 / 9;
+    float hardMotorCap =  0.4;
+    float motorVelocity = 0;                            //final velocity of motor
+    int direction = (gyroRot > 0) ? 1 : -1;         // if gyroRot is greater than 0, change direction to -1, vice versa. This is for correction, we want to move opposite direction from tilt
+
+    if (abs(gyroRot) > slowDownDeadZone)
+        motorVelocity = direction * abs(gyroRot) * motorSpeedBigDamp; //when rotation of gyro exceeds the deadzone, set motor velocity (this is proportional to the gyro angle)
+    else if (abs(gyroRot) > deadZone)
+        motorVelocity = direction * abs(gyroRot) * motorSpeedDamp;
+    if (motorVelocity > hardMotorCap)   //if motorVelocity exceeds the hard cap, make the motor velocity equal the hard cap
+        motorVelocity = hardMotorCap;
+    if (motorVelocity < -hardMotorCap)  //same in negative direction
+        motorVelocity = -hardMotorCap;*/
+    
+    //Added a negative sign below because the robot will be facing backwards     -Avrick
 };

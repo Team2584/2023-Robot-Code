@@ -36,7 +36,7 @@ public:
 
   double winchEncoderReading()
   {
-    return winchEncoder->GetPosition();
+    return -winchEncoder->GetPosition();
   }
 
   double TOFSReading()
@@ -62,7 +62,7 @@ public:
   void MoveElevatorPercent(double percent)
   {
     winchR->Set(percent);
-    winchL->Set(percent);   
+    winchL->Set(-percent);   
   }
 
   void StartPIDLoop()
@@ -93,6 +93,9 @@ public:
                         ELEVMAX_ACCELERATION * elapsedTime);
 
     runningIntegral += error;
+
+    if (lastSpeed < -0.7)
+      lastSpeed = -0.7;
 
     MoveElevatorPercent(lastSpeed + ELEVHOLDFF);
     return false;

@@ -7,6 +7,7 @@
 
 #include "rev/CANSparkMax.h"
 #include "rev/AbsoluteEncoder.h"
+#include "rev/SparkMaxLimitSwitch.h"
 
 #include "ctre/phoenix/motorcontrol/can/WPI_TalonFX.h"
 #include "ctre/phoenix/sensors/Pigeon2.h"
@@ -91,7 +92,18 @@ public:
 
 private:
   frc::SendableChooser<std::string> m_chooser;
-  const std::string kAutoNameDefault = "3 Game Object";
-  const std::string kAutoNameCustom = "Test Simple";
+  const std::string kAutoRR2GO = "RED Right 2 GO";
+  const std::string kAutoRL2GO = "RED Left 2 GO";
+  const std::string kAutoRConeB = "RED Center Cone / Balance";
+  const std::string kAutoRCubeB = "RED Center Cube / Balance";
+  const std::string kAutoBConeB = "BLUE Center Cone / Balance";
+  const std::string kAutoBCubeB = "BLUE Center Cube / Balance";
+  const std::string kAutoBR2GO = "BLUE Right 2 GO";
+  const std::string kAutoBL2GO = "BLUE Left 2 GO";
+  const std::string kAutoRR1GOB = "RED Right 1 GO / Balance";
+  const std::string kAutoBL1GOB = "BLUE Left 1 GO / Balance";  
+  const std::string kAutoRL1GOB = "RED Left 1 GO / Balance";
+  const std::string kAutoBR1GOB = "BLUE Right 1 GO / Balance";
+  const std::string kAuto1GO = "Just Place GO";
   std::string m_autoSelected;
 };
