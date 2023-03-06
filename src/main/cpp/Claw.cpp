@@ -189,7 +189,8 @@ public:
     /*double expectedDistance = -0.1557 * ClawEncoderReading() + 2.1566;
     SmartDashboard::PutNumber("expected Distance", expectedDistance);
     return distanceSensor->GetPosition() >  0.9;*/
-    return distanceSensor->GetPosition() < 2.5;
+   // return distanceSensor->GetPosition() < 2.5;
+    return false;
   }
 
 };

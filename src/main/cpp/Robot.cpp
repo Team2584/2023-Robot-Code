@@ -1649,7 +1649,7 @@ void Robot::TeleopPeriodic()
       if (!elevatorPIDWrist)
         claw->MoveWristPercent(lastWristSpeed); 
 
-      if (xbox_Drive2->GetLeftTriggerAxis() > 0.5 && claw->ClawEncoderReading() < 12)
+      if (xbox_Drive2->GetLeftTriggerAxis() > 0.5)
         claw->MoveClawPercent(0.7);  
       else if (xbox_Drive2->GetRightTriggerAxis() > 0.5)
         claw->MoveClawPercent(-0.9);
