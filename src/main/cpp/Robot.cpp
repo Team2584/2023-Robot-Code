@@ -1535,6 +1535,11 @@ void Robot::TeleopPeriodic()
     MAX_SPIN_SPEED = 0.98;
     MAX_DRIVE_ACCELERATION = 4;
     MAX_SPIN_ACCELERATION = 4;
+    if (elevatorLift->winchEncoderReading() < 10)
+    {
+      MAX_DRIVE_ACCELERATION = 8;
+      MAX_SPIN_ACCELERATION = 8; 
+    }
   }
   else if (xbox_Drive->GetLeftBumper() || xbox_Drive->GetXButton())
   {
