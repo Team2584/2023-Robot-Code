@@ -1867,6 +1867,8 @@ void Robot::TeleopPeriodic()
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       if (elevatorLift->winchEncoderReading() < 5)
         claw->PIDWristUp(elapsedTime);
+      else if (elevatorLift->winchEncoderReading() > 65)
+        claw->PIDWrist(0.6, elapsedTime);
       else
         claw->PIDWrist(1, elapsedTime);
 
