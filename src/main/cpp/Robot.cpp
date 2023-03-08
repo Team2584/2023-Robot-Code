@@ -262,7 +262,7 @@ void Robot::AutonomousInit()
     swerveDrive->SetAllianceColorRed();
     swerveDrive->ResetOdometry(Pose2d(4_m, 1.85_m, Rotation2d(180_deg)));
     swerveDrive->InitializeTrajectory("RedRight2GamePiece1");
-    swerveDrive->InitializeTrajectory("RedRight1GamePieceBalance2");
+    swerveDrive->InitializeTrajectory("RedRight1GamePieceBalance2", 2.7_mps, 7_mps_sq);
     swerveDrive->SetNextTrajectory();  
   }
   else if (m_autoSelected == kAutoBL1GOB)
@@ -270,7 +270,7 @@ void Robot::AutonomousInit()
     swerveDrive->SetAllianceColorBlue();
     swerveDrive->ResetOdometry(Pose2d(3.25_m, 1.84_m, Rotation2d(180_deg)));
     swerveDrive->InitializeTrajectory("BlueLeft2GamePiece1");
-    swerveDrive->InitializeTrajectory("BlueLeft1GamePieceBalance2");
+    swerveDrive->InitializeTrajectory("BlueLeft1GamePieceBalance2", 2.7_mps, 7_mps_sq);
     swerveDrive->SetNextTrajectory();      
   }
   else if (m_autoSelected == kAutoRL1GOB)
@@ -278,7 +278,7 @@ void Robot::AutonomousInit()
     swerveDrive->SetAllianceColorRed();
     swerveDrive->ResetOdometry(Pose2d(4_m, 1.85_m, Rotation2d(180_deg)));
     swerveDrive->InitializeTrajectory("RedLeft2GamePiece1");
-    swerveDrive->InitializeTrajectory("RedLeft1GamePieceBalance2");
+    swerveDrive->InitializeTrajectory("RedLeft1GamePieceBalance2", 2.7_mps, 7_mps_sq);
     swerveDrive->SetNextTrajectory();  
   }
   else if (m_autoSelected == kAutoBR1GOB)
@@ -286,7 +286,7 @@ void Robot::AutonomousInit()
     swerveDrive->SetAllianceColorBlue();
     swerveDrive->ResetOdometry(Pose2d(3.25_m, 1.84_m, Rotation2d(180_deg)));
     swerveDrive->InitializeTrajectory("BlueRight2GamePiece1");
-    swerveDrive->InitializeTrajectory("BlueRight1GamePieceBalance2");
+    swerveDrive->InitializeTrajectory("BlueRight1GamePieceBalance2", 2.7_mps, 7_mps_sq);
     swerveDrive->SetNextTrajectory();      
   }
   else if (m_autoSelected == kAutoRConeB)
