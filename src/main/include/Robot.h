@@ -92,18 +92,22 @@ public:
 
 private:
   frc::SendableChooser<std::string> m_chooser;
-  const std::string kAutoRR2GO = "RED Right 2 GO";
-  const std::string kAutoRL2GO = "RED Left 2 GO";
+  const std::string kAutoRR2GO = "RED Right 2 Cone";
+  const std::string kAutoRL2GO = "RED Left 2 Cone";
   const std::string kAutoRConeB = "RED Center Cone / Balance";
   const std::string kAutoRCubeB = "RED Center Cube / Balance";
   const std::string kAutoBConeB = "BLUE Center Cone / Balance";
   const std::string kAutoBCubeB = "BLUE Center Cube / Balance";
-  const std::string kAutoBR2GO = "BLUE Right 2 GO";
-  const std::string kAutoBL2GO = "BLUE Left 2 GO";
-  const std::string kAutoRR1GOB = "RED Right 1 GO / Balance";
-  const std::string kAutoBL1GOB = "BLUE Left 1 GO / Balance";  
-  const std::string kAutoRL1GOB = "RED Left 1 GO / Balance";
-  const std::string kAutoBR1GOB = "BLUE Right 1 GO / Balance";
-  const std::string kAuto1GO = "Just Place GO";
+  const std::string kAutoBR2GO = "BLUE Right 2 Cone";
+  const std::string kAutoBL2GO = "BLUE Left 2 Cone";
+  const std::string kAutoRR1GOB = "RED Right 1 Cone / Balance";
+  const std::string kAutoBL1GOB = "BLUE Left 1 Cone / Balance";  
+  const std::string kAutoRL1GOB = "RED Left 1 Cone / Balance";
+  const std::string kAutoBR1GOB = "BLUE Right 1 Cone / Balance";
+  const std::string kAuto1GO = "Just Place Cone";
+  const std::string kAutoRRCubeCone = "RED Right Place Cube + Cone";
+  const std::string kAutoRLCubeCone = "RED Left Place Cube + Cone";
+  const std::string kAutoBRCubeCone = "BLUE Right Place Cube + Cone";
+  const std::string kAutoBLCubeCone = "BLUE Left Place Cube + Cone";
   std::string m_autoSelected;
 };
