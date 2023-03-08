@@ -14,26 +14,28 @@ private:
     
 public:
     rev::CANSparkMax *wristMotor;
-    rev::CANSparkMax *clawMotor;
+    rev::CANSparkMax clawMotor;
     rev::SparkMaxRelativeEncoder *wristEncoder, *clawEncoder; 
     rev::SparkMaxAnalogSensor *distanceSensor;
     rev::SparkMaxAbsoluteEncoder *magEncoder;
-    rev::SparkMaxLimitSwitch *closedLimit, *openLimit;
+    rev::SparkMaxLimitSwitch closedLimit, openLimit;
 
   /**
    * Instantiates a two motor elevator lift
    */
-  Claw(rev::CANSparkMax *wrist, rev::CANSparkMax *claw)
+  Claw(rev::CANSparkMax *wrist)
+  :clawMotor{9, rev::CANSparkMax::MotorType::kBrushless},
+  closedLimit{clawMotor.GetReverseLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed)},
+  openLimit{clawMotor.GetForwardLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed)}
   {
     wristMotor = wrist;
-    clawMotor = claw;
     wristMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
-    clawMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
-    clawEncoder =  new rev::SparkMaxRelativeEncoder(clawMotor->GetEncoder());
+    clawMotor.SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
+    clawEncoder = new rev::SparkMaxRelativeEncoder(clawMotor.GetEncoder());
     clawEncoder->SetPosition(1.0);
     wristEncoder =  new rev::SparkMaxRelativeEncoder(wristMotor->GetEncoder());
     wristEncoder->SetPosition(0.0);
-    distanceSensor = new rev::SparkMaxAnalogSensor(clawMotor->GetAnalog());
+    distanceSensor = new rev::SparkMaxAnalogSensor(clawMotor.GetAnalog());
    // closedLimit = new rev::SparkMaxLimitSwitch(clawMotor->GetReverseLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed));
    // openLimit = new rev::SparkMaxLimitSwitch(clawMotor->GetForwardLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed));
     magEncoder = new rev::SparkMaxAbsoluteEncoder(wristMotor->GetAbsoluteEncoder(rev::SparkMaxAbsoluteEncoder::Type::kDutyCycle));
@@ -109,14 +111,11 @@ public:
 
   void MoveClawPercent(double percent)
   {
-   SmartDashboard::PutNumber("claw current", clawMotor->GetOutputCurrent());
-   SmartDashboard::PutNumber("claw speed", percent);
-   SmartDashboard::PutNumber("Distance Sensor", distanceSensor->GetPosition());
-    //if (closedLimit->Get())
-    //  ResetClawEncoder(0);
-    //else if (openLimit->Get())
-     // ResetClawEncoder(13);
-    clawMotor->Set(percent);
+    if (closedLimit.Get())
+      ResetClawEncoder(0);
+    else if (openLimit.Get())
+      ResetClawEncoder(13);
+    clawMotor.Set(percent);
   }
 
   void BeginClawPID()

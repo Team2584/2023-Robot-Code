@@ -180,7 +180,7 @@ void Robot::RobotInit()
 
   elevatorLift = new ElevatorLift(&winchL, &winchR, &TOFSensor);
   limelight = new Limelight(limelightTable);
-  claw = new Claw(&wrist, &clawM1);
+  claw = new Claw(&wrist);
   lights  = new LEDLights(&lightController);
   lights->SetLED();
   //limelight->TurnOffLimelight();
