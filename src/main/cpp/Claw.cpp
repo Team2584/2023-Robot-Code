@@ -25,8 +25,8 @@ public:
    */
   Claw(rev::CANSparkMax *wrist)
   :clawMotor{9, rev::CANSparkMax::MotorType::kBrushless},
-  closedLimit{clawMotor.GetReverseLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed)},
-  openLimit{clawMotor.GetForwardLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed)}
+  closedLimit{clawMotor.GetReverseLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyOpen)},
+  openLimit{clawMotor.GetForwardLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyOpen)}
   {
     wristMotor = wrist;
     wristMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
@@ -111,6 +111,8 @@ public:
 
   void MoveClawPercent(double percent)
   {
+    SmartDashboard::PutBoolean("closed Limit", closedLimit.Get());
+    SmartDashboard::PutBoolean("open Limit", openLimit.Get());
     if (closedLimit.Get())
       ResetClawEncoder(0);
     else if (openLimit.Get())
