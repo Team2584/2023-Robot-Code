@@ -78,7 +78,8 @@ enum DriverSection
   BALANCE = 8,
   AUTOGRABBINGCONE = 9,
   ANGLEDSUBSTATION = 10,
-  AUTOCLOSE = 11
+  AUTOCLOSE = 11,
+  LIFTINGTOPLACEOBJECT = 12
 };
 
 // Values to Set with ShuffleBoard
@@ -1945,60 +1946,97 @@ void Robot::TeleopPeriodic()
         claw->MoveClawPercent(0);
 
       // Trigger Autonomous Commands
-      if (xbox_Drive2->GetBButtonPressed())
+      if (!claw->IsObjectCone())
       {
-        // Low Post
-        limelight->TurnOnLimelight();
-        conePlaceXLimelightGoal = 0.19; 
-        conePlaceYLimelightGoal = -0.055;
-        conePlaceElevatorGoal = 47;  
-        placingHigh = false;
-        doneWithPoleAlignment = false;
-        turnt = false;
-        swerveDrive->BeginPIDLoop();
-        currentDriverSection = SCORINGCONE;
-      } 
-      else if (xbox_Drive2->GetYButtonPressed())
-      {
-        //High Post
-        limelight->TurnOnLimelight();
-        conePlaceXLimelightGoal = 0.19; 
-        conePlaceYLimelightGoal = -0.055;
-        conePlaceElevatorGoal = 82;  
-        placingHigh = true;
-        doneWithPoleAlignment = false;
-        turnt = false;
-        swerveDrive->BeginPIDLoop();
-        currentDriverSection = SCORINGCONE;
+        //CUBESSSSSSS
+        if (xbox_Drive2->GetYButtonPressed())
+        {
+          
+          //High Cube
+          seeCubesEntry.Set(true);
+          conePlaceYLimelightGoal= 0.91;
+          conePlaceXLimelightGoal = 0.075;
+          conePlaceElevatorGoal = 72;  
+          placingHigh = true;
+          doneWithPoleAlignment = false;
+          turnt = false;
+          swerveDrive->BeginPIDLoop();
+          currentDriverSection = SCORINGCUBE;
+        }
+        else if (xbox_Drive2->GetBButtonPressed())
+        {
+          //Mid Cube
+          seeCubesEntry.Set(true);
+          conePlaceYLimelightGoal= 0.91;
+          conePlaceXLimelightGoal = 0.075;
+          conePlaceElevatorGoal = 48;  
+          placingHigh = false;
+          doneWithPoleAlignment = false;
+          turnt = false;
+          swerveDrive->BeginPIDLoop();
+          currentDriverSection = SCORINGCUBE;
+        }
+        else if (xbox_Drive2->GetXButtonPressed())
+        {
+          //Prepare High
+          placingHigh = true;
+          currentDriverSection = LIFTINGTOPLACEOBJECT;
+          conePlaceElevatorGoal = 72;  
+        }
+        else if (xbox_Drive2->GetAButtonPressed())
+        {
+          //Prepare Mid
+          placingHigh = false;
+          conePlaceElevatorGoal = 48;  
+          currentDriverSection = LIFTINGTOPLACEOBJECT;
+        }
       }
-      else if (xbox_Drive2->GetXButtonPressed())
+      else
       {
-        
-        //High Cube
-        seeCubesEntry.Set(true);
-        conePlaceYLimelightGoal= 0.91;
-        conePlaceXLimelightGoal = 0.075;
-        conePlaceElevatorGoal = 72;  
-        placingHigh = true;
-        doneWithPoleAlignment = false;
-        turnt = false;
-        swerveDrive->BeginPIDLoop();
-        currentDriverSection = SCORINGCUBE;
+        if (xbox_Drive2->GetBButtonPressed())
+        {
+          // Mid Post
+          limelight->TurnOnLimelight();
+          conePlaceXLimelightGoal = 0.19; 
+          conePlaceYLimelightGoal = -0.055;
+          conePlaceElevatorGoal = 47;  
+          placingHigh = false;
+          doneWithPoleAlignment = false;
+          turnt = false;
+          swerveDrive->BeginPIDLoop();
+          currentDriverSection = SCORINGCONE;
+        } 
+        else if (xbox_Drive2->GetYButtonPressed())
+        {
+          //High Post
+          limelight->TurnOnLimelight();
+          conePlaceXLimelightGoal = 0.19; 
+          conePlaceYLimelightGoal = -0.055;
+          conePlaceElevatorGoal = 82;  
+          placingHigh = true;
+          doneWithPoleAlignment = false;
+          turnt = false;
+          swerveDrive->BeginPIDLoop();
+          currentDriverSection = SCORINGCONE;
+        }
+        else if (xbox_Drive2->GetXButtonPressed())
+        {
+          //Prepare High
+          placingHigh = true;
+          conePlaceElevatorGoal = 82;  
+          currentDriverSection = LIFTINGTOPLACEOBJECT;
+        }
+        else if (xbox_Drive2->GetAButtonPressed())
+        {
+          //Prepare Mid
+          placingHigh = false;
+          conePlaceElevatorGoal = 47;  
+          currentDriverSection = LIFTINGTOPLACEOBJECT;
+        }
       }
-      else if (xbox_Drive2->GetAButtonPressed())
-      {
-        //Low Cube
-        seeCubesEntry.Set(true);
-        conePlaceYLimelightGoal= 0.91;
-        conePlaceXLimelightGoal = 0.075;
-        conePlaceElevatorGoal = 48;  
-        placingHigh = false;
-        doneWithPoleAlignment = false;
-        turnt = false;
-        swerveDrive->BeginPIDLoop();
-        currentDriverSection = SCORINGCUBE;
-      }
-      else if (xbox_Drive2->GetBackButtonPressed())
+
+
+      if (xbox_Drive2->GetBackButtonPressed())
       {
         currentDriverSection = ZEROING;
       }
@@ -2050,6 +2088,25 @@ void Robot::TeleopPeriodic()
       }
       break;
     }
+
+    case LIFTINGTOPLACEOBJECT:
+    {
+      swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
+      if (xbox_Drive2->GetLeftTriggerAxis() > 0.5)
+        claw->MoveClawPercent(0.5);  
+      else if (xbox_Drive2->GetRightTriggerAxis() > 0.5)
+        claw->MoveClawPercent(-0.8);
+      else
+        claw->MoveClawPercent(0);
+
+      elevatorLift->SetElevatorHeightPID(conePlaceElevatorGoal, elapsedTime);
+      claw->PIDWrist(0.9, elapsedTime);
+
+      if ((!xbox_Drive2->GetAButton() && !placingHigh) || (!xbox_Drive2->GetXButton() && placingHigh))
+         currentDriverSection = RESUMEDRIVING;
+      break;
+    }
+
 
     case SCORINGCONE:
     {
@@ -2215,12 +2272,12 @@ void Robot::TeleopPeriodic()
         if (claw->MagEncoderReading() < 0.3)
           elevatorLift->MoveElevatorPercent(0);
         else
-          elevatorLift->SetElevatorHeightPID(78, elapsedTime);
+          elevatorLift->SetElevatorHeightPID(77.5, elapsedTime);
 
         if (!coneInClaw)
-          coneInClaw = claw->ObjectInClaw();
+          coneInClaw = claw->ObjectInClaw() || claw->ObjectInClawSubstation();
 
-        claw->PIDWrist(1.6, elapsedTime);
+        claw->PIDWrist(M_PI / 2, elapsedTime);
         if (!clawFinishedOpening)
           clawFinishedOpening = claw->OpenClaw(elapsedTime);
         else if (coneInClaw)
