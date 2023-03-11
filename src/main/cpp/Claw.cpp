@@ -197,12 +197,22 @@ public:
   }
 
 
-  bool ConeInClaw()
+  bool ObjectInClaw()
   { 
     if (!usingBeamBreaks)
       return false;
     
-    return distanceSensor->GetPosition() < 2.5;
+    return distanceSensor->GetPosition() > 10/3;
+  }
+
+  bool ObjectInClawSubstation()
+  {
+    return distanceSensor->GetPosition() > 5/3 && distanceSensor->GetPosition() < 10/3;
+  }
+
+  bool IsObjectCone()
+  {
+    return ClawEncoderReading() < 4;
   }
 
 };

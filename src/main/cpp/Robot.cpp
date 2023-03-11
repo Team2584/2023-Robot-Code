@@ -551,7 +551,7 @@ void Robot::AutonomousPeriodic()
       }
       SmartDashboard::PutBoolean("turnt", turnt);
       if (turnt && !coneInClaw)
-        coneInClaw = claw->ConeInClaw();
+        coneInClaw = claw->ObjectInClaw();
       
       if (turnt && !coneInClaw)
         coneInClaw = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.58_m, goalConeGrabAngle), elapsedTime);
@@ -786,7 +786,7 @@ void Robot::AutonomousPeriodic()
       }
       SmartDashboard::PutBoolean("turnt", turnt);
       if (turnt && !coneInClaw)
-        coneInClaw = claw->ConeInClaw();
+        coneInClaw = claw->ObjectInClaw();
       
       if (turnt && !coneInClaw)
         coneInClaw = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.58_m, goalConeGrabAngle), elapsedTime);
@@ -1171,7 +1171,7 @@ void Robot::AutonomousPeriodic()
       }
       SmartDashboard::PutBoolean("turnt", turnt);
       if (turnt && !coneInClaw)
-        coneInClaw = claw->ConeInClaw();
+        coneInClaw = claw->ObjectInClaw();
       
       if (turnt && !coneInClaw)
         coneInClaw = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.58_m, goalConeGrabAngle), elapsedTime);
@@ -1674,17 +1674,17 @@ void Robot::TeleopPeriodic()
   // SmartDashboard::PutNumber("BR Mag", swerveDrive->BRModule->magEncoder->GetAbsolutePosition());
   // SmartDashboard::PutNumber("Pigeon", _pigeon.GetYaw());
 
-  if (claw->ClawEncoderReading() > 11 && !claw->ConeInClaw())
+  if (claw->ClawEncoderReading() > 11 && !claw->ObjectInClaw())
     lights->SetLED("blue");
-  else if (claw->ClawEncoderReading() > 11 && claw->ConeInClaw())
+  else if (claw->ClawEncoderReading() > 11 && claw->ObjectInClaw())
     lights->SetLED("yellow");
-  else if (claw->ClawEncoderReading() < 5 && claw->ConeInClaw())
+  else if (claw->ClawEncoderReading() < 5 && claw->ObjectInClaw())
     lights->SetLED("green");
-  else if (claw->ClawEncoderReading() < 5 && !claw->ConeInClaw())
+  else if (claw->ClawEncoderReading() < 5 && !claw->ObjectInClaw())
     lights->SetLED("red");
   else
     lights->SetLED();
-  SmartDashboard::PutBoolean("cone in claw", claw->ConeInClaw());
+  SmartDashboard::PutBoolean("cone in claw", claw->ObjectInClaw());
 
   // update our timer
   double time = timer.Get().value();
@@ -2158,7 +2158,7 @@ void Robot::TeleopPeriodic()
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       
       bool clawClosed = false;
-      if ((claw->ConeInClaw() && claw->ClawEncoderReading() > 5) || coneInClaw)
+      if ((claw->ObjectInClaw() && claw->ClawEncoderReading() > 5) || coneInClaw)
       {
         clawClosed = claw->CloseClaw(elapsedTime);
         coneInClaw = true;
@@ -2218,7 +2218,7 @@ void Robot::TeleopPeriodic()
           elevatorLift->SetElevatorHeightPID(78, elapsedTime);
 
         if (!coneInClaw)
-          coneInClaw = claw->ConeInClaw();
+          coneInClaw = claw->ObjectInClaw();
 
         claw->PIDWrist(1.6, elapsedTime);
         if (!clawFinishedOpening)
@@ -2258,7 +2258,7 @@ void Robot::TeleopPeriodic()
         elevatorLift->SetElevatorHeightPID(40, elapsedTime);
 
       if (!coneInClaw)
-        coneInClaw = claw->ConeInClaw();
+        coneInClaw = claw->ObjectInClaw();
 
 
       claw->PIDWrist(1, elapsedTime);
@@ -2320,7 +2320,7 @@ void Robot::TeleopPeriodic()
         turnt = swerveDrive->TurnToPixelCone(angleGoal, elapsedTime);
         goalConeGrabAngle = swerveDrive->GetPose().Rotation();
       }
-      coneInClaw = claw->ConeInClaw();
+      coneInClaw = claw->ObjectInClaw();
       if (turnt && !coneInClaw)
         coneInClaw = swerveDrive->DriveToPoseConeOdometry(Pose2d(0_m, -0.58_m, goalConeGrabAngle), elapsedTime);
       if (coneInClaw)
