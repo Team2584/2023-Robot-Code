@@ -114,6 +114,7 @@ public:
   {
     SmartDashboard::PutBoolean("closed Limit", closedLimit.Get());
     SmartDashboard::PutBoolean("open Limit", openLimit.Get());
+    SmartDashboard::PutNumber("ardiuno out", distanceSensor->GetPosition());
     if (closedLimit.Get())
       ResetClawEncoder(0);
     else if (openLimit.Get())
@@ -178,7 +179,7 @@ public:
     initalClawPIDTime += elapsedTime;
     //Grab til it stops or we hit limit switch
     MoveClawPercent(-0.9);
-    if (ClawEncoderReading() <= 0.25 || initalClawPIDTime > 0.5)
+    if (ClawEncoderReading() <= 0.25 || initalClawPIDTime > 0.75)
     {
       MoveClawPercent(0);
       return true;
@@ -202,12 +203,15 @@ public:
     if (!usingBeamBreaks)
       return false;
     
-    return distanceSensor->GetPosition() > 10/3;
+    return distanceSensor->GetPosition() > 2.2;
   }
 
   bool ObjectInClawSubstation()
   {
-    return distanceSensor->GetPosition() > 5/3 && distanceSensor->GetPosition() < 10/3;
+    if (!usingBeamBreaks)
+      return false;
+
+    return distanceSensor->GetPosition() > 0.5 && distanceSensor->GetPosition() < 2.2;
   }
 
   bool IsObjectCone()
