@@ -1841,6 +1841,20 @@ void Robot::TeleopPeriodic()
   if (xbox_Drive->GetXButton())
     lastFwdSpeed = 0;
 
+    //Reset All Encoder and Gyro Values
+  if (xbox_Drive->GetStartButton() && xbox_Drive->GetBackButton())
+  {
+    swerveDrive->ResetOdometry(Pose2d(0_m, 0_m, Rotation2d(0_deg)));
+    elevatorLift->ResetElevatorEncoder();
+    claw->ResetClawEncoder();
+  }
+
+  if ((xbox_Drive2->GetStartButtonPressed() && xbox_Drive2->GetBackButton()) || (xbox_Drive2->GetStartButton() && xbox_Drive2->GetBackButtonPressed()))
+  {
+    claw->SetUsingBeamBreaks(!claw->GetUsingBeamBreaks());
+    SmartDashboard::PutBoolean("using beam breaks", claw->GetUsingBeamBreaks());
+  }
+
 
   switch(currentDriverSection)
   {
@@ -1929,14 +1943,6 @@ void Robot::TeleopPeriodic()
         claw->MoveClawPercent(-0.9);
       else
         claw->MoveClawPercent(0);
-
-      //Reset All Encoder and Gyro Values
-      if (xbox_Drive->GetStartButton() && xbox_Drive->GetBackButton())
-      {
-        swerveDrive->ResetOdometry(Pose2d(0_m, 0_m, Rotation2d(0_deg)));
-        elevatorLift->ResetElevatorEncoder();
-        claw->ResetClawEncoder();
-      }
 
       // Trigger Autonomous Commands
       if (xbox_Drive2->GetBButtonPressed())

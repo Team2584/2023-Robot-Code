@@ -11,7 +11,8 @@ private:
     double runningWristIntegral = 0;
     double lastWristSpeed = 0;
     double initalClawPIDTime = 0;
-    
+    bool usingBeamBreaks = true;
+
 public:
     rev::CANSparkMax *wristMotor;
     rev::CANSparkMax clawMotor;
@@ -185,13 +186,23 @@ public:
     return false;
   }
 
+  bool GetUsingBeamBreaks()
+  {
+    return usingBeamBreaks;
+  }
+
+  void SetUsingBeamBreaks(bool shouldUse)
+  {
+    usingBeamBreaks = shouldUse;
+  }
+
+
   bool ConeInClaw()
-  { //0: 2.23, 
-    /*double expectedDistance = -0.1557 * ClawEncoderReading() + 2.1566;
-    SmartDashboard::PutNumber("expected Distance", expectedDistance);
-    return distanceSensor->GetPosition() >  0.9;*/
+  { 
+    if (!usingBeamBreaks)
+      return false;
+    
     return distanceSensor->GetPosition() < 2.5;
-    //return false;
   }
 
 };
