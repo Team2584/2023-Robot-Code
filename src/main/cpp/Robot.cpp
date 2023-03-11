@@ -1951,7 +1951,6 @@ void Robot::TeleopPeriodic()
         //CUBESSSSSSS
         if (xbox_Drive2->GetYButtonPressed())
         {
-          
           //High Cube
           seeCubesEntry.Set(true);
           conePlaceYLimelightGoal= 0.91;
@@ -1997,9 +1996,18 @@ void Robot::TeleopPeriodic()
         {
           // Mid Post
           limelight->TurnOnLimelight();
-          conePlaceXLimelightGoal = 0.19; 
-          conePlaceYLimelightGoal = -0.055;
-          conePlaceElevatorGoal = 47;  
+          if (claw->ObjectInClawSubstation())
+          {
+            conePlaceXLimelightGoal = 0.19; 
+            conePlaceYLimelightGoal = -0.055;
+            conePlaceElevatorGoal = 47;  
+          }
+          else
+          {
+            conePlaceXLimelightGoal = 0.19; 
+            conePlaceYLimelightGoal = -0.055;
+            conePlaceElevatorGoal = 47;  
+          }
           placingHigh = false;
           doneWithPoleAlignment = false;
           turnt = false;
@@ -2010,9 +2018,18 @@ void Robot::TeleopPeriodic()
         {
           //High Post
           limelight->TurnOnLimelight();
-          conePlaceXLimelightGoal = 0.19; 
-          conePlaceYLimelightGoal = -0.055;
-          conePlaceElevatorGoal = 82;  
+          if (claw->ObjectInClawSubstation())
+          {
+            conePlaceXLimelightGoal = 0.19; 
+            conePlaceYLimelightGoal = -0.055;
+            conePlaceElevatorGoal = 82;  
+          }
+          else
+          {
+            conePlaceXLimelightGoal = 0.19; 
+            conePlaceYLimelightGoal = -0.055;
+            conePlaceElevatorGoal = 82;  
+          }
           placingHigh = true;
           doneWithPoleAlignment = false;
           turnt = false;
