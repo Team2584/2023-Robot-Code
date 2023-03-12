@@ -3,6 +3,11 @@
 
 #include <frc/smartdashboard/SmartDashboard.h>
 
+
+// Idea, make the "drive swerve percent" functions just set the "lastX" or "lastY" and have a swerve update function that actually drives the swerve
+// Add warnings if you are setting the swerve speed in any direction twice in one loop
+// Have the update function also update odometry and stuff
+
 class SwerveModule
 {
 private:

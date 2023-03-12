@@ -1644,7 +1644,10 @@ void Robot::AutonomousPeriodic()
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->PIDWrist(0.6, elapsedTime);
       claw->MoveClawPercent(0);
-      swerveDrive->BalanceOnCharger(elapsedTime);
+      if (masterTimer.Get() < 14.8_s)
+        swerveDrive->BalanceOnCharger(elapsedTime);
+      else
+        swerveDrive->StrafeLock();
     }
   }
 
@@ -1798,7 +1801,10 @@ void Robot::AutonomousPeriodic()
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->PIDWrist(0.6, elapsedTime);
       claw->OpenClaw(elapsedTime);
-      swerveDrive->BalanceOnCharger(elapsedTime);
+      if (masterTimer.Get() < 14.8_s)
+        swerveDrive->BalanceOnCharger(elapsedTime);
+      else
+        swerveDrive->StrafeLock();    
     }
   }
 
@@ -1954,7 +1960,10 @@ void Robot::AutonomousPeriodic()
       elevatorLift->SetElevatorHeightPID(0, elapsedTime);
       claw->PIDWrist(0.6, elapsedTime);
       claw->OpenClaw(elapsedTime);
-      swerveDrive->BalanceOnCharger(elapsedTime);
+      if (masterTimer.Get() < 14.8_s)
+        swerveDrive->BalanceOnCharger(elapsedTime);
+      else
+        swerveDrive->StrafeLock();
     }
   }
 
@@ -2383,6 +2392,7 @@ void Robot::TeleopPeriodic()
   lastTurnSpeed += std::clamp(Turn_Speed - lastTurnSpeed, -1 * MAX_SPIN_ACCELERATION * elapsedTime,
                               MAX_SPIN_ACCELERATION * elapsedTime);
 
+  // strafe lock
   if (xbox_Drive->GetXButton())
     lastFwdSpeed = 0;
 
@@ -2412,7 +2422,10 @@ void Robot::TeleopPeriodic()
       currentDriverSection = DRIVING;
     case DRIVING:
     {
-      swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
+      if (xbox_Drive->GetXButton() && lastStrafeSpeed == 0 && lastTurnSpeed == 0 && lastFwdSpeed == 0)
+        swerveDrive->StrafeLock();
+      else
+        swerveDrive->DriveSwervePercent(lastStrafeSpeed, lastFwdSpeed, lastTurnSpeed);
 
       double elevSpeed = 0;
       if (xbox_Drive2->GetLeftY() > 0.3)
