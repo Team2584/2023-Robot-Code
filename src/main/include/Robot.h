@@ -109,6 +109,10 @@ private:
   const std::string kAutoRLCubeCone = "RED Left Place Cube -> Place Cone";
   const std::string kAutoBRCubeCone = "BLUE Right Place Cube -> Place Cone";
   const std::string kAutoBLCubeCone = "BLUE Left Place Cube -> Place Cone";
+  const std::string kAutoRRCubeConeCone = "RED Right Place Cube -> Place Cone -> Grab Cone";
+  const std::string kAutoRLCubeConeCone = "RED Left Place Cube -> Place Cone -> Grab Cone";
+  const std::string kAutoBRCubeConeCone = "BLUE Right Place Cube -> Place Cone -> Grab Cone";
+  const std::string kAutoBLCubeConeCone = "BLUE Left Place Cube -> Place Cone -> Grab Cone";
   const std::string kAutoRConeDriveR = "RED Center Place Cone -> Drive out Right";
   const std::string kAutoRConeDriveL = "RED Center Place Cone -> Drive out Left";
   const std::string kAutoBConeDriveR = "BLUE Center Place Cone -> Drive out Right";

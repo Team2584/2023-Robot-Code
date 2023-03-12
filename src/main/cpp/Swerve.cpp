@@ -778,6 +778,93 @@ public:
     return false;
   }
 
+  bool DriveToPoseConeOdometryFast(Pose2d target, double elapsedTime)
+  {
+    Pose2d current = GetConeOdometryPose();
+    double intendedVelocity;
+    double intendedI;
+
+    double xSpeed;
+    // Our current error in the x direction
+    double xDistance = target.X().value() - current.X().value();
+
+    // If we are within our allowable error, stop moving in the x direction
+    if (fabs(xDistance) < C_ALLOWABLE_ERROR_TRANSLATION)
+    {
+      xDistance = 0;
+      lastX = 0;
+      runningIntegralX = 0;
+    }
+
+    // calculate our I in PID and clamp it between our maximum I effects
+    intendedI = std::clamp(C_STRAFE_KI * runningIntegralX, -1 * C_STRAFE_KI_MAX, C_STRAFE_KI_MAX);
+
+    // Clamp our intended velocity to our maximum and minimum velocity to prevent the robot from going too fast
+    intendedVelocity = std::clamp(0.85 * xDistance + intendedI, -1 * 0.8, 0.8);
+
+    // Make sure our change in velocity from the last loop is not going above our maximum acceleration
+    lastX += std::clamp(intendedVelocity - lastX, -1 * C_STRAFE_MAX_ACCEL * elapsedTime,
+                        C_STRAFE_MAX_ACCEL * elapsedTime);
+    xSpeed = lastX;
+
+    // Repeat with the Y direction
+    double ySpeed;
+    double yDistance = target.Y().value() - current.Y().value();
+    if (fabs(yDistance) < C_ALLOWABLE_ERROR_TRANSLATION)
+    {
+      yDistance = 0;
+      lastY = 0;
+      runningIntegralY = 0;
+    }
+    intendedI = std::clamp(C_TRANSLATION_KI * runningIntegralY, -1 * C_TRANSLATION_KI_MAX, C_TRANSLATION_KI_MAX);
+    intendedVelocity = std::clamp(C_TRANSLATION_KP * yDistance + intendedI, -1 * 0.6, 0.6);
+    lastY += std::clamp(intendedVelocity - lastY, -1 * 5 * elapsedTime,
+                        5 * elapsedTime);
+    ySpeed = lastY;
+
+
+    // Repeat for spinning
+    double spinSpeed;
+    double thetaDistance = target.RelativeTo(GetPose()).Rotation().Radians().value();
+    if (thetaDistance > 180)
+      thetaDistance = thetaDistance - 360;
+    if (fabs(thetaDistance) < O_ALLOWABLE_ERROR_ROTATION)
+    {
+      thetaDistance = 0;
+      lastSpin = 0;
+      runningIntegralSpin = 0;
+    }
+    intendedI = std::clamp(O_SPIN_KI * runningIntegralSpin, -1 * O_SPIN_KI_MAX, O_SPIN_KI_MAX);
+    intendedVelocity = std::clamp(O_SPIN_KP * thetaDistance + intendedI, -1 * O_SPIN_MAX_SPEED, O_SPIN_MAX_SPEED);
+    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * O_SPIN_MAX_ACCEL * elapsedTime,
+                           O_SPIN_MAX_ACCEL * elapsedTime);
+    spinSpeed = lastSpin;
+
+
+    // Add to our running integral error count
+    runningIntegralX += xDistance;
+    runningIntegralY += yDistance;
+    runningIntegralSpin += thetaDistance;
+
+    // Debugging info
+    // SmartDashboard::PutNumber("XDistance", xDistance);
+    // SmartDashboard::PutNumber("YDistance", yDistance);
+    // SmartDashboard::PutNumber("ThetaDistance", thetaDistance);
+
+    // SmartDashboard::PutNumber("Drive X", lastX);
+    // SmartDashboard::PutNumber("Drive Y", lastY);
+    // SmartDashboard::PutNumber("Drive Spin", lastSpin);
+
+    if (xSpeed == 0 && ySpeed == 0 && spinSpeed == 0)
+      return true;
+
+    // Drive swerve at desired speeds
+    DriveSwervePercentNonFieldOriented(xSpeed, ySpeed, spinSpeed);
+    return false;
+  }
+
+
+
   /**
    * Drives the robot to a pose using a feedback PID loop
    * @param target the target Pose
@@ -1244,8 +1331,8 @@ public:
       runningIntegralY = 0;
     }
     runningIntegralY += offsetY;
-    intendedI = std::clamp(P_TRANS_KI * runningIntegralY, -1 * P_TRANS_KI_MAX, P_TRANS_KI_MAX);
-    intendedVelocity = std::clamp(P_TRANS_KP * offsetY + intendedI, -1 * P_TRANS_MAX_SPEED, P_TRANS_MAX_SPEED);
+    intendedI = std::clamp(0.03 * runningIntegralY, -1 * P_TRANS_KI_MAX, P_TRANS_KI_MAX);
+    intendedVelocity = std::clamp(3.7 * offsetY + intendedI, -1 * 0.3, 0.3);
     lastY += std::clamp(intendedVelocity - lastY, -1 * P_TRANS_MAX_ACCEL * elapsedTime,
                         P_TRANS_MAX_ACCEL * elapsedTime);
     runningIntegralY += offsetY;
@@ -1373,4 +1460,9 @@ public:
         motorVelocity = -hardMotorCap;*/
     
     //Added a negative sign below because the robot will be facing backwards     -Avrick
+
+  void SetLastY(double y)
+  {
+    lastY = y;
+  }
 };
