@@ -878,9 +878,9 @@ public:
     runningIntegralSpin += thetaDistance;
 
     // Debugging info
-    // SmartDashboard::PutNumber("XDistance", xDistance);
-    // SmartDashboard::PutNumber("YDistance", yDistance);
-//  SmartDashboard::PutNumber("ThetaDistance", thetaDistance);
+     SmartDashboard::PutNumber("XDistance", xDistance);
+     SmartDashboard::PutNumber("YDistance", yDistance);
+     SmartDashboard::PutNumber("ThetaDistance", thetaDistance);
 // SmartDashboard::PutNumber("Theta I", intendedI);
 // SmartDashboard::PutNumber("Intended Vel", intendedVelocity);
 
@@ -1190,6 +1190,77 @@ public:
      SmartDashboard::PutNumber("Drive Y", lastY);
     return (lastX == 0 && lastY == 0 && lastSpin == 0);
   }
+
+
+
+  bool StrafeToPole2(double offsetX, double offsetY, double xGoal, double yGoal, double elapsedTime)
+  {
+    // TODO fix this because it sucks
+    Pose2d thetaGoal = Pose2d(0_m, 0_m, Rotation2d(180_deg));
+    double thetaDistance = thetaGoal.RelativeTo(GetPose()).Rotation().Radians().value();
+    if (fabs(thetaDistance) < O_ALLOWABLE_ERROR_ROTATION)
+    {
+      thetaDistance = 0;
+      lastSpin = 0;
+      runningIntegralSpin = 0;
+    }
+    double intendedI = std::clamp(O_SPIN_KI * runningIntegralSpin, -1 * O_SPIN_KI_MAX, O_SPIN_KI_MAX);
+    double intendedVelocity = std::clamp(O_SPIN_KP * thetaDistance + intendedI, -1 * O_SPIN_MAX_SPEED, O_SPIN_MAX_SPEED);
+    lastSpin += std::clamp(intendedVelocity - lastSpin, -1 * O_SPIN_MAX_ACCEL * elapsedTime,
+                           O_SPIN_MAX_ACCEL * elapsedTime);
+    runningIntegralSpin += thetaDistance;
+
+//  SmartDashboard::PutNumber("ThetaDistance", thetaDistance);
+// SmartDashboard::PutNumber("Theta I", intendedI);
+// SmartDashboard::PutNumber("Intended Vel", intendedVelocity);
+     SmartDashboard::PutNumber("Drive Spin", lastSpin);
+
+    // Use PID  to determine our desired spin speed
+    offsetX -= xGoal;
+    if (fabs(offsetX) < P_ALLOWABLE_ERROR_STRAFE)
+    {
+      lastX = 0;
+      offsetX = 0;
+      runningIntegralX = 0;
+    }
+    runningIntegralX += offsetX;
+    intendedI = std::clamp(0.03 * runningIntegralX, -1 * P_STRAFE_KI_MAX, P_STRAFE_KI_MAX);
+    intendedVelocity = std::clamp(0.4 * offsetX + intendedI, -1 * P_STRAFE_MAX_SPEED, P_STRAFE_MAX_SPEED);
+    lastX += std::clamp(intendedVelocity - lastX, -1 * P_STRAFE_MAX_ACCEL * elapsedTime,
+                        P_STRAFE_MAX_ACCEL * elapsedTime);
+    runningIntegralX += offsetX;
+
+  SmartDashboard::PutNumber("XDistance", offsetX);
+  SmartDashboard::PutNumber("X I", intendedI);
+  SmartDashboard::PutNumber("Intended Vel", intendedVelocity);
+     SmartDashboard::PutNumber("Drive X", lastX);
+     
+    offsetY -= yGoal;
+    SmartDashboard::PutNumber("Real offsetu", offsetY);
+    if (fabs(offsetY) < P_ALLOWABLE_ERROR_TRANS)
+    {
+      lastY = 0;
+      offsetY = 0;
+      runningIntegralY = 0;
+    }
+    runningIntegralY += offsetY;
+    intendedI = std::clamp(P_TRANS_KI * runningIntegralY, -1 * P_TRANS_KI_MAX, P_TRANS_KI_MAX);
+    intendedVelocity = std::clamp(P_TRANS_KP * offsetY + intendedI, -1 * P_TRANS_MAX_SPEED, P_TRANS_MAX_SPEED);
+    lastY += std::clamp(intendedVelocity - lastY, -1 * P_TRANS_MAX_ACCEL * elapsedTime,
+                        P_TRANS_MAX_ACCEL * elapsedTime);
+    runningIntegralY += offsetY;
+
+    DriveSwervePercent(-lastX, lastY, lastSpin);
+
+
+  SmartDashboard::PutNumber("YDistance", offsetY);
+  SmartDashboard::PutNumber("Y I", intendedI);
+ SmartDashboard::PutNumber("Intended Vel", intendedVelocity);
+     SmartDashboard::PutNumber("Drive Y", lastY);
+    return (lastX == 0 && lastY == 0 && lastSpin == 0);
+  }
+
+
 
   void StartBalance()
   {

@@ -11,29 +11,32 @@ private:
     double runningWristIntegral = 0;
     double lastWristSpeed = 0;
     double initalClawPIDTime = 0;
-    
+    bool usingBeamBreaks = true;
+
 public:
     rev::CANSparkMax *wristMotor;
-    rev::CANSparkMax *clawMotor;
+    rev::CANSparkMax clawMotor;
     rev::SparkMaxRelativeEncoder *wristEncoder, *clawEncoder; 
     rev::SparkMaxAnalogSensor *distanceSensor;
     rev::SparkMaxAbsoluteEncoder *magEncoder;
-    rev::SparkMaxLimitSwitch *closedLimit, *openLimit;
+    rev::SparkMaxLimitSwitch closedLimit, openLimit;
 
   /**
    * Instantiates a two motor elevator lift
    */
-  Claw(rev::CANSparkMax *wrist, rev::CANSparkMax *claw)
+  Claw(rev::CANSparkMax *wrist)
+  :clawMotor{9, rev::CANSparkMax::MotorType::kBrushless},
+  closedLimit{clawMotor.GetReverseLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyOpen)},
+  openLimit{clawMotor.GetForwardLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyOpen)}
   {
     wristMotor = wrist;
-    clawMotor = claw;
     wristMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
-    clawMotor->SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
-    clawEncoder =  new rev::SparkMaxRelativeEncoder(clawMotor->GetEncoder());
+    clawMotor.SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
+    clawEncoder = new rev::SparkMaxRelativeEncoder(clawMotor.GetEncoder());
     clawEncoder->SetPosition(1.0);
     wristEncoder =  new rev::SparkMaxRelativeEncoder(wristMotor->GetEncoder());
     wristEncoder->SetPosition(0.0);
-    distanceSensor = new rev::SparkMaxAnalogSensor(clawMotor->GetAnalog());
+    distanceSensor = new rev::SparkMaxAnalogSensor(clawMotor.GetAnalog());
    // closedLimit = new rev::SparkMaxLimitSwitch(clawMotor->GetReverseLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed));
    // openLimit = new rev::SparkMaxLimitSwitch(clawMotor->GetForwardLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed));
     magEncoder = new rev::SparkMaxAbsoluteEncoder(wristMotor->GetAbsoluteEncoder(rev::SparkMaxAbsoluteEncoder::Type::kDutyCycle));
@@ -109,14 +112,14 @@ public:
 
   void MoveClawPercent(double percent)
   {
-   SmartDashboard::PutNumber("claw current", clawMotor->GetOutputCurrent());
-   SmartDashboard::PutNumber("claw speed", percent);
-   SmartDashboard::PutNumber("Distance Sensor", distanceSensor->GetPosition());
-    //if (closedLimit->Get())
-    //  ResetClawEncoder(0);
-    //else if (openLimit->Get())
-     // ResetClawEncoder(13);
-    clawMotor->Set(percent);
+    SmartDashboard::PutBoolean("closed Limit", closedLimit.Get());
+    SmartDashboard::PutBoolean("open Limit", openLimit.Get());
+    SmartDashboard::PutNumber("ardiuno out", distanceSensor->GetPosition());
+    if (closedLimit.Get())
+      ResetClawEncoder(0);
+    else if (openLimit.Get())
+      ResetClawEncoder(13);
+    clawMotor.Set(percent);
   }
 
   void BeginClawPID()
@@ -176,7 +179,7 @@ public:
     initalClawPIDTime += elapsedTime;
     //Grab til it stops or we hit limit switch
     MoveClawPercent(-0.9);
-    if (ClawEncoderReading() <= 0.25 || initalClawPIDTime > 0.5)
+    if (ClawEncoderReading() <= 0.25 || initalClawPIDTime > 0.75)
     {
       MoveClawPercent(0);
       return true;
@@ -184,13 +187,36 @@ public:
     return false;
   }
 
-  bool ConeInClaw()
-  { //0: 2.23, 
-    /*double expectedDistance = -0.1557 * ClawEncoderReading() + 2.1566;
-    SmartDashboard::PutNumber("expected Distance", expectedDistance);
-    return distanceSensor->GetPosition() >  0.9;*/
-   // return distanceSensor->GetPosition() < 2.5;
-    return false;
+  bool GetUsingBeamBreaks()
+  {
+    return usingBeamBreaks;
+  }
+
+  void SetUsingBeamBreaks(bool shouldUse)
+  {
+    usingBeamBreaks = shouldUse;
+  }
+
+
+  bool ObjectInClaw()
+  { 
+    if (!usingBeamBreaks)
+      return false;
+    
+    return distanceSensor->GetPosition() > 2.2;
+  }
+
+  bool ObjectInClawSubstation()
+  {
+    if (!usingBeamBreaks)
+      return false;
+
+    return distanceSensor->GetPosition() > 0.5 && distanceSensor->GetPosition() < 2.2;
+  }
+
+  bool IsObjectCone()
+  {
+    return ClawEncoderReading() < 4;
   }
 
 };
