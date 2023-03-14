@@ -254,6 +254,7 @@ public:
 class SwerveDrive
 {
 private:
+  //Suggestion: The fields are a little inconsistant about including the type before each variable declaration, or declaring a bunch of variables together
   Pigeon2 *pigeonIMU;
   Translation2d m_frontLeft; /* Location of the front left wheel in relation to the center of the robot */
   Translation2d m_frontRight;
@@ -514,6 +515,7 @@ public:
   }
 
 
+  //Suggestion: For functions without a body, you might want to throw an exception when you run them, so that you don't have silent failure if you use one by accident
   /**
    * Updates the Estimated Position of the robot with an estimate from non-odometry sensors, usually using vision and april-tags
    *
@@ -1197,7 +1199,11 @@ public:
   }
 
 
-
+  //Suggestion: As far as I can tell, this function is only called once (Robot.cpp, AutonomousPeriodic, if (m_autoSelected == kAutoBLCubeCone || m_autoSelected == kAutoBRCubeCone || m_autoSelected == kAutoRRCubeCone || m_autoSelected == kAutoRLCubeCone), if(splineSection == 2.5), if (turnt && elevatorLift->winchEncoderReading() > 40)).
+  //There are two differences between StrafeToPole and StrafeToPole2:
+  //StrafeToPole2 uses 0.03 instead of P_STRAFE_KI(0.04) when calculating intendedI the second time
+  //StrafeToPole2 uses 0.4 instead of P_STRAFE_KP(0.6) when calculating intendedVelocity the second time
+  //I am not sure why these values need to be different in the one case where you call this function, but it might be smart to refactor the logic so that there is only one StrafeToPole function
   bool StrafeToPole2(double offsetX, double offsetY, double xGoal, double yGoal, double elapsedTime)
   {
     // TODO fix this because it sucks
@@ -1234,6 +1240,14 @@ public:
     lastX += std::clamp(intendedVelocity - lastX, -1 * P_STRAFE_MAX_ACCEL * elapsedTime,
                         P_STRAFE_MAX_ACCEL * elapsedTime);
     runningIntegralX += offsetX;
+
+    /*
+    intendedI = std::clamp(P_STRAFE_KI * runningIntegralX, -1 * P_STRAFE_KI_MAX, P_STRAFE_KI_MAX);
+    intendedVelocity = std::clamp(P_STRAFE_KP * offsetX + intendedI, -1 * P_STRAFE_MAX_SPEED, P_STRAFE_MAX_SPEED);
+    lastX += std::clamp(intendedVelocity - lastX, -1 * P_STRAFE_MAX_ACCEL * elapsedTime,
+                        P_STRAFE_MAX_ACCEL * elapsedTime);
+    runningIntegralX += offsetX;
+    */
 
   SmartDashboard::PutNumber("XDistance", offsetX);
   SmartDashboard::PutNumber("X I", intendedI);

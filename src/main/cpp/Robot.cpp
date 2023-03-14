@@ -17,6 +17,7 @@
 
 double pigeon_initial;
 // Our future subsystem objects
+// Suggestion: It might be safer to have these as shared pointers instead of raw pointers.
 SwerveDrive *swerveDrive;
 ElevatorLift *elevatorLift;
 Limelight *limelight;
@@ -236,6 +237,25 @@ void Robot::AutonomousInit()
   claw->ResetClawEncoder();
   splineSection = 0;
 
+  //Suggestion: It would be cleaner and more efficient to put these if statements in one big switch
+  //Suggestion: Changing m_autoSelected to an enum would save space and remove extra calculations
+     
+  /* Advanced Suggestion:
+  To make adding or modifying autonomous programs quicker, you could create an "AutonomousFunctionClass".
+  AutonomousFunctionClass could have a constructor like: AutonomousFunctionClass(bool AllianceColor, Pose2d startingOdomoetry, List<string> trajectoryNames).
+  AutonomousFunctionClass could then have an Initialize function that takes in a SwerveDrive* and calls SetAllianceColor, ResetOdometry, InitializeTrajectory, etc... with the values from its constructor.
+    
+  // Advanced Suggestion Part 2:
+  Instead of your m_chooser being a SendableChooser<string> you can make it a SendableChooser<AutonomousFunctionClass>.
+  To add options to the m_chooser, you could do something like m_Chooser.AddOption(autonName, AutonomousFunctionClass(*correct parameters for the auton*));
+  Finally, m_chooser.GetSelected would return the proper AutonomousFunctionClass, and all you need to do is call that class's initialize function -- zero if statements!!
+  
+  // Fixing issues this suggestion might cause:
+  I understand that some other parts of Robot.cpp rely on m_autoSelected, which this suggestion removes.
+  There are ways to abstract all the code that uses m_autoSelected into the AutonomousFunctionClass, which we can work toward in the future.
+  For now, I recommend first adding an extra string parameter to the AutonomousFunctionClass constructor call AutonName.
+  You could then replace m_autonSelected with selectedAutonomousFunctionClass.AutonName in the other parts of Robot.cpp!
+  */
   if (m_autoSelected == kAutoRR2GO)
   {
     swerveDrive->SetAllianceColorRed();
@@ -468,6 +488,8 @@ void Robot::AutonomousPeriodic()
     swerveDrive->UpdateConeOdometry();
     for (auto array : coneEntry.ReadQueue())
     {
+      //Suggestion: Whenever array.value[1] > 0.75 the condition is true, and whenever array.value[1] <= .75 the condition is false.
+      //Because it does not affect the results of the if statement, I recommend either changing or removing (array.value[0] != 0 || array.value[1] != 0).
       if ((array.value[0] != 0 || array.value[1] != 0) && array.value[1] > 0.75)
       {
         double fieldOrientedX = -1 * array.value[0];
