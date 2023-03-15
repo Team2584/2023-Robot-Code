@@ -97,6 +97,9 @@ public:
     if (lastSpeed < -0.8)
       lastSpeed = -0.8;
 
+    if (lastSpeed < -0.3 && winchEncoderReading() < 8)
+      lastSpeed = -0.3;
+
     MoveElevatorPercent(lastSpeed + ELEVHOLDFF);
     return false;
   }
