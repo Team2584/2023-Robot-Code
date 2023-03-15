@@ -1879,10 +1879,10 @@ void Robot::TeleopPeriodic()
   // SmartDashboard::PutNumber("BR Mag", swerveDrive->BRModule->magEncoder->GetAbsolutePosition());
   // SmartDashboard::PutNumber("Pigeon", _pigeon.GetYaw());
 
-  if (claw->ClawEncoderReading() > 11)
-    lights->SetLED("blue");
-  else if (claw->ObjectInClaw() || claw->ObjectInClawSubstation())
+  if (claw->ObjectInClaw() || claw->ObjectInClawSubstation())
     lights->SetLED("green");
+  else if (claw->ClawEncoderReading() > 11)
+    lights->SetLED("blue");
   else if (claw->ClawEncoderReading() < 5 && !claw->ObjectInClaw())
     lights->SetLED("red");
   else
@@ -2205,7 +2205,7 @@ void Robot::TeleopPeriodic()
           if (claw->ObjectInClawSubstation())
           {
             conePlaceXLimelightGoal = 0.19; 
-            conePlaceYLimelightGoal = -0.055;
+            conePlaceYLimelightGoal = -0.07;
             conePlaceElevatorGoal = 47;  
           }
           else
@@ -2227,7 +2227,7 @@ void Robot::TeleopPeriodic()
           if (claw->ObjectInClawSubstation())
           {
             conePlaceXLimelightGoal = 0.19; 
-            conePlaceYLimelightGoal = -0.055;
+            conePlaceYLimelightGoal = -0.07;
             conePlaceElevatorGoal = 82;  
           }
           else
