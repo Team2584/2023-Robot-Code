@@ -1879,11 +1879,9 @@ void Robot::TeleopPeriodic()
   // SmartDashboard::PutNumber("BR Mag", swerveDrive->BRModule->magEncoder->GetAbsolutePosition());
   // SmartDashboard::PutNumber("Pigeon", _pigeon.GetYaw());
 
-  if (claw->ClawEncoderReading() > 11 && !claw->ObjectInClaw())
+  if (claw->ClawEncoderReading() > 11)
     lights->SetLED("blue");
-  else if (claw->ClawEncoderReading() > 11 && claw->ObjectInClaw())
-    lights->SetLED("yellow");
-  else if (claw->ClawEncoderReading() < 5 && claw->ObjectInClaw())
+  else if (claw->ObjectInClaw() || claw->ObjectInClawSubstation())
     lights->SetLED("green");
   else if (claw->ClawEncoderReading() < 5 && !claw->ObjectInClaw())
     lights->SetLED("red");

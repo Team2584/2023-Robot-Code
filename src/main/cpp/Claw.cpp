@@ -1,5 +1,6 @@
 #include "Robot.h"
 #include "ClawConstants.h"
+#include "PicoColorSensor.h"
 
 #include <frc/smartdashboard/SmartDashboard.h>
 
@@ -20,6 +21,7 @@ public:
     rev::SparkMaxAnalogSensor *distanceSensor;
     rev::SparkMaxAbsoluteEncoder *magEncoder;
     rev::SparkMaxLimitSwitch closedLimit, openLimit;
+    pico::ColorSensor *colorSensor;
 
   /**
    * Instantiates a two motor elevator lift
@@ -37,6 +39,7 @@ public:
     wristEncoder =  new rev::SparkMaxRelativeEncoder(wristMotor->GetEncoder());
     wristEncoder->SetPosition(0.0);
     distanceSensor = new rev::SparkMaxAnalogSensor(clawMotor.GetAnalog());
+    colorSensor = new pico::ColorSensor();
    // closedLimit = new rev::SparkMaxLimitSwitch(clawMotor->GetReverseLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed));
    // openLimit = new rev::SparkMaxLimitSwitch(clawMotor->GetForwardLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed));
     magEncoder = new rev::SparkMaxAbsoluteEncoder(wristMotor->GetAbsoluteEncoder(rev::SparkMaxAbsoluteEncoder::Type::kDutyCycle));
@@ -216,7 +219,28 @@ public:
 
   bool IsObjectCone()
   {
-    return ClawEncoderReading() < 4;
+    pico::ColorSensor::RawColor color = colorSensor->GetRawColor0();
+    double r = static_cast<double>(color.red);
+    double g = static_cast<double>(color.green);
+    double b = static_cast<double>(color.blue);
+    double mag = r + g + b;
+    r /= mag;
+    g /= mag;
+    b /= mag;
+    r *= 255;
+    g *= 255;
+    b *= 255;
+    SmartDashboard::PutNumber("color sensor blue", b * 255);
+      SmartDashboard::PutNumber("color sensor red", r * 255);
+    SmartDashboard::PutNumber("color sensor green", g * 255);
+    if (ClawEncoderReading() > 7)
+      return false;
+    else if (ClawEncoderReading() < 3)
+      return true;
+    else if (ObjectInClaw())
+      return !(g > 30 && b < 100);
+    else
+      return ClawEncoderReading() < 4;
   }
 
 };
