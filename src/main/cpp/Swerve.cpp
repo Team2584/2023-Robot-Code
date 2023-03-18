@@ -1366,10 +1366,10 @@ public:
 
   void StrafeLock()
   {
-    FLModule->DriveSwerveModulePercent(0, M_PI / 2);
-    FRModule->DriveSwerveModulePercent(0, M_PI / 2);
-    BLModule->DriveSwerveModulePercent(0, M_PI / 2);
-    BRModule->DriveSwerveModulePercent(0, M_PI / 2);
+    FLModule->DriveSwerveModulePercent(0, 0);
+    FRModule->DriveSwerveModulePercent(0, 0);
+    BLModule->DriveSwerveModulePercent(0, 0);
+    BRModule->DriveSwerveModulePercent(0, 0);
   }
 /*    float pitch = pigeonIMU->GetPitch();
     frc::SmartDashboard::PutNumber("gyroRot", gyroRot); //on the dashboard, output the gyroRot number
