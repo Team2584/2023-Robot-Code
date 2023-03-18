@@ -2509,10 +2509,10 @@ void Robot::TeleopPeriodic()
         else
           elevatorLift->SetElevatorHeightPID(69, elapsedTime);
 
-        if (!coneInClaw)
+        if (!coneInClaw && elevatorLift->winchEncoderReading() > 65)
           coneInClaw = claw->ObjectInClaw() || claw->ObjectInClawSubstation();
-
-        claw->PIDWrist(M_PI / 2 - 0.05, elapsedTime);
+//1.37
+        claw->PIDWrist(1.37, elapsedTime);
         if (!clawFinishedOpening)
           clawFinishedOpening = claw->OpenClaw(elapsedTime);
         else if (coneInClaw)

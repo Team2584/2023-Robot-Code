@@ -18,7 +18,8 @@ public:
     rev::CANSparkMax *wristMotor;
     rev::CANSparkMax clawMotor;
     rev::SparkMaxRelativeEncoder *wristEncoder, *clawEncoder; 
-    rev::SparkMaxAnalogSensor *distanceSensor;
+    frc::DigitalInput *regualarBreambreak;
+    frc::DigitalInput *substationBreambreak;
     rev::SparkMaxAbsoluteEncoder *magEncoder;
     rev::SparkMaxLimitSwitch closedLimit, openLimit;
     pico::ColorSensor *colorSensor;
@@ -38,8 +39,9 @@ public:
     clawEncoder->SetPosition(1.0);
     wristEncoder =  new rev::SparkMaxRelativeEncoder(wristMotor->GetEncoder());
     wristEncoder->SetPosition(0.0);
-    distanceSensor = new rev::SparkMaxAnalogSensor(clawMotor.GetAnalog());
     colorSensor = new pico::ColorSensor();
+    substationBreambreak = new frc::DigitalInput(0);
+    regualarBreambreak = new frc::DigitalInput(1);
    // closedLimit = new rev::SparkMaxLimitSwitch(clawMotor->GetReverseLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed));
    // openLimit = new rev::SparkMaxLimitSwitch(clawMotor->GetForwardLimitSwitch(rev::SparkMaxLimitSwitch::Type::kNormallyClosed));
     magEncoder = new rev::SparkMaxAbsoluteEncoder(wristMotor->GetAbsoluteEncoder(rev::SparkMaxAbsoluteEncoder::Type::kDutyCycle));
@@ -117,7 +119,8 @@ public:
   {
     SmartDashboard::PutBoolean("closed Limit", closedLimit.Get());
     SmartDashboard::PutBoolean("open Limit", openLimit.Get());
-    SmartDashboard::PutNumber("ardiuno out", distanceSensor->GetPosition());
+    SmartDashboard::PutNumber("digital frequency", regualarBreambreak->Get());
+
     if (closedLimit.Get())
       ResetClawEncoder(0);
     else if (openLimit.Get())
@@ -206,7 +209,7 @@ public:
     if (!usingBeamBreaks)
       return false;
     
-    return distanceSensor->GetPosition() > 2.2;
+    return regualarBreambreak->Get();
   }
 
   bool ObjectInClawSubstation()
@@ -214,7 +217,7 @@ public:
     if (!usingBeamBreaks)
       return false;
 
-    return distanceSensor->GetPosition() > 0.5 && distanceSensor->GetPosition() < 2.2;
+    return substationBreambreak->Get();
   }
 
   bool IsObjectCone()
