@@ -102,7 +102,7 @@ public:
 
   bool PIDWristDown(double elapsedTime)
   {
-    return PIDWrist(1.95, elapsedTime);
+    return PIDWrist(1.955, elapsedTime);
   }
 
   bool PIDWristUp(double elapsedTime)

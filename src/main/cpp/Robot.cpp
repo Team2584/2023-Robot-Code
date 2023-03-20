@@ -2218,13 +2218,13 @@ void Robot::TeleopPeriodic()
           {
             conePlaceXLimelightGoal = 0.19; 
             conePlaceYLimelightGoal = -0.07;
-            conePlaceElevatorGoal = 47;  
+            conePlaceElevatorGoal = 49;  
           }
           else
           {
             conePlaceXLimelightGoal = 0.19; 
             conePlaceYLimelightGoal = -0.055;
-            conePlaceElevatorGoal = 47;  
+            conePlaceElevatorGoal = 49;  
           }
           placingHigh = false;
           doneWithPoleAlignment = false;
@@ -2517,7 +2517,7 @@ void Robot::TeleopPeriodic()
           clawFinishedOpening = claw->OpenClaw(elapsedTime);
         else if (coneInClaw)
           claw->CloseClaw(elapsedTime);
-        else 
+        else
         {
            if (xbox_Drive2->GetLeftTriggerAxis() > 0.5)
             claw->MoveClawPercent(0.5);  
