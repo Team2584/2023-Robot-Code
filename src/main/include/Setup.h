@@ -20,9 +20,6 @@ rev::CANSparkMax swerveBL{13, rev::CANSparkMax::MotorType::kBrushless};
 TalonFX driveBL{03};
 rev::CANSparkMax swerveBR{14, rev::CANSparkMax::MotorType::kBrushless};
 TalonFX driveBR{04};
-rev::CANSparkMax winchR{5, rev::CANSparkMax::MotorType::kBrushless};
-rev::CANSparkMax winchL{6, rev::CANSparkMax::MotorType::kBrushless};
-rev::CANSparkMax wrist{7, rev::CANSparkMax::MotorType::kBrushless};
 
 DutyCycleEncoder FLMagEnc(8);
 DutyCycleEncoder FRMagEnc(6);
@@ -30,10 +27,6 @@ DutyCycleEncoder BLMagEnc(9);
 DutyCycleEncoder BRMagEnc(7);
 
 Pigeon2 _pigeon(6);
-
-TimeOfFlight TOFSensor(0);
-
-frc::PWMSparkMax lightController{9}; // CHANGE
 
 double thetaInit;
 
